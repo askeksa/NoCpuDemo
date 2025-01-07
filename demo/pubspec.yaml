@@ -1,0 +1,15 @@
+name: no_cpu
+description: A framework for no-CPU Amiga demos.
+version: 1.0.0
+repository: https://github.com/askeksa/NoCpuChallenge
+
+environment:
+  sdk: ^3.6.0
+
+# Add regular dependencies here.
+dependencies:
+  # path: ^1.8.0
+
+dev_dependencies:
+  lints: ^5.0.0
+  test: ^1.24.0
