@@ -16,19 +16,24 @@ class Memory {
 
   Memory(this.size);
 
+  /// Create a data block.
   Data data({int alignment = 1, bool singlePage = false, Object? origin}) {
-    Data block = Data(this, alignment: alignment, singlePage: singlePage, origin: origin);
+    Data block = Data(this,
+        alignment: alignment, singlePage: singlePage, origin: origin);
     dataBlocks.add(block);
     return block;
   }
 
-  Space space(int size, {int alignment = 1, bool singlePage = false, Object? origin}) {
-    Space block = Space(this, size, alignment: alignment, singlePage: singlePage, origin: origin);
+  /// Create an uninitialized memory block.
+  Space space(int size,
+      {int alignment = 1, bool singlePage = false, Object? origin}) {
+    Space block = Space(this, size,
+        alignment: alignment, singlePage: singlePage, origin: origin);
     spaceBlocks.add(block);
     return block;
   }
 
-  void _allocate() {
+  void _assignAddresses() {
     // TODO: Compute time ranges via dependencies to overlap space blocks.
     final List<Block> fixed = [...dataBlocks, ...spaceBlocks]
         .where((b) => b.isAllocated)
@@ -58,15 +63,15 @@ class Memory {
     dataSize = dataBlocks.map((b) => b.end).fold(0, max);
   }
 
-  void _relocate() {
+  void _resolveReferences() {
     for (Data block in dataBlocks) {
-      block._relocate();
+      block._resolveReferences();
     }
   }
 
   Uint8List finalize() {
-    _allocate();
-    _relocate();
+    _assignAddresses();
+    _resolveReferences();
     Uint8List contents = Uint8List(dataSize);
     for (Data block in dataBlocks) {
       contents.setAll(block.address!, block.bytes);
@@ -152,27 +157,44 @@ final class FreeLabel extends Label {
 
 /// A word in a data block containing part of the address of a label in the
 /// same or a different block.
-class Relocation {
+class Reference {
   final int offsetInBlock;
   final Label target;
   final int shift;
 
-  Relocation(this.offsetInBlock, this.target, this.shift);
+  Reference(this.offsetInBlock, this.target, this.shift);
 
   int get value => (target.address >> shift) & 0xFFFF;
 }
 
 /// Base class for memory blocks.
 abstract base class Block {
+  /// Memory containing this block.
   final Memory memory;
-  final int alignment;
-  final bool singlePage;
-  final Object? origin;
 
+  /// Alignment of the block.
+  final int alignment;
+
+  /// Whether the block should be allocated within a single 64k page.
+  final bool singlePage;
+
+  /// Object from which this block was created.
+  Object? origin;
+
+  /// The memory address of the block.
+  ///
+  /// This can be set explicitly to assign a fixed address to the block.
+  /// Otherwise, the block will be assigned an address when the memory is
+  /// finalized.
   int? address;
+
+  /// The first frame where the block is used.
   int? firstFrame;
+
+  /// The last frame where the block is used.
   int? lastFrame;
 
+  /// Label pointing to the start of the block.
   late final Label label = BlockLabel(this);
 
   Block(this.memory,
@@ -180,12 +202,26 @@ abstract base class Block {
     assert(alignment >= 1 && alignment <= 20);
   }
 
+  /// The size of the block.
   int get size;
 
+  /// The end address of the block.
   int get end => address! + size;
 
+  /// Whether the block has been allocated to a specific address.
   bool get isAllocated => address != null;
 
+  /// Mark the block as used in a given frame.
+  void useInFrame(int frame) {
+    if (firstFrame == null || frame < firstFrame!) {
+      firstFrame = frame;
+    }
+    if (lastFrame == null || frame > lastFrame!) {
+      lastFrame = frame;
+    }
+  }
+
+  /// Set a label at a given offset from the start of the block.
   Label setLabel(int offset) => label + offset;
 
   @override
@@ -222,59 +258,73 @@ abstract base class Block {
 
 /// Memory block containing initialized data.
 ///
-/// The block can contain relocations, which are resolved when the blocks are
-/// allocated to specific addresses.
+/// The block can contain references, which are resolved after all blocks have
+/// been assigned specific addresses.
 final class Data extends Block with DataContainer {
-  final List<Relocation> relocations = [];
+  final List<Reference> references = [];
 
   Data(super.memory, {super.alignment, super.singlePage, super.origin});
 
+  /// Add a label at the end of the block.
   Label addLabel() => setLabel(size);
 
+  /// Bind a free label at the end of the block.
   void bind(FreeLabel label) {
     label.bind(addLabel());
   }
 
-  void setRelocation(int offsetInBlock, Label target, int shift) {
+  /// Set a reference at a given offset from the start of the block.
+  void setReference(int offsetInBlock, Label target, int shift) {
     assert(offsetInBlock.isAlignedTo(1));
-    relocations.add(Relocation(offsetInBlock, target, shift));
+    references.add(Reference(offsetInBlock, target, shift));
   }
 
+  /// Set the high word of a reference at a given offset from the start of the
+  /// block.
   void setHigh(int offsetInBlock, Label target) {
-    setRelocation(offsetInBlock, target, 16);
+    setReference(offsetInBlock, target, 16);
   }
 
+  /// Set the low word of a reference at a given offset from the start of the
+  /// block.
   void setLow(int offsetInBlock, Label target) {
-    setRelocation(offsetInBlock, target, 0);
+    setReference(offsetInBlock, target, 0);
   }
 
-  void addRelocation(Label target, int shift) {
-    setRelocation(size, target, shift);
+  /// Add a reference at the end of the block.
+  void addReference(Label target, int shift) {
+    setReference(size, target, shift);
     addWord(0);
   }
 
+  /// Add the high word of a reference at the end of the block.
   void addHigh(Label target) {
-    addRelocation(target, 16);
+    addReference(target, 16);
   }
 
+  /// Add the low word of a reference at the end of the block.
   void addLow(Label target) {
-    addRelocation(target, 0);
+    addReference(target, 0);
   }
 
+  /// Add the contents of another data block to this block.
+  ///
+  /// The block should not have labels referenced from other blocks. Internal
+  /// references and references to other blocks are fine.
   void addData(Data data) {
     Label dataLabel = addLabel();
-    for (Relocation relocation in data.relocations) {
-      Label target = relocation.target.block == data
-          ? dataLabel + relocation.target.offsetInBlock
-          : relocation.target;
-      setRelocation(size + relocation.offsetInBlock, target, relocation.shift);
+    for (Reference reference in data.references) {
+      Label target = reference.target.block == data
+          ? dataLabel + reference.target.offsetInBlock
+          : reference.target;
+      setReference(size + reference.offsetInBlock, target, reference.shift);
     }
     addBytes(data.bytes);
   }
 
-  void _relocate() {
-    for (Relocation relocation in relocations) {
-      setWord(relocation.offsetInBlock, relocation.value);
+  void _resolveReferences() {
+    for (Reference reference in references) {
+      setWord(reference.offsetInBlock, reference.value);
     }
   }
 }
@@ -388,10 +438,11 @@ extension SetAtTarget on Label {
 
   void setWords(List<int> values) => _data.setWords(offsetInBlock, values);
 
-  void setLongwords(List<int> values) => _data.setLongwords(offsetInBlock, values);
+  void setLongwords(List<int> values) =>
+      _data.setLongwords(offsetInBlock, values);
 
-  void setRelocation(Label target, int shift) =>
-      _data.setRelocation(offsetInBlock, target, shift);
+  void setReference(Label target, int shift) =>
+      _data.setReference(offsetInBlock, target, shift);
 
   void setHigh(Label target) => _data.setHigh(offsetInBlock, target);
 
