@@ -1,9 +1,10 @@
+import 'custom.dart';
 import 'memory.dart';
 
 extension NewCopper on Memory {
   /// Create a copperlist.
-  Copper copper({bool isPrimary = false, Object? origin}) =>
-      Copper(this, isPrimary: isPrimary, origin: origin);
+  Copper copper({int alignment = 2, bool isPrimary = false, Object? origin}) =>
+      Copper(this, alignment: alignment, isPrimary: isPrimary, origin: origin);
 }
 
 /// A sequence of copper instructions.
@@ -17,8 +18,12 @@ class Copper {
   /// Object from which this copperlist was created.
   Object? origin;
 
-  Copper(Memory memory, {this.isPrimary = false, this.origin})
-      : data = memory.data(alignment: 2, singlePage: true) {
+  /// Is this copperlist terminated?
+  bool isTerminated = false;
+
+  Copper(Memory memory,
+      {int alignment = 2, this.isPrimary = false, this.origin})
+      : data = memory.data(alignment: alignment, singlePage: isPrimary) {
     data.origin = this;
   }
 
@@ -32,6 +37,7 @@ class Copper {
   String toString() => "Copper: $origin";
 
   void _move(int register, void Function() value, {FreeLabel? label}) {
+    assert(!isTerminated);
     data.addWord(register);
     label?.bind(data.addLabel());
     value();
@@ -66,6 +72,7 @@ class Copper {
 
   void _waitOrSkip(
       int v, int h, int vmask, int hmask, bool blitter, int skipFlag) {
+    assert(!isTerminated);
     assert(vmask & ~0x7F == 0x80);
     assert(hmask & ~0xFE == 0x00);
     data.addWord(((v & 0xFF) << 8) | (h & 0xFE) | 0x0001);
@@ -104,5 +111,25 @@ class Copper {
   /// Terminate the copperlist.
   void end() {
     data.addLongword(0xFFFFFFFE);
+    isTerminated = true;
+  }
+}
+
+extension CopperCall on Copper {
+  /// Call a secondary copperlist.
+  void call(Copper target) {
+    assert(isPrimary && !target.isPrimary);
+    var returnLabel = FreeLabel("return");
+    low(COP1LCL, returnLabel);
+    ptr(COP2LC, target.label);
+    move(COPJMP2, 0);
+    data.bind(returnLabel);
+  }
+
+  /// Return from a called copperlist.
+  void ret() {
+    assert(!isPrimary);
+    move(COPJMP1, 0);
+    isTerminated = true;
   }
 }
