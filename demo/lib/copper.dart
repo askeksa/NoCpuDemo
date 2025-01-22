@@ -30,6 +30,12 @@ class Copper {
   /// Label at the start of the copperlist.
   Label get label => data.label;
 
+  /// Whether the copperlist is empty.
+  bool get isEmpty => data.isEmpty;
+
+  /// Memory this copperlist is part of.
+  Memory get memory => data.memory;
+
   /// Mark the copperlist as used in a given frame.
   void useInFrame(int frame) => data.useInFrame(frame);
 
@@ -132,4 +138,49 @@ extension CopperCall on Copper {
     move(COPJMP1, 0);
     isTerminated = true;
   }
+}
+
+/// Something that can generate copper instructions.
+abstract interface class CopperComponent {
+  void addToCopper(Copper copper);
+}
+
+/// A [CopperComponent] that can be cached into a called copperlist.
+///
+/// Should implement consistent [operator==] and [hashCode] such that objects
+/// that compare equal will generate the same copper instructions.
+abstract interface class CacheableCopperComponent extends CopperComponent {
+  @override
+  bool operator ==(Object other);
+
+  @override
+  int get hashCode;
+}
+
+mixin CopperComponentCache {
+  final Map<CacheableCopperComponent, Copper?> copperComponentCache = {};
+}
+
+extension ComponentsInCopper on Copper {
+  void addComponent(CopperComponent component) {
+    component.addToCopper(this);
+  }
+
+  void addComponentCached(CacheableCopperComponent component) {
+    Copper? target = memory.copperComponentCache.putIfAbsent(component, () {
+      var copper = memory.copper();
+      component.addToCopper(copper);
+      if (copper.isEmpty) return null;
+      copper.ret();
+      return copper;
+    });
+    if (target != null) {
+      call(target);
+    }
+  }
+
+  void operator <<(CopperComponent component) => addComponent(component);
+
+  void operator >>(CacheableCopperComponent component) =>
+      addComponentCached(component);
 }
