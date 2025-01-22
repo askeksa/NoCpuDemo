@@ -18,7 +18,9 @@ main() {
     frame.move(COLOR00, 0x005);
     frame.call(sub);
     frame.wait(v: 100, h: 7);
-    frame.move(COLOR00, i * 0x111);
+    frame << bg(i * 0x111);
+    frame.wait(v: 200, h: 7);
+    frame >> bg(i.isEven ? 0xA00 : 0x500);
     frame.ptr(COP1LC, frames[(i + 1) % frames.length].label);
     frame.end();
   }
@@ -28,4 +30,26 @@ main() {
   initialCopper.end();
 
   File("../runner/chip.dat").writeAsBytesSync(m.finalize());
+
+  print("Number of cached copper components: ${m.copperComponentCache.length}");
 }
+
+class SetBackground implements CacheableCopperComponent {
+  final int color;
+
+  SetBackground(this.color);
+
+  @override
+  void addToCopper(Copper copper) {
+    copper.move(COLOR00, color);
+  }
+
+  @override
+  bool operator ==(Object other) =>
+      other is SetBackground && other.color == color;
+
+  @override
+  int get hashCode => color;
+}
+
+SetBackground bg(int color) => SetBackground(color);

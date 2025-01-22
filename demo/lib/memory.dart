@@ -1,12 +1,14 @@
 import 'dart:math';
 import 'dart:typed_data';
 
+import 'copper.dart';
+
 extension on int {
   bool isAlignedTo(int alignment) => this & ((1 << alignment) - 1) == 0;
 }
 
 /// Hub for chip memory contents
-class Memory {
+class Memory with CopperComponentCache {
   List<Data> dataBlocks = [];
   List<Space> spaceBlocks = [];
 
@@ -207,6 +209,9 @@ abstract base class Block {
 
   /// The end address of the block.
   int get end => address! + size;
+
+  /// Whether the block is empty.
+  bool get isEmpty => size == 0;
 
   /// Whether the block has been allocated to a specific address.
   bool get isAllocated => address != null;
