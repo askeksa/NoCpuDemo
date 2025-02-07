@@ -1,14 +1,12 @@
 import 'dart:math';
 import 'dart:typed_data';
 
-import 'copper.dart';
-
 extension on int {
   bool isAlignedTo(int alignment) => this & ((1 << alignment) - 1) == 0;
 }
 
 /// Hub for chip memory contents
-class Memory with CopperComponentCache {
+class Memory {
   List<Data> dataBlocks = [];
   List<Space> spaceBlocks = [];
 

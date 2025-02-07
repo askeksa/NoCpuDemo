@@ -30,11 +30,9 @@ main() {
   initialCopper.end();
 
   File("../runner/chip.dat").writeAsBytesSync(m.finalize());
-
-  print("Number of cached copper components: ${m.copperComponentCache.length}");
 }
 
-class SetBackground implements CacheableCopperComponent {
+class SetBackground implements CopperComponent {
   final int color;
 
   SetBackground(this.color);
@@ -43,13 +41,6 @@ class SetBackground implements CacheableCopperComponent {
   void addToCopper(Copper copper) {
     copper.move(COLOR00, color);
   }
-
-  @override
-  bool operator ==(Object other) =>
-      other is SetBackground && other.color == color;
-
-  @override
-  int get hashCode => color;
 }
 
 SetBackground bg(int color) => SetBackground(color);

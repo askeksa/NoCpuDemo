@@ -1,5 +1,3 @@
-import 'package:collection/collection.dart';
-
 import 'copper.dart';
 import 'memory.dart';
 
@@ -37,7 +35,7 @@ class Instrument {
   int get length => data.size;
 }
 
-class MusicFrame implements CacheableCopperComponent {
+class MusicFrame implements CopperComponent {
   /// Events in each of the four channels.
   List<MusicFrameChannel> channels = [];
 
@@ -56,13 +54,6 @@ class MusicFrame implements CacheableCopperComponent {
   void addToCopper(Copper copper) {
     // TODO
   }
-
-  @override
-  bool operator ==(Object other) =>
-      other is MusicFrame && ListEquality().equals(other.channels, channels);
-
-  @override
-  int get hashCode => ListEquality().hash(channels);
 }
 
 class MusicFrameChannel {
@@ -75,16 +66,6 @@ class MusicFrameChannel {
 
   /// Volume value to set, or `null` to keep the current value.
   int? volume;
-
-  @override
-  bool operator ==(Object other) =>
-      other is MusicFrameChannel &&
-      other.trigger == trigger &&
-      other.period == period &&
-      other.volume == volume;
-
-  @override
-  int get hashCode => Object.hash(trigger, period, volume);
 }
 
 class InstrumentTrigger {
@@ -95,13 +76,4 @@ class InstrumentTrigger {
   int offset;
 
   InstrumentTrigger(this.instrument, [this.offset = 0]);
-
-  @override
-  bool operator ==(Object other) =>
-      other is InstrumentTrigger &&
-      other.instrument == instrument &&
-      other.offset == offset;
-
-  @override
-  int get hashCode => Object.hash(instrument, offset);
 }

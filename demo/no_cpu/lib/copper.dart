@@ -145,42 +145,21 @@ abstract interface class CopperComponent {
   void addToCopper(Copper copper);
 }
 
-/// A [CopperComponent] that can be cached into a called copperlist.
-///
-/// Should implement consistent [operator==] and [hashCode] such that objects
-/// that compare equal will generate the same copper instructions.
-abstract interface class CacheableCopperComponent extends CopperComponent {
-  @override
-  bool operator ==(Object other);
-
-  @override
-  int get hashCode;
-}
-
-mixin CopperComponentCache {
-  final Map<CacheableCopperComponent, Copper?> copperComponentCache = {};
-}
-
 extension ComponentsInCopper on Copper {
   void addComponent(CopperComponent component) {
     component.addToCopper(this);
   }
 
-  void addComponentCached(CacheableCopperComponent component) {
-    Copper? target = memory.copperComponentCache.putIfAbsent(component, () {
-      var copper = memory.copper();
-      component.addToCopper(copper);
-      if (copper.isEmpty) return null;
-      copper.ret();
-      return copper;
-    });
-    if (target != null) {
-      call(target);
-    }
+  void addComponentCalled(CopperComponent component) {
+    var copper = memory.copper();
+    component.addToCopper(copper);
+    if (copper.isEmpty) return;
+    copper.ret();
+
+    call(copper);
   }
 
   void operator <<(CopperComponent component) => addComponent(component);
 
-  void operator >>(CacheableCopperComponent component) =>
-      addComponentCached(component);
+  void operator >>(CopperComponent component) => addComponentCalled(component);
 }
