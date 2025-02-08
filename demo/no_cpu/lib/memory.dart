@@ -181,6 +181,9 @@ abstract base class Block {
   /// Object from which this block was created.
   Object? origin;
 
+  /// Explicit dependencies on top of those implied by the references.
+  final List<Block> extraDependencies = [];
+
   /// The memory address of the block.
   ///
   /// This can be set explicitly to assign a fixed address to the block.
@@ -202,6 +205,9 @@ abstract base class Block {
     assert(alignment >= 1 && alignment <= 20);
   }
 
+  /// Blocks that this block depends on. May contain duplicates.
+  Iterable<Block> get dependencies;
+
   /// The size of the block.
   int get size;
 
@@ -213,6 +219,11 @@ abstract base class Block {
 
   /// Whether the block has been allocated to a specific address.
   bool get isAllocated => address != null;
+
+  /// Add a block as an explicit dependency.
+  void addDependency(Block block) {
+    extraDependencies.add(block);
+  }
 
   /// Mark the block as used in a given frame.
   void useInFrame(int frame) {
@@ -267,6 +278,10 @@ final class Data extends Block with DataContainer {
   final List<Reference> references = [];
 
   Data(super.memory, {super.alignment, super.singlePage, super.origin});
+
+  @override
+  Iterable<Block> get dependencies =>
+      references.map((r) => r.target.block).followedBy(extraDependencies);
 
   /// Add a label at the end of the block.
   Label addLabel() => setLabel(size);
@@ -339,6 +354,9 @@ final class Space extends Block {
 
   Space(super.memory, this.size,
       {super.alignment, super.singlePage, super.origin});
+
+  @override
+  Iterable<Block> get dependencies => extraDependencies;
 }
 
 mixin DataContainer {
