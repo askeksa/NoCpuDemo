@@ -16,21 +16,22 @@ class Memory {
 
   Memory(this.size);
 
-  /// Create a data block.
-  Data data({int alignment = 1, bool singlePage = false, Object? origin}) {
-    Data block = Data(this,
-        alignment: alignment, singlePage: singlePage, origin: origin);
-    dataBlocks.add(block);
-    return block;
-  }
+  factory Memory.fromRoots(int size, Iterable<Block> roots) {
+    Set<Block> blocks = {};
 
-  /// Create an uninitialized memory block.
-  Space space(int size,
-      {int alignment = 1, bool singlePage = false, Object? origin}) {
-    Space block = Space(this, size,
-        alignment: alignment, singlePage: singlePage, origin: origin);
-    spaceBlocks.add(block);
-    return block;
+    void collect(Block block) {
+      if (blocks.add(block)) {
+        block.dependencies.forEach(collect);
+      }
+    }
+
+    roots.forEach(collect);
+
+    Memory memory = Memory(size);
+    memory.dataBlocks.addAll(blocks.whereType<Data>());
+    memory.spaceBlocks.addAll(blocks.whereType<Space>());
+
+    return memory;
   }
 
   void _assignAddresses() {
@@ -169,9 +170,6 @@ class Reference {
 
 /// Base class for memory blocks.
 abstract base class Block {
-  /// Memory containing this block.
-  final Memory memory;
-
   /// Alignment of the block.
   final int alignment;
 
@@ -200,8 +198,7 @@ abstract base class Block {
   /// Label pointing to the start of the block.
   late final Label label = BlockLabel(this);
 
-  Block(this.memory,
-      {this.alignment = 1, this.singlePage = false, this.origin}) {
+  Block({this.alignment = 1, this.singlePage = false, this.origin}) {
     assert(alignment >= 1 && alignment <= 20);
   }
 
@@ -277,7 +274,7 @@ abstract base class Block {
 final class Data extends Block with DataContainer {
   final List<Reference> references = [];
 
-  Data(super.memory, {super.alignment, super.singlePage, super.origin});
+  Data({super.alignment, super.singlePage, super.origin});
 
   @override
   Iterable<Block> get dependencies =>
@@ -352,8 +349,7 @@ final class Space extends Block {
   @override
   final int size;
 
-  Space(super.memory, this.size,
-      {super.alignment, super.singlePage, super.origin});
+  Space(this.size, {super.alignment, super.singlePage, super.origin});
 
   @override
   Iterable<Block> get dependencies => extraDependencies;
