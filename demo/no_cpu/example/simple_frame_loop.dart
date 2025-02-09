@@ -5,15 +5,13 @@ import 'package:no_cpu/copper.dart';
 import 'package:no_cpu/custom.dart';
 
 main() {
-  var m = Memory(0x20_0000);
-
-  Copper sub = m.copper(origin: "Subroutine");
+  Copper sub = Copper(origin: "Subroutine");
   sub.wait(v: 80, h: 7);
   sub.move(COLOR00, 0x0F0);
   sub.ret();
 
   List<Copper> frames =
-      List.generate(16, (i) => m.copper(isPrimary: true, origin: i));
+      List.generate(16, (i) => Copper(isPrimary: true, origin: i));
   for (var (i, frame) in frames.indexed) {
     frame.move(COLOR00, 0x005);
     frame.call(sub);
@@ -25,10 +23,11 @@ main() {
     frame.end();
   }
 
-  Copper initialCopper = m.copper(origin: "Initial")..data.address = 0x00_0000;
+  Copper initialCopper = Copper(origin: "Initial")..data.address = 0x00_0000;
   initialCopper.ptr(COP1LC, frames[0].label);
   initialCopper.end();
 
+  Memory m = Memory.fromRoots(0x20_0000, [initialCopper.data]);
   File("../runner/chip.dat").writeAsBytesSync(m.finalize());
 }
 

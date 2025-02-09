@@ -1,12 +1,6 @@
 import 'custom.dart';
 import 'memory.dart';
 
-extension NewCopper on Memory {
-  /// Create a copperlist.
-  Copper copper({int alignment = 2, bool isPrimary = false, Object? origin}) =>
-      Copper(this, alignment: alignment, isPrimary: isPrimary, origin: origin);
-}
-
 /// A sequence of copper instructions.
 class Copper {
   /// Data for the copperlist.
@@ -21,9 +15,8 @@ class Copper {
   /// Is this copperlist terminated?
   bool isTerminated = false;
 
-  Copper(Memory memory,
-      {int alignment = 2, this.isPrimary = false, this.origin})
-      : data = memory.data(alignment: alignment, singlePage: isPrimary) {
+  Copper({int alignment = 2, this.isPrimary = false, this.origin})
+      : data = Data(alignment: alignment, singlePage: isPrimary) {
     data.origin = this;
   }
 
@@ -32,9 +25,6 @@ class Copper {
 
   /// Whether the copperlist is empty.
   bool get isEmpty => data.isEmpty;
-
-  /// Memory this copperlist is part of.
-  Memory get memory => data.memory;
 
   /// Mark the copperlist as used in a given frame.
   void useInFrame(int frame) => data.useInFrame(frame);
@@ -151,7 +141,7 @@ extension ComponentsInCopper on Copper {
   }
 
   void addComponentCalled(CopperComponent component) {
-    var copper = memory.copper();
+    var copper = Copper(origin: component);
     component.addToCopper(copper);
     if (copper.isEmpty) return;
     copper.ret();
