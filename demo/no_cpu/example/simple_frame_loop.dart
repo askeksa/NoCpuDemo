@@ -1,8 +1,9 @@
 import 'dart:io';
 
-import 'package:no_cpu/memory.dart';
+import 'package:no_cpu/blitter.dart';
 import 'package:no_cpu/copper.dart';
 import 'package:no_cpu/custom.dart';
+import 'package:no_cpu/memory.dart';
 
 main() {
   Copper sub = Copper(origin: "Subroutine");
@@ -13,7 +14,18 @@ main() {
   List<Copper> frames =
       List.generate(16, (i) => Copper(isPrimary: true, origin: i));
   for (var (i, frame) in frames.indexed) {
-    frame.move(COLOR00, 0x005);
+    var color = FreeLabel("color");
+    var blit = Blit()
+      ..aPtr = color
+      ..dPtr = color
+      ..aStride = 0
+      ..dStride = 0
+      ..aShift = 1
+      ..height = 2;
+
+    frame >> blit + WaitBlit();
+    frame.move(COLOR00, 0x005, label: color);
+
     frame.call(sub);
     frame.wait(v: 100, h: 7);
     frame << bg(i * 0x111);
