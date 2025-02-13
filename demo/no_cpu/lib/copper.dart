@@ -153,3 +153,21 @@ extension ComponentsInCopper on Copper {
 
   void operator >>(CopperComponent component) => addComponentCalled(component);
 }
+
+class JoinedCopperComponents implements CopperComponent {
+  final List<CopperComponent> components;
+
+  JoinedCopperComponents(this.components);
+
+  @override
+  void addToCopper(Copper copper) {
+    for (var component in components) {
+      component.addToCopper(copper);
+    }
+  }
+}
+
+extension JoinCopperComponents on CopperComponent {
+  CopperComponent operator +(CopperComponent other) =>
+      JoinedCopperComponents([this, other]);
+}
