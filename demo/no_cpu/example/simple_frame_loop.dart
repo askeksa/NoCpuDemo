@@ -16,10 +16,8 @@ main() {
   for (var (i, frame) in frames.indexed) {
     var color = FreeLabel("color");
     var blit = Blit()
-      ..aPtr = color
-      ..dPtr = color
-      ..aStride = 0
-      ..dStride = 0
+      ..adPtr = color
+      ..adStride = 0
       ..aShift = 1
       ..height = 2;
 

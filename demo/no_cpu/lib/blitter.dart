@@ -46,6 +46,41 @@ class Blit implements CopperComponent {
   /// Width (in words) and height (in rows) of the blit operation.
   int width = 1, height = 1;
 
+  /// Shorthands for setting multiple pointers.
+  set abPtr(Label value) => aPtr = bPtr = value;
+  set acPtr(Label value) => aPtr = cPtr = value;
+  set adPtr(Label value) => aPtr = dPtr = value;
+  set bcPtr(Label value) => bPtr = cPtr = value;
+  set bdPtr(Label value) => bPtr = dPtr = value;
+  set cdPtr(Label value) => cPtr = dPtr = value;
+  set abcPtr(Label value) => aPtr = bPtr = cPtr = value;
+  set abdPtr(Label value) => aPtr = bPtr = dPtr = value;
+  set acdPtr(Label value) => aPtr = cPtr = dPtr = value;
+  set bcdPtr(Label value) => bPtr = cPtr = dPtr = value;
+  set abcdPtr(Label value) => aPtr = bPtr = cPtr = dPtr = value;
+
+  /// Shorthands for setting multiple strides.
+  set abStride(int value) => aStride = bStride = value;
+  set acStride(int value) => aStride = cStride = value;
+  set adStride(int value) => aStride = dStride = value;
+  set bcStride(int value) => bStride = cStride = value;
+  set bdStride(int value) => bStride = dStride = value;
+  set cdStride(int value) => cStride = dStride = value;
+  set abcStride(int value) => aStride = bStride = cStride = value;
+  set abdStride(int value) => aStride = bStride = dStride = value;
+  set acdStride(int value) => aStride = cStride = dStride = value;
+  set bcdStride(int value) => bStride = cStride = dStride = value;
+  set abcdStride(int value) => aStride = bStride = cStride = dStride = value;
+
+  /// Shorthands for setting multiple data values.
+  set abData(int value) => aData = bData = value;
+  set acData(int value) => aData = cData = value;
+  set bcData(int value) => bData = cData = value;
+  set abcData(int value) => aData = bData = cData = value;
+
+  /// Shorthand for setting multiple shift values.
+  set abShift(int value) => aShift = bShift = value;
+
   @override
   void addToCopper(Copper copper) {
     int channelMask = this.channelMask ??
