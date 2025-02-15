@@ -20,7 +20,7 @@ main() {
       ..aShift = 1
       ..height = 2;
 
-    frame >> blit + WaitBlit();
+    frame >> blit >> WaitBlit();
     frame.move(COLOR00, 0x005, label: color);
 
     frame.call(sub);
