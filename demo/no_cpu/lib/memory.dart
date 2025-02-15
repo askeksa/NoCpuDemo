@@ -71,6 +71,12 @@ class Memory {
   }
 
   Uint8List finalize() {
+    // Run finalizers.
+    for (Data data in dataBlocks) {
+      data.finalizer?.call(data);
+    }
+
+    // Assemble the blocks into a memory image.
     _assignAddresses();
     _resolveReferences();
     Uint8List contents = Uint8List(dataSize);
@@ -273,6 +279,8 @@ abstract base class Block {
 /// been assigned specific addresses.
 final class Data extends Block with DataContainer {
   final List<Reference> references = [];
+
+  void Function(Data)? finalizer;
 
   Data({super.alignment, super.singlePage, super.origin});
 

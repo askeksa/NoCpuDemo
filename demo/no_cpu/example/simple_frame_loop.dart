@@ -9,7 +9,6 @@ main() {
   Copper sub = Copper(origin: "Subroutine");
   sub.wait(v: 80, h: 7);
   sub.move(COLOR00, 0x0F0);
-  sub.ret();
 
   List<Copper> frames =
       List.generate(16, (i) => Copper(isPrimary: true, origin: i));
@@ -30,12 +29,10 @@ main() {
     frame.wait(v: 200, h: 7);
     frame >> bg(i.isEven ? 0xA00 : 0x500);
     frame.ptr(COP1LC, frames[(i + 1) % frames.length].label);
-    frame.end();
   }
 
   Copper initialCopper = Copper(origin: "Initial")..data.address = 0x00_0000;
   initialCopper.ptr(COP1LC, frames[0].label);
-  initialCopper.end();
 
   Memory m = Memory.fromRoots(0x20_0000, [initialCopper.data]);
   File("../runner/chip.dat").writeAsBytesSync(m.finalize());
