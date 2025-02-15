@@ -1,4 +1,5 @@
 import 'copper.dart';
+import 'custom.dart';
 import 'memory.dart';
 
 class Music {
@@ -22,7 +23,7 @@ class Instrument {
   /// Sample data.
   Data data;
 
-  /// Repeat posision. Always even.
+  /// Repeat position. Always even.
   int repeat;
 
   /// Repeat length. Always even.
@@ -32,9 +33,12 @@ class Instrument {
 
   Instrument(this.data, this.repeat, this.replen);
 
+  // Sample length in bytes. Always even.
   int get length => data.size;
 }
 
+/// Audio events for a frame. Must be called as the very first thing in the
+/// frame copperlist in order for the DMA wait to work correctly.
 class MusicFrame implements CopperComponent {
   /// Events in each of the four channels.
   List<MusicFrameChannel> channels = [];
@@ -52,7 +56,51 @@ class MusicFrame implements CopperComponent {
 
   @override
   void addToCopper(Copper copper) {
-    // TODO
+    int dmaMask = triggerMask;
+
+    if (dmaMask != 0) {
+      // DMA off
+      copper.move(DMACON, dmaMask);
+
+      // Set new pointers and lengths.
+      for (int i = 0; i < channels.length; i++) {
+        var trigger = channels[i].trigger;
+        if (trigger != null) {
+          copper.ptr(AUDxLC[i], trigger.instrument.data.label + trigger.offset);
+          copper.move(
+              AUDxLEN[i], (trigger.instrument.length - trigger.offset) >> 1);
+        }
+      }
+
+      // Wait for DMA off to take effect.
+      copper.wait(v: 7, h: 0xB5);
+    }
+
+    // Set periods and volumes.
+    for (int i = 0; i < channels.length; i++) {
+      var channel = channels[i];
+      if (channel.period != null) copper.move(AUDxPER[i], channel.period!);
+      if (channel.volume != null) copper.move(AUDxVOL[i], channel.volume!);
+    }
+
+    if (dmaMask != 0) {
+      // DMA on
+      copper.move(DMACON, 0x8000 | dmaMask);
+
+      // Wait until after the audio DMA slots on the next scanline to make sure
+      // the audio subsystem has internalized the new pointers and lengths.
+      copper.wait(v: 8, h: 0x17);
+
+      // Set pointers and lengths for the sample loops.
+      for (int i = 0; i < channels.length; i++) {
+        var trigger = channels[i].trigger;
+        if (trigger != null) {
+          copper.ptr(AUDxLC[i],
+              trigger.instrument.data.label + trigger.instrument.repeat);
+          copper.move(AUDxLEN[i], trigger.instrument.replen >> 1);
+        }
+      }
+    }
   }
 }
 
