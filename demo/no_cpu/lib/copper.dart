@@ -12,12 +12,28 @@ class Copper {
   /// Object from which this copperlist was created.
   Object? origin;
 
+  /// Callback to run when the copper is finalized.
+  void Function(Copper)? finalizer;
+
   /// Is this copperlist terminated?
   bool isTerminated = false;
 
   Copper({int alignment = 2, this.isPrimary = false, this.origin})
       : data = Data(alignment: alignment, singlePage: isPrimary) {
     data.origin = this;
+    data.finalizer = (_) {
+      if (finalizer != null) {
+        finalizer!(this);
+      } else {
+        if (!isTerminated) {
+          if (isPrimary) {
+            end();
+          } else {
+            ret();
+          }
+        }
+      }
+    };
   }
 
   /// Label at the start of the copperlist.
@@ -144,7 +160,6 @@ extension ComponentsInCopper on Copper {
     var copper = Copper(origin: component);
     component.addToCopper(copper);
     if (copper.isEmpty) return;
-    copper.ret();
 
     call(copper);
   }
