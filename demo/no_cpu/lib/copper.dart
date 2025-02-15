@@ -138,6 +138,13 @@ extension CopperCall on Copper {
     data.bind(returnLabel);
   }
 
+  void tailcall(Copper target) {
+    assert(!isPrimary && !target.isPrimary);
+    ptr(COP2LC, target.label);
+    move(COPJMP2, 0);
+    isTerminated = true;
+  }
+
   /// Return from a called copperlist.
   void ret() {
     assert(!isPrimary);
@@ -152,21 +159,28 @@ abstract interface class CopperComponent {
 }
 
 extension ComponentsInCopper on Copper {
-  void addComponent(CopperComponent component) {
+  Copper addComponent(CopperComponent component) {
     component.addToCopper(this);
+    return this;
   }
 
-  void addComponentCalled(CopperComponent component) {
+  Copper addComponentCalled(CopperComponent component) {
     var copper = Copper(origin: component);
     component.addToCopper(copper);
-    if (copper.isEmpty) return;
+    if (copper.isEmpty) return this;
 
-    call(copper);
+    if (isPrimary) {
+      call(copper);
+    } else {
+      tailcall(copper);
+    }
+    return copper;
   }
 
-  void operator <<(CopperComponent component) => addComponent(component);
+  Copper operator <<(CopperComponent component) => addComponent(component);
 
-  void operator >>(CopperComponent component) => addComponentCalled(component);
+  Copper operator >>(CopperComponent component) =>
+      addComponentCalled(component);
 }
 
 class JoinedCopperComponents implements CopperComponent {
