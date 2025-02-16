@@ -93,23 +93,25 @@ class ProtrackerInstrument extends Instrument {
 
   final int finetune;
   final int volume;
+  final int lengthInFile;
 
-  ProtrackerInstrument(
-      super.data, super.repeat, super.replen, this.finetune, this.volume);
+  ProtrackerInstrument(super.data, super.repeat, super.replen, this.finetune,
+      this.volume, this.lengthInFile);
 
   factory ProtrackerInstrument.readFromFile(
       RandomAccessFile file, int instrumentIndex, int samplePosition) {
     file.setPositionSync(_instrumentPosition(instrumentIndex) + _nameLength);
 
-    var wordLength = file.readWordSync();
+    var length = file.readWordSync() * 2;
     var finetune = file.readByteSync();
     var volume = file.readByteSync();
     var repeat = file.readWordSync() * 2;
     var replen = file.readWordSync() * 2;
-    var data = _readSampleData(file, samplePosition, wordLength);
+
+    Data data = _readSampleData(file, samplePosition, length);
 
     var instrument =
-        ProtrackerInstrument(data, repeat, replen, finetune, volume);
+        ProtrackerInstrument(data, repeat, replen, finetune, volume, length);
     data.origin = instrument;
 
     return instrument;
@@ -119,9 +121,13 @@ class ProtrackerInstrument extends Instrument {
       _instrumentsPosition + instrumentIndex * _instrumentSize;
 
   static Data _readSampleData(
-      RandomAccessFile file, int samplePosition, int wordLength) {
-    file.setPositionSync(samplePosition);
-    return Data()..addBytes(file.readSync(wordLength * 2));
+      RandomAccessFile file, int samplePosition, int length) {
+    if (length == 0) {
+      return Data()..addBytes([0, 0]);
+    } else {
+      file.setPositionSync(samplePosition);
+      return Data()..addBytes(file.readSync(length));
+    }
   }
 }
 
@@ -171,7 +177,7 @@ class ProtrackerModule {
     instruments = List.generate(_totalInstruments, (i) {
       var instrument =
           ProtrackerInstrument.readFromFile(file, i, samplePosition);
-      samplePosition += instrument.length;
+      samplePosition += instrument.lengthInFile;
 
       return instrument;
     });

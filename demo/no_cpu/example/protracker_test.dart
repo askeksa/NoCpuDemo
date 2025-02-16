@@ -7,6 +7,11 @@ import 'package:no_cpu/protracker.dart';
 import 'package:no_cpu/protracker_player.dart';
 
 main(List<String> args) {
+  if (args.isEmpty) {
+    print("Usage: protracker_test file.mod");
+    return;
+  }
+
   var module = ProtrackerModule.readFromFile(args[0]);
   var music = ProtrackerPlayer(module).toMusic();
 
