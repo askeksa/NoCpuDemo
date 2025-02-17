@@ -31,7 +31,8 @@ main() {
     frame.ptr(COP1LC, frames[(i + 1) % frames.length].label);
   }
 
-  Copper initialCopper = Copper(origin: "Initial")..data.address = 0x00_0000;
+  Copper initialCopper = Copper(isPrimary: true, origin: "Initial")
+    ..data.address = 0x00_0000;
   initialCopper.ptr(COP1LC, frames[0].label);
 
   Memory m = Memory.fromRoots(0x20_0000, [initialCopper.data]);
