@@ -127,19 +127,20 @@ class Copper {
 extension CopperCall on Copper {
   /// Call a secondary copperlist.
   void call(Copper target) {
-    assert(isPrimary && !target.isPrimary);
-    var returnLabel = FreeLabel("return");
-    low(COP1LCL, returnLabel);
-    ptr(COP2LC, target.label);
-    move(COPJMP2, 0);
-    data.bind(returnLabel);
-  }
-
-  void tailcall(Copper target) {
-    assert(!isPrimary && !target.isPrimary);
-    ptr(COP2LC, target.label);
-    move(COPJMP2, 0);
-    isTerminated = true;
+    assert(!target.isPrimary);
+    if (isPrimary) {
+      // Returning call
+      var returnLabel = FreeLabel("return");
+      low(COP1LCL, returnLabel);
+      ptr(COP2LC, target.label);
+      move(COPJMP2, 0);
+      data.bind(returnLabel);
+    } else {
+      // Tail call
+      ptr(COP2LC, target.label);
+      move(COPJMP2, 0);
+      isTerminated = true;
+    }
   }
 
   /// Return from a called copperlist.
@@ -166,11 +167,7 @@ extension ComponentsInCopper on Copper {
     component.addToCopper(copper);
     if (copper.isEmpty) return this;
 
-    if (isPrimary) {
-      call(copper);
-    } else {
-      tailcall(copper);
-    }
+    call(copper);
     return copper;
   }
 
