@@ -280,6 +280,7 @@ abstract base class Block {
 final class Data extends Block with DataContainer {
   final List<Reference> references = [];
 
+  /// Callback to run when the block is finalized.
   void Function(Data)? finalizer;
 
   Data({super.alignment, super.singlePage, super.origin});

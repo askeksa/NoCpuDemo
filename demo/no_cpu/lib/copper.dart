@@ -22,15 +22,12 @@ class Copper {
       : data = Data(alignment: alignment, singlePage: isPrimary) {
     data.origin = this;
     data.finalizer = (_) {
-      if (finalizer != null) {
-        finalizer!(this);
-      } else {
-        if (!isTerminated) {
-          if (isPrimary) {
-            end();
-          } else {
-            ret();
-          }
+      finalizer?.call(this);
+      if (!isTerminated) {
+        if (isPrimary) {
+          end();
+        } else {
+          ret();
         }
       }
     };
