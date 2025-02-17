@@ -23,7 +23,8 @@ main() {
       ]);
 
   // Copperlists
-  Copper initialCopper = Copper(origin: "Initial")..data.address = 0x000000;
+  Copper initialCopper = Copper(isPrimary: true, origin: "Initial")
+    ..data.address = 0x00_0000;
   Copper prev = initialCopper;
   List<Copper> frames = List.generate(music.frames.length, (i) {
     Copper frame = Copper(isPrimary: true, origin: i);
@@ -32,11 +33,12 @@ main() {
     prev = frame;
     return frame;
   });
-  Copper endCopper =
-      music.restart != null ? frames[music.restart!] : Copper(origin: "End");
+  Copper endCopper = music.restart != null
+      ? frames[music.restart!]
+      : Copper(isPrimary: true, origin: "End");
   prev.ptr(COP1LC, endCopper.label);
 
   // Memory
-  Memory m = Memory.fromRoots(0x200000, [initialCopper.data]);
+  Memory m = Memory.fromRoots(0x20_0000, [initialCopper.data]);
   File("../runner/chip.dat").writeAsBytesSync(m.finalize());
 }
