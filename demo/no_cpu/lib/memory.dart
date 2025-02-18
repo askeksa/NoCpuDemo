@@ -18,14 +18,13 @@ class Memory {
 
   factory Memory.fromRoots(int size, Iterable<Block> roots) {
     Set<Block> blocks = {};
-
-    void collect(Block block) {
+    List<Block> worklist = List.from(roots);
+    while (worklist.isNotEmpty) {
+      Block block = worklist.removeLast();
       if (blocks.add(block)) {
-        block.dependencies.forEach(collect);
+        worklist.addAll(block.dependencies);
       }
     }
-
-    roots.forEach(collect);
 
     Memory memory = Memory(size);
     memory.dataBlocks.addAll(blocks.whereType<Data>());
