@@ -6,12 +6,8 @@ import 'package:no_cpu/memory.dart';
 import 'package:no_cpu/protracker.dart';
 import 'package:no_cpu/protracker_player.dart';
 
-main() {
-  //var module = ProtrackerModule.readFromFile("no_cpu/example/ocean.mod");
-  var module = ProtrackerModule.readFromFile("no_cpu/example/occ-san-geen.mod");
-  //var module = ProtrackerModule.readFromFile("no_cpu/example/nocpu.mod");
-  //var module = ProtrackerModule.readFromFile("no_cpu/example/Blue_Monday.mod");
-  //var module = ProtrackerModule.readFromFile("no_cpu/example/Klisje_paa_Klisje.mod");
+main(List<String> args) {
+  var module = ProtrackerModule.readFromFile(args[0]);
   var music = ProtrackerPlayer(module).toMusic();
 
   // Copperlists
