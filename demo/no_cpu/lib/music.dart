@@ -47,7 +47,8 @@ class MusicFrame implements CopperComponent {
   int get triggerMask {
     int mask = 0;
     for (int i = 0; i < channels.length; i++) {
-      if (channels[i].trigger != null) {
+      var trigger = channels[i].trigger;
+      if (trigger != null && trigger.offset != null) {
         mask |= 1 << i;
       }
     }
@@ -65,10 +66,11 @@ class MusicFrame implements CopperComponent {
       // Set new pointers and lengths.
       for (int i = 0; i < channels.length; i++) {
         var trigger = channels[i].trigger;
-        if (trigger != null) {
-          copper.ptr(AUDxLC[i], trigger.instrument.data.label + trigger.offset);
+        if (trigger != null && trigger.offset != null) {
+          copper.ptr(
+              AUDxLC[i], trigger.instrument.data.label + trigger.offset!);
           copper.move(
-              AUDxLEN[i], (trigger.instrument.length - trigger.offset) >> 1);
+              AUDxLEN[i], (trigger.instrument.length - trigger.offset!) >> 1);
         }
       }
 
@@ -90,15 +92,15 @@ class MusicFrame implements CopperComponent {
       // Wait until after the audio DMA slots on the next scanline to make sure
       // the audio subsystem has internalized the new pointers and lengths.
       copper.wait(v: 8, h: 0x17);
+    }
 
-      // Set pointers and lengths for the sample loops.
-      for (int i = 0; i < channels.length; i++) {
-        var trigger = channels[i].trigger;
-        if (trigger != null) {
-          copper.ptr(AUDxLC[i],
-              trigger.instrument.data.label + trigger.instrument.repeat);
-          copper.move(AUDxLEN[i], trigger.instrument.replen >> 1);
-        }
+    // Set pointers and lengths for the sample loops.
+    for (int i = 0; i < channels.length; i++) {
+      var trigger = channels[i].trigger;
+      if (trigger != null) {
+        copper.ptr(AUDxLC[i],
+            trigger.instrument.data.label + trigger.instrument.repeat);
+        copper.move(AUDxLEN[i], trigger.instrument.replen >> 1);
       }
     }
   }
@@ -109,7 +111,6 @@ class MusicFrameChannel {
   InstrumentTrigger? trigger;
 
   /// Period value to set, or `null` to keep the current value.
-  /// Always non-null if [trigger] is non-null.
   int? period;
 
   /// Volume value to set, or `null` to keep the current value.
@@ -121,7 +122,9 @@ class InstrumentTrigger {
   Instrument instrument;
 
   /// Offset in the instrument to start playing at. Always even.
-  int offset;
+  /// If `null`, the instrument is not triggered, but the playing sample loop
+  /// is changed to the new instrument.
+  int? offset;
 
   InstrumentTrigger(this.instrument, [this.offset = 0]);
 }
