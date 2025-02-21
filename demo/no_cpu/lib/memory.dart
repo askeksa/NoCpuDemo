@@ -1,6 +1,10 @@
 import 'dart:math';
 import 'dart:typed_data';
 
+import 'package:collection/collection.dart';
+
+import 'copper.dart';
+
 extension on int {
   bool isAlignedTo(int alignment) => this & ((1 << alignment) - 1) == 0;
 }
@@ -33,6 +37,90 @@ class Memory {
     return memory;
   }
 
+  void _deduplicate() {
+    // Hack: Avoid deduplicating primary copperlists for speed.
+    // TODO: Have a proper mutability flag on data blocks.
+    List<List<Data>> clusters = [
+      dataBlocks.where((b) {
+        var origin = b.origin;
+        if (origin is! Copper) return true;
+        return !origin.isPrimary;
+      }).toList()
+    ];
+
+    List<List<Data>> clusterBy(bool Function(Data, Data) equals) {
+      List<List<Data>> newClusters = [];
+      for (List<Data> cluster in clusters) {
+        List<List<Data>> newSubclusters = [];
+        for (Data data in cluster) {
+          bool found = false;
+          for (List<Data> subcluster in newSubclusters) {
+            if (equals(data, subcluster.first)) {
+              subcluster.add(data);
+              found = true;
+              break;
+            }
+          }
+          if (!found) {
+            newSubclusters.add([data]);
+          }
+        }
+        newClusters.addAll(newSubclusters);
+      }
+
+      for (int i = 0; i < newClusters.length; i++) {
+        for (Data data in newClusters[i]) {
+          data._clusterIndex = i;
+        }
+      }
+      return newClusters;
+    }
+
+    // Cluster by shape.
+    clusters = clusterBy((d1, d2) {
+      if (!ListEquality().equals(d1.bytes, d2.bytes)) return false;
+      if (d1.references.length != d2.references.length) return false;
+      for (int i = 0; i < d1.references.length; i++) {
+        Reference r1 = d1.references[i];
+        Reference r2 = d2.references[i];
+        if (r1.offsetInBlock != r2.offsetInBlock) return false;
+        if (r1.shift != r2.shift) return false;
+        if (r1.target.offsetInBlock != r2.target.offsetInBlock) return false;
+      }
+      return true;
+    });
+
+    // Cluster by references until no more splits occur.
+    int oldSize;
+    do {
+      oldSize = clusters.length;
+      clusters = clusterBy((d1, d2) {
+        assert(d1._clusterIndex == d2._clusterIndex);
+        for (int i = 0; i < d1.references.length; i++) {
+          if (d1.references[i].target.block._clusterIndex !=
+              d2.references[i].target.block._clusterIndex) {
+            return false;
+          }
+        }
+        return true;
+      });
+      assert(clusters.length >= oldSize);
+    } while (clusters.length > oldSize);
+
+    // Merge the blocks in each cluster.
+    dataBlocks.removeWhere((b) {
+      if (b._clusterIndex < 0) return false;
+      Data representative = clusters[b._clusterIndex].first;
+      if (b == representative) return false;
+      representative.alignment = max(representative.alignment, b.alignment);
+      representative.singlePage |= b.singlePage;
+      representative.extraDependencies.addAll(b.extraDependencies);
+      // Redirect references.
+      b.label.block = representative;
+      return true;
+    });
+  }
+
   void _assignAddresses() {
     // TODO: Compute time ranges via dependencies to overlap space blocks.
     final List<Block> fixed = [...dataBlocks, ...spaceBlocks]
@@ -60,7 +148,7 @@ class Memory {
     dataBlocks.forEach(allocate);
     spaceBlocks.forEach(allocate);
 
-    dataSize = dataBlocks.map((b) => b.end).fold(0, max);
+    dataSize = dataBlocks.map((b) => b.end).max;
   }
 
   void _resolveReferences() {
@@ -69,13 +157,20 @@ class Memory {
     }
   }
 
-  Uint8List finalize() {
+  void finalize() {
     // Run finalizers.
     for (Data data in dataBlocks) {
       data.finalizer?.call(data);
     }
+  }
+
+  Uint8List build({bool finalize = true}) {
+    if (finalize) {
+      this.finalize();
+    }
 
     // Assemble the blocks into a memory image.
+    _deduplicate();
     _assignAddresses();
     _resolveReferences();
     Uint8List contents = Uint8List(dataSize);
@@ -103,7 +198,7 @@ abstract base class Label {
 
 final class BlockLabel extends Label {
   @override
-  final Block block;
+  Block block;
 
   BlockLabel(this.block);
 
@@ -176,10 +271,10 @@ class Reference {
 /// Base class for memory blocks.
 abstract base class Block {
   /// Alignment of the block.
-  final int alignment;
+  int alignment;
 
   /// Whether the block should be allocated within a single 64k page.
-  final bool singlePage;
+  bool singlePage;
 
   /// Object from which this block was created.
   Object? origin;
@@ -201,7 +296,10 @@ abstract base class Block {
   int? lastFrame;
 
   /// Label pointing to the start of the block.
-  late final Label label = BlockLabel(this);
+  late final BlockLabel label = BlockLabel(this);
+
+  late int _clusterIndex = _nextClusterIndex--;
+  static int _nextClusterIndex = -1;
 
   Block({this.alignment = 1, this.singlePage = false, this.origin}) {
     assert(alignment >= 1 && alignment <= 20);

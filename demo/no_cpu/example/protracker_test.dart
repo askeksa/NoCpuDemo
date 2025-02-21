@@ -1,5 +1,7 @@
 import 'dart:io';
 
+import 'package:collection/collection.dart';
+
 import 'package:no_cpu/copper.dart';
 import 'package:no_cpu/custom.dart';
 import 'package:no_cpu/memory.dart';
@@ -12,6 +14,7 @@ main(List<String> args) {
     return;
   }
 
+  print("Module size:  ${File(args[0]).lengthSync()}");
   var module = ProtrackerModule.readFromFile(args[0]);
   var music = ProtrackerPlayer(module).toMusic();
 
@@ -33,5 +36,9 @@ main(List<String> args) {
 
   // Memory
   Memory m = Memory.fromRoots(0x20_0000, [initialCopper.data]);
-  File("../runner/chip.dat").writeAsBytesSync(m.finalize());
+  m.finalize();
+  print("Before dedup: ${m.dataBlocks.map((b) => b.size).sum}");
+  var chipData = m.build(finalize: false);
+  print("After dedup:  ${chipData.length}");
+  File("../runner/chip.dat").writeAsBytesSync(chipData);
 }
