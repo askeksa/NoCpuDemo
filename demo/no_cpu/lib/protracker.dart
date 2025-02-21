@@ -21,19 +21,23 @@ const int _totalChannels = 4;
 
 /// A row event for one channel, such as note on and/or effect
 class ProtrackerEvent {
+  final int? note;
   final int instrument;
-  final int? period;
   final int effect;
   final int effectParameter;
 
   ProtrackerEvent(
-      this.period, this.instrument, this.effect, this.effectParameter);
+    this.note,
+    this.instrument,
+    this.effect,
+    this.effectParameter,
+  );
 
   ProtrackerEvent.noEffect(ProtrackerEvent event)
-      : instrument = event.instrument,
-        period = event.period,
-        effect = 0,
-        effectParameter = 0;
+    : note = event.note,
+      instrument = event.instrument,
+      effect = 0,
+      effectParameter = 0;
 
   factory ProtrackerEvent.readFromFile(RandomAccessFile file) {
     int rowRaw = file.readLongWordSync();
@@ -43,8 +47,9 @@ class ProtrackerEvent {
     var effect = rowRaw >> 8 & 0xF;
     var effectParameter = rowRaw & 0xFF;
 
-    return ProtrackerEvent(
-        period != 0 ? period : null, instrument, effect, effectParameter);
+    int? note = period != 0 ? _periodToNote(period) : null;
+
+    return ProtrackerEvent(note, instrument, effect, effectParameter);
   }
 }
 
@@ -68,9 +73,13 @@ class ProtrackerPattern {
   ProtrackerPattern(this.channels);
 
   factory ProtrackerPattern.readFromFile(
-      RandomAccessFile file, int patternIndex) {
-    var channels =
-        List.generate(_totalChannels, (i) => ProtrackerPatternEvents());
+    RandomAccessFile file,
+    int patternIndex,
+  ) {
+    var channels = List.generate(
+      _totalChannels,
+      (i) => ProtrackerPatternEvents(),
+    );
 
     file.setPositionSync(_patternPosition(patternIndex));
 
@@ -95,11 +104,20 @@ class ProtrackerInstrument extends Instrument {
   final int volume;
   final int lengthInFile;
 
-  ProtrackerInstrument(super.data, super.repeat, super.replen, this.finetune,
-      this.volume, this.lengthInFile);
+  ProtrackerInstrument(
+    super.data,
+    super.repeat,
+    super.replen,
+    this.finetune,
+    this.volume,
+    this.lengthInFile,
+  );
 
   factory ProtrackerInstrument.readFromFile(
-      RandomAccessFile file, int instrumentIndex, int samplePosition) {
+    RandomAccessFile file,
+    int instrumentIndex,
+    int samplePosition,
+  ) {
     file.setPositionSync(_instrumentPosition(instrumentIndex) + _nameLength);
 
     var length = file.readWordSync() * 2;
@@ -110,8 +128,14 @@ class ProtrackerInstrument extends Instrument {
 
     Data data = _readSampleData(file, samplePosition, length);
 
-    var instrument =
-        ProtrackerInstrument(data, repeat, replen, finetune, volume, length);
+    var instrument = ProtrackerInstrument(
+      data,
+      repeat,
+      replen,
+      finetune,
+      volume,
+      length,
+    );
     data.origin = instrument;
 
     return instrument;
@@ -121,7 +145,10 @@ class ProtrackerInstrument extends Instrument {
       _instrumentsPosition + instrumentIndex * _instrumentSize;
 
   static Data _readSampleData(
-      RandomAccessFile file, int samplePosition, int length) {
+    RandomAccessFile file,
+    int samplePosition,
+    int length,
+  ) {
     if (length == 0) {
       return Data()..addBytes([0, 0]);
     } else {
@@ -142,8 +169,11 @@ class ProtrackerModule {
   ProtrackerModule(this.patternSequence, this.patterns, this.instruments);
 
   ProtrackerModule.readFromFile(String filename)
-      : patternSequence =
-            List.filled(_patternSequenceMaxLength, 0, growable: true) {
+    : patternSequence = List.filled(
+        _patternSequenceMaxLength,
+        0,
+        growable: true,
+      ) {
     var file = File(filename).openSync();
 
     // Read pattern sequence first, as we need it to find the number of patterns
@@ -154,7 +184,9 @@ class ProtrackerModule {
 
     // Finally read all patterns
     patterns = List.generate(
-        _totalPatterns, (i) => ProtrackerPattern.readFromFile(file, i));
+      _totalPatterns,
+      (i) => ProtrackerPattern.readFromFile(file, i),
+    );
   }
 
   void _readPatternSequence(RandomAccessFile file) {
@@ -175,8 +207,11 @@ class ProtrackerModule {
 
     // Read all instruments
     instruments = List.generate(_totalInstruments, (i) {
-      var instrument =
-          ProtrackerInstrument.readFromFile(file, i, samplePosition);
+      var instrument = ProtrackerInstrument.readFromFile(
+        file,
+        i,
+        samplePosition,
+      );
       samplePosition += instrument.lengthInFile;
 
       return instrument;
@@ -204,3 +239,15 @@ extension Readers on RandomAccessFile {
     return b3 << 24 | b2 << 16 | b1 << 8 | b0;
   }
 }
+
+int _periodToNote(int period) {
+  return _notePeriods.indexOf(period);
+}
+
+// dart format off
+const List<int> _notePeriods = [
+  856,808,762,720,678,640,604,570,538,508,480,453,
+  428,404,381,360,339,320,302,285,269,254,240,226,
+  214,202,190,180,170,160,151,143,135,127,120,113
+];
+// dart format on

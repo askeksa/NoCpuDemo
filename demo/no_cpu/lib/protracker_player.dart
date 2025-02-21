@@ -1,4 +1,5 @@
 import 'dart:math';
+import 'package:no_cpu/memory.dart';
 import 'package:no_cpu/music.dart';
 import 'package:no_cpu/protracker.dart';
 
@@ -11,9 +12,13 @@ class ProtrackerPlayerChannelState {
   int portamentoSpeed = 0;
   int vibratoSpeed = 0;
   int vibratoDepth = 0;
-  int vibratoPosition = 0; // 0-255
+  int vibratoPosition = 0;
+  int tremoloSpeed = 0;
+  int tremoloDepth = 0;
+  int tremoloPosition = 0;
   int offset = 0;
-  bool useOffset = false;
+  int quirkPeriod = 0;
+  bool useOffset = false; // this is used for handling the buffering of 9xx
 }
 
 // "Plays" a ProtrackerModule by generating a Music object.
@@ -29,24 +34,33 @@ class ProtrackerPlayer {
   int _patternDelay = 0;
 
   ProtrackerPlayer(this._module)
-      : _channelEvents = List.generate(
-            _module.totalChannels, (_) => ProtrackerPatternEvents()),
-        _channelState = List.generate(
-            _module.totalChannels, (_) => ProtrackerPlayerChannelState());
+    : _channelEvents = List.generate(
+        _module.totalChannels,
+        (_) => ProtrackerPatternEvents(),
+      ),
+      _channelState = List.generate(
+        _module.totalChannels,
+        (_) => ProtrackerPlayerChannelState(),
+      );
 
   Music toMusic() {
     _unroll();
 
-    var music = Music()
-      ..instruments = _module.instruments
-      ..restart = _restart;
+    var music =
+        Music()
+          ..instruments = _module.instruments
+          ..restart = _restart;
 
     music.frames.addAll(_bpmFrames());
     return music;
   }
 
   void _performVibrato(
-      ProtrackerPlayerChannelState channel, MusicFrameChannel frameChannel) {
+    ProtrackerPlayerChannelState channel,
+    MusicFrameChannel frameChannel,
+  ) {
+    // TODO: Add vibrato waveforms
+
     var index = channel.vibratoPosition & 0x1F;
     var amount = (_vibratoTable[index] * channel.vibratoDepth) >> 7;
     if (channel.vibratoPosition >= 0x20) {
@@ -58,50 +72,104 @@ class ProtrackerPlayer {
         (channel.vibratoPosition + channel.vibratoSpeed) & 0x3F;
   }
 
-  void _performVolumeSlide(ProtrackerPlayerChannelState channel,
-      MusicFrameChannel frameChannel, ProtrackerEvent event) {
+  void _performTremolo(
+    ProtrackerPlayerChannelState channel,
+    MusicFrameChannel frameChannel,
+  ) {
+    // TODO: Add tremolo waveforms
+
+    var index = channel.tremoloPosition & 0x1F;
+    var amount = (_vibratoTable[index] * channel.tremoloDepth) >> 6;
+    if (channel.tremoloPosition >= 0x20) {
+      amount = -amount;
+    }
+
+    frameChannel.volume = (channel.volume + amount).clampVolume();
+    channel.tremoloPosition =
+        (channel.tremoloPosition + channel.tremoloSpeed) & 0x3F;
+  }
+
+  void _performVolumeSlide(
+    ProtrackerPlayerChannelState channel,
+    MusicFrameChannel frameChannel,
+    ProtrackerEvent event,
+  ) {
     if (event.effectParameter & 0xF0 != 0) {
-      channel.volume = frameChannel.volume =
-          (channel.volume + (event.effectParameter >> 4)).clampVolume();
+      channel.volume =
+          frameChannel.volume =
+              (channel.volume + (event.effectParameter >> 4)).clampVolume();
     } else if (event.effectParameter & 0x0F != 0) {
-      channel.volume = frameChannel.volume =
-          (channel.volume - (event.effectParameter & 0x0F)).clampVolume();
+      channel.volume =
+          frameChannel.volume =
+              (channel.volume - (event.effectParameter & 0x0F)).clampVolume();
     }
   }
 
   void _performPortamento(
-      ProtrackerPlayerChannelState channel, MusicFrameChannel frameChannel) {
-    if (channel.portamentoTarget > channel.period) {
-      channel.period = frameChannel.period = min(
-          channel.period + channel.portamentoSpeed, channel.portamentoTarget);
-    } else if (channel.portamentoTarget < channel.period) {
-      channel.period = frameChannel.period = max(
-          channel.period - channel.portamentoSpeed, channel.portamentoTarget);
+    ProtrackerPlayerChannelState channel,
+    MusicFrameChannel frameChannel,
+  ) {
+    if (channel.portamentoTarget != 0) {
+      if (channel.portamentoTarget > channel.period) {
+        channel.period =
+            frameChannel.period = min(
+              channel.period + channel.portamentoSpeed,
+              channel.portamentoTarget,
+            );
+      } else if (channel.portamentoTarget < channel.period) {
+        channel.period =
+            frameChannel.period = max(
+              channel.period - channel.portamentoSpeed,
+              channel.portamentoTarget,
+            );
+      }
+      if (channel.period == channel.portamentoTarget) {
+        channel.portamentoTarget = 0;
+      }
     }
   }
 
   MusicFrameChannel _performInstrumentTrigger(
-      ProtrackerPlayerChannelState channel, ProtrackerEvent event) {
+    ProtrackerPlayerChannelState channel,
+    ProtrackerEvent event,
+  ) {
     var frameChannel = MusicFrameChannel();
     var isPortamento = event.effect == 3 || event.effect == 5;
+
+    if (channel.quirkPeriod != 0) {
+      frameChannel.period = channel.quirkPeriod;
+      channel.quirkPeriod = 0;
+    }
+
     if (event.instrument != 0) {
       channel.instrument = _module.instruments[event.instrument - 1];
       channel.volume = frameChannel.volume = channel.instrument!.volume;
       channel.useOffset = false;
+      frameChannel.trigger =
+          frameChannel.trigger = InstrumentTrigger(channel.instrument!, null);
     }
 
-    if (event.period != null && channel.instrument != null && !isPortamento) {
+    if (event.note != null && channel.instrument != null && !isPortamento) {
       frameChannel.trigger = InstrumentTrigger(channel.instrument!);
-      channel.period = frameChannel.period = event.period!;
+      channel.period =
+          frameChannel.period = _noteToPeriod(
+            event.note!,
+            channel.instrument!.finetune,
+          );
+
+      // TODO: Add waveform retrigger control
+      channel.vibratoPosition = 0;
+      channel.tremoloPosition = 0;
     }
 
     return frameChannel;
   }
 
   MusicFrame _handleEffects(
-      Iterable<ProtrackerEvent> events,
-      MusicFrameChannel Function(ProtrackerPlayerChannelState, ProtrackerEvent)
-          fn) {
+    Iterable<ProtrackerEvent> events,
+    MusicFrameChannel Function(ProtrackerPlayerChannelState, ProtrackerEvent)
+    fn,
+  ) {
     var frame = MusicFrame();
 
     for (var (i, event) in events.indexed) {
@@ -120,8 +188,11 @@ class ProtrackerPlayer {
 
       switch (event.effect) {
         case 0x3:
-          if (event.period != null) {
-            channel.portamentoTarget = event.period!;
+          if (event.note != null) {
+            channel.portamentoTarget = _noteToPeriod(
+              event.note!,
+              channel.instrument?.finetune ?? 0,
+            );
           }
           if (event.effectParameter != 0) {
             channel.portamentoSpeed = event.effectParameter;
@@ -134,8 +205,18 @@ class ProtrackerPlayer {
             channel.vibratoDepth = event.effectParameter & 0x0F;
           }
         case 0x5:
-          if (event.period != null) {
-            channel.portamentoTarget = event.period!;
+          if (event.note != null) {
+            channel.portamentoTarget = _noteToPeriod(
+              event.note!,
+              channel.instrument?.finetune ?? 0,
+            );
+          }
+        case 0x7:
+          if (event.effectParameter & 0xF0 != 0) {
+            channel.tremoloSpeed = event.effectParameter >> 4;
+          }
+          if (event.effectParameter & 0x0F != 0) {
+            channel.tremoloDepth = event.effectParameter & 0x0F;
           }
         case 0x9:
           if (event.effectParameter != 0) {
@@ -144,22 +225,33 @@ class ProtrackerPlayer {
           channel.useOffset = true;
         case 0xC:
           channel.volume = frameChannel.volume = event.effectParameter;
+        case 0xE0:
+          // No way to control filter with copper
+          break;
         case 0xE1:
-          channel.period = frameChannel.period =
-              (channel.period - event.effectParameter).clampSlidePeriod();
+          channel.period =
+              frameChannel.period =
+                  (channel.period - event.effectParameter).clampSlidePeriod();
         case 0xE2:
-          channel.period = frameChannel.period =
-              (channel.period + event.effectParameter).clampSlidePeriod();
+          channel.period =
+              frameChannel.period =
+                  (channel.period + event.effectParameter).clampSlidePeriod();
         case 0xEA:
-          channel.volume = frameChannel.volume =
-              (channel.volume + event.effectParameter).clampVolume();
+          channel.volume =
+              frameChannel.volume =
+                  (channel.volume + event.effectParameter).clampVolume();
         case 0xEB:
-          channel.volume = frameChannel.volume =
-              (channel.volume - event.effectParameter).clampVolume();
+          channel.volume =
+              frameChannel.volume =
+                  (channel.volume - event.effectParameter).clampVolume();
         case 0xED:
+          if (event.effectParameter >= _speed) {
+            channel.quirkPeriod = channel.period;
+          }
           if (event.effectParameter > 0) {
-            // Cancel the instrument trigger on note delay
-            frameChannel = MusicFrameChannel();
+            // Cancel the instrument trigger on note delay (but not volume)
+            frameChannel.trigger = null;
+            frameChannel.period = null;
           }
         case 0xEE:
           if (_patternDelay == 0) {
@@ -177,6 +269,7 @@ class ProtrackerPlayer {
         case 0x2:
         case 0x6:
         case 0xA:
+        case 0xE9:
         case 0xEC:
           // Ignore, not handled at substep 0
           break;
@@ -184,8 +277,16 @@ class ProtrackerPlayer {
           throw "Effect ${event.effect.toRadixString(16).toUpperCase()} not handled";
       }
 
-      if (channel.useOffset) {
-        frameChannel.trigger?.offset = channel.offset;
+      if (channel.useOffset && frameChannel.trigger != null) {
+        var instrument = frameChannel.trigger!.instrument;
+        if (channel.offset >= instrument.length) {
+          // The offset is out of range. In this case the trigger should start
+          // playing the loop.
+          frameChannel.trigger?.offset = instrument.repeat;
+          frameChannel.trigger?.length = instrument.replen;
+        } else {
+          frameChannel.trigger?.offset = channel.offset;
+        }
       }
 
       return frameChannel;
@@ -198,14 +299,36 @@ class ProtrackerPlayer {
 
       switch (event.effect) {
         case 0x0:
-          // Not implemented yet
-          break;
+          if (event.effectParameter != 0) {
+            int arpStep = subStep % 3;
+            if (arpStep == 0) {
+              frameChannel.period = channel.period;
+            } else {
+              var addNote = 0;
+              switch (arpStep) {
+                case 1:
+                  addNote = event.effectParameter >> 4;
+                case 2:
+                  addNote = event.effectParameter & 0x0F;
+              }
+              var baseNote = _periodToNote(
+                channel.period,
+                channel.instrument?.finetune ?? 0,
+              );
+              frameChannel.period = _noteToPeriod(
+                baseNote + addNote,
+                channel.instrument?.finetune ?? 0,
+              );
+            }
+          }
         case 0x1:
-          channel.period = frameChannel.period =
-              (channel.period - event.effectParameter).clampSlidePeriod();
+          channel.period =
+              frameChannel.period =
+                  (channel.period - event.effectParameter).clampSlidePeriod();
         case 0x2:
-          channel.period = frameChannel.period =
-              (channel.period + event.effectParameter).clampSlidePeriod();
+          channel.period =
+              frameChannel.period =
+                  (channel.period + event.effectParameter).clampSlidePeriod();
         case 0x3:
           _performPortamento(channel, frameChannel);
         case 0x4:
@@ -216,8 +339,18 @@ class ProtrackerPlayer {
         case 0x6:
           _performVibrato(channel, frameChannel);
           _performVolumeSlide(channel, frameChannel, event);
+        case 0x7:
+          _performTremolo(channel, frameChannel);
         case 0xA:
           _performVolumeSlide(channel, frameChannel, event);
+        case 0xE0:
+          // No way to control filter with copper
+          break;
+        case 0xE9:
+          if ((event.effectParameter < 2) ||
+              (subStep % event.effectParameter == 0)) {
+            frameChannel = _performInstrumentTrigger(channel, event);
+          }
         case 0xEC:
           if (subStep == event.effectParameter) {
             frameChannel.volume = 0;
@@ -270,9 +403,12 @@ class ProtrackerPlayer {
     var it = _songFrames().iterator;
 
     while (true) {
-      var frame = MusicFrame()
-        ..channels =
-            List.generate(_module.totalChannels, (_) => MusicFrameChannel());
+      var frame =
+          MusicFrame()
+            ..channels = List.generate(
+              _module.totalChannels,
+              (_) => MusicFrameChannel(),
+            );
 
       if (_bpmCount < 125) {
         _bpmCount += _bpm;
@@ -314,7 +450,7 @@ class ProtrackerPlayer {
     var loopCounters = List.filled(4, 0);
 
     while (sequencePosition < _module.patternSequence.length && !songEnded) {
-      while (row < _rowsPerPattern) {
+      while (row < _rowsPerPattern && !songEnded) {
         var doBreak = false;
         var breakRow = 0;
         var pattern =
@@ -339,7 +475,8 @@ class ProtrackerPlayer {
               event = ProtrackerEvent.noEffect(event);
             case 0xD:
               // Pattern break
-              breakRow = (event.effectParameter >> 4 & 0x0F) * 10 +
+              breakRow =
+                  (event.effectParameter >> 4 & 0x0F) * 10 +
                   (event.effectParameter & 0x0F);
               doBreak = true;
               event = ProtrackerEvent.noEffect(event);
@@ -367,20 +504,29 @@ class ProtrackerPlayer {
                     doBreak = true;
                   }
                 }
-                event = ProtrackerEvent(event.period, event.instrument, 0, 0);
+                event = ProtrackerEvent.noEffect(event);
               } else {
                 event = ProtrackerEvent(
-                    event.period, event.instrument, subEffect, subParameter);
+                  event.note,
+                  event.instrument,
+                  subEffect,
+                  subParameter,
+                );
               }
           }
           _channelEvents[i].addEvent(event);
         }
 
-        ++row;
+        row++;
 
         if (doBreak) {
           row = breakRow;
           sequencePosition++;
+          if (sequencePosition >= _module.patternSequence.length) {
+            sequencePosition = 0;
+            _restart = 0;
+            songEnded = true;
+          }
         }
       }
       sequencePosition++;
@@ -402,37 +548,125 @@ extension AmigaClamp on int {
 }
 
 const int _rowsPerPattern = 64;
+
+const int _notesPerFinetuneSetting = 37;
+
+int _noteToPeriod(int note, int finetune) {
+  return _finetune[finetune * _notesPerFinetuneSetting + note];
+}
+
+int _periodToNote(int period, int finetune) {
+  var index = finetune * _notesPerFinetuneSetting;
+  for (var (i, p)
+      in _finetune.sublist(index, index + _notesPerFinetuneSetting).indexed) {
+    if (period >= p) {
+      return i;
+    }
+  }
+
+  throw "_periodToNote failed ($period not found)";
+}
+
+// dart format off
 const List<int> _vibratoTable = [
-  0,
-  24,
-  49,
-  74,
-  97,
-  120,
-  141,
-  161,
-  180,
-  197,
-  212,
-  224,
-  235,
-  244,
-  250,
-  253,
-  255,
-  253,
-  250,
-  244,
-  235,
-  224,
-  212,
-  197,
-  180,
-  161,
-  141,
-  120,
-  97,
-  74,
-  49,
-  24
+    0,  24,  49,  74,  97, 120, 141, 161,
+  180, 197, 212, 224, 235, 244, 250, 253,
+  255, 253, 250, 244, 235, 224, 212, 197,
+  180, 161, 141, 120,  97,  74,  49,  24
 ];
+
+const List<int> _finetune = [
+  // finetune 0
+  856,808,762,720,678,640,604,570,538,508,480,453,
+  428,404,381,360,339,320,302,285,269,254,240,226,
+  214,202,190,180,170,160,151,143,135,127,120,113,0,
+
+  // finetune 1
+  850,802,757,715,674,637,601,567,535,505,477,450,
+  425,401,379,357,337,318,300,284,268,253,239,225,
+  213,201,189,179,169,159,150,142,134,126,119,113,0,
+
+  // finetune 2
+  844,796,752,709,670,632,597,563,532,502,474,447,
+  422,398,376,355,335,316,298,282,266,251,237,224,
+  211,199,188,177,167,158,149,141,133,125,118,112,0,
+
+  // finetune 3
+  838,791,746,704,665,628,592,559,528,498,470,444,
+  419,395,373,352,332,314,296,280,264,249,235,222,
+  209,198,187,176,166,157,148,140,132,125,118,111,0,
+
+  // finetune 4
+  832,785,741,699,660,623,588,555,524,495,467,441,
+  416,392,370,350,330,312,294,278,262,247,233,220,
+  208,196,185,175,165,156,147,139,131,124,117,110,0,
+
+  // finetune 5
+  826,779,736,694,655,619,584,551,520,491,463,437,
+  413,390,368,347,328,309,292,276,260,245,232,219,
+  206,195,184,174,164,155,146,138,130,123,116,109,0,
+
+  // finetune 6
+  820,774,730,689,651,614,580,547,516,487,460,434,
+  410,387,365,345,325,307,290,274,258,244,230,217,
+  205,193,183,172,163,154,145,137,129,122,115,109,0,
+
+  // finetune 7
+  814,768,725,684,646,610,575,543,513,484,457,431,
+  407,384,363,342,323,305,288,272,256,242,228,216,
+  204,192,181,171,161,152,144,136,128,121,114,108,0,
+
+  // finetune -8
+  907,856,808,762,720,678,640,604,570,538,508,480,
+  453,428,404,381,360,339,320,302,285,269,254,240,
+  226,214,202,190,180,170,160,151,143,135,127,120,0,
+
+  // finetune -7
+  900,850,802,757,715,675,636,601,567,535,505,477,
+  450,425,401,379,357,337,318,300,284,268,253,238,
+  225,212,200,189,179,169,159,150,142,134,126,119,0,
+
+  // finetune -6
+  894,844,796,752,709,670,632,597,563,532,502,474,
+  447,422,398,376,355,335,316,298,282,266,251,237,
+  223,211,199,188,177,167,158,149,141,133,125,118,0,
+
+  // finetune -5
+  887,838,791,746,704,665,628,592,559,528,498,470,
+  444,419,395,373,352,332,314,296,280,264,249,235,
+  222,209,198,187,176,166,157,148,140,132,125,118,0,
+
+  // finetune -4
+  881,832,785,741,699,660,623,588,555,524,494,467,
+  441,416,392,370,350,330,312,294,278,262,247,233,
+  220,208,196,185,175,165,156,147,139,131,123,117,0,
+
+  // finetune -3
+  875,826,779,736,694,655,619,584,551,520,491,463,
+  437,413,390,368,347,328,309,292,276,260,245,232,
+  219,206,195,184,174,164,155,146,138,130,123,116,0,
+
+  // finetune -2
+  868,820,774,730,689,651,614,580,547,516,487,460,
+  434,410,387,365,345,325,307,290,274,258,244,230,
+  217,205,193,183,172,163,154,145,137,129,122,115,0,
+
+  // finetune -1
+  862,814,768,725,684,646,610,575,543,513,484,457,
+  431,407,384,363,342,323,305,288,272,256,242,228,
+  216,203,192,181,171,161,152,144,136,128,121,114,0,
+
+  // From pt2-clone:
+  //
+  // Arpeggio on -1 finetuned samples can do an out-of-bounds read from
+  // this table. Here's the correct overflow values from the
+  // "CursorPosTable" and "UnshiftedKeymap" table in the PT code, which are
+  // located right after the period table. These tables and their order didn't
+  // seem to change in the different PT1.x/PT2.x versions (I checked the
+  // source codes).
+
+  774,1800,2314,3087,4113,4627,5400,6426,6940,7713,
+  8739,9253,24625,12851,13365
+];
+
+// dart format on
