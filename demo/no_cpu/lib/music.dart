@@ -67,10 +67,11 @@ class MusicFrame implements CopperComponent {
       for (int i = 0; i < channels.length; i++) {
         var trigger = channels[i].trigger;
         if (trigger != null && trigger.offset != null) {
+          int length =
+              trigger.length ?? trigger.instrument.length - trigger.offset!;
           copper.ptr(
               AUDxLC[i], trigger.instrument.data.label + trigger.offset!);
-          copper.move(
-              AUDxLEN[i], (trigger.instrument.length - trigger.offset!) >> 1);
+          copper.move(AUDxLEN[i], length >> 1);
         }
       }
 
@@ -126,5 +127,9 @@ class InstrumentTrigger {
   /// is changed to the new instrument.
   int? offset;
 
-  InstrumentTrigger(this.instrument, [this.offset = 0]);
+  /// Length to play. Always even.
+  /// If `null`, the play region stretches to the end of the sample.
+  int? length;
+
+  InstrumentTrigger(this.instrument, [this.offset = 0, this.length]);
 }
