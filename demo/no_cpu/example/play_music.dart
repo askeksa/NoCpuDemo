@@ -40,5 +40,5 @@ main() {
 
   // Memory
   Memory m = Memory.fromRoots(0x20_0000, [initialCopper.data]);
-  File("../runner/chip.dat").writeAsBytesSync(m.finalize());
+  File("../runner/chip.dat").writeAsBytesSync(m.build());
 }
