@@ -1,4 +1,5 @@
 import 'dart:io';
+import 'dart:math';
 
 import 'package:collection/collection.dart';
 
@@ -126,7 +127,11 @@ class ProtrackerInstrument extends Instrument {
     var repeat = file.readWordSync() * 2;
     var replen = file.readWordSync() * 2;
 
-    Data data = _readSampleData(file, samplePosition, length);
+    Data data = _readSampleData(
+      file,
+      samplePosition,
+      repeat != 0 ? repeat + replen : length,
+    );
 
     var instrument = ProtrackerInstrument(
       data,
