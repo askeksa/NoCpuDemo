@@ -70,7 +70,9 @@ class MusicFrame implements CopperComponent {
           int length =
               trigger.length ?? trigger.instrument.length - trigger.offset!;
           copper.ptr(
-              AUDxLC[i], trigger.instrument.data.label + trigger.offset!);
+            AUDxLC[i],
+            trigger.instrument.data.label + trigger.offset!,
+          );
           copper.move(AUDxLEN[i], length >> 1);
         }
       }
@@ -99,8 +101,10 @@ class MusicFrame implements CopperComponent {
     for (int i = 0; i < channels.length; i++) {
       var trigger = channels[i].trigger;
       if (trigger != null) {
-        copper.ptr(AUDxLC[i],
-            trigger.instrument.data.label + trigger.instrument.repeat);
+        copper.ptr(
+          AUDxLC[i],
+          trigger.instrument.data.label + trigger.instrument.repeat,
+        );
         copper.move(AUDxLEN[i], trigger.instrument.replen >> 1);
       }
     }

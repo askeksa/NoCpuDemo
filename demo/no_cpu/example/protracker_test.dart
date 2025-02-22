@@ -29,9 +29,10 @@ main(List<String> args) {
     prev = frame;
     return frame;
   });
-  Copper endCopper = music.restart != null
-      ? frames[music.restart!]
-      : Copper(isPrimary: true, origin: "End");
+  Copper endCopper =
+      music.restart != null
+          ? frames[music.restart!]
+          : Copper(isPrimary: true, origin: "End");
   prev.ptr(COP1LC, endCopper.label);
 
   // Memory

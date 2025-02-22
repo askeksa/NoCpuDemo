@@ -7,20 +7,23 @@ import 'package:no_cpu/music.dart';
 
 main() {
   // Dummy music
-  Data samples = Data()
-    ..addBytes([0, 0, for (int i = 0; i < 6400; i++) (i * 4) & 0xFF]);
+  Data samples =
+      Data()..addBytes([0, 0, for (int i = 0; i < 6400; i++) (i * 4) & 0xFF]);
   Instrument instrument = Instrument(samples, 0, 2);
-  Music music = Music()
-    ..frames.add(MusicFrame()
-      ..channels = [
-        MusicFrameChannel()
-          ..trigger = InstrumentTrigger(instrument)
-          ..period = 150
-          ..volume = 42,
-        MusicFrameChannel(),
-        MusicFrameChannel(),
-        MusicFrameChannel(),
-      ]);
+  Music music =
+      Music()
+        ..frames.add(
+          MusicFrame()
+            ..channels = [
+              MusicFrameChannel()
+                ..trigger = InstrumentTrigger(instrument)
+                ..period = 150
+                ..volume = 42,
+              MusicFrameChannel(),
+              MusicFrameChannel(),
+              MusicFrameChannel(),
+            ],
+        );
 
   // Copperlists
   Copper initialCopper = Copper(isPrimary: true, origin: "Initial")
@@ -33,9 +36,10 @@ main() {
     prev = frame;
     return frame;
   });
-  Copper endCopper = music.restart != null
-      ? frames[music.restart!]
-      : Copper(isPrimary: true, origin: "End");
+  Copper endCopper =
+      music.restart != null
+          ? frames[music.restart!]
+          : Copper(isPrimary: true, origin: "End");
   prev.ptr(COP1LC, endCopper.label);
 
   // Memory
