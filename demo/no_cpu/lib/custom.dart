@@ -1,4 +1,3 @@
-
 // Relevant Amiga custom chip register addresses
 const int VPOSW = 0x02A;
 const int VHPOSW = 0x02C;
@@ -213,7 +212,7 @@ const List<int> BPLxPTH = [
   BPL5PTH,
   BPL6PTH,
   BPL7PTH,
-  BPL8PTH
+  BPL8PTH,
 ];
 const List<int> BPLxPTL = [
   BPL1PTL,
@@ -223,7 +222,7 @@ const List<int> BPLxPTL = [
   BPL5PTL,
   BPL6PTL,
   BPL7PTL,
-  BPL8PTL
+  BPL8PTL,
 ];
 const List<int> BPLxDAT = [
   BPL1DAT,
@@ -233,7 +232,7 @@ const List<int> BPLxDAT = [
   BPL5DAT,
   BPL6DAT,
   BPL7DAT,
-  BPL8DAT
+  BPL8DAT,
 ];
 const List<int> SPRxPTH = [
   SPR0PTH,
@@ -243,7 +242,7 @@ const List<int> SPRxPTH = [
   SPR4PTH,
   SPR5PTH,
   SPR6PTH,
-  SPR7PTH
+  SPR7PTH,
 ];
 const List<int> SPRxPTL = [
   SPR0PTL,
@@ -253,7 +252,7 @@ const List<int> SPRxPTL = [
   SPR4PTL,
   SPR5PTL,
   SPR6PTL,
-  SPR7PTL
+  SPR7PTL,
 ];
 const List<int> SPRxPOS = [
   SPR0POS,
@@ -263,7 +262,7 @@ const List<int> SPRxPOS = [
   SPR4POS,
   SPR5POS,
   SPR6POS,
-  SPR7POS
+  SPR7POS,
 ];
 const List<int> SPRxCTL = [
   SPR0CTL,
@@ -273,7 +272,7 @@ const List<int> SPRxCTL = [
   SPR4CTL,
   SPR5CTL,
   SPR6CTL,
-  SPR7CTL
+  SPR7CTL,
 ];
 const List<int> SPRxDATA = [
   SPR0DATA,
@@ -283,7 +282,7 @@ const List<int> SPRxDATA = [
   SPR4DATA,
   SPR5DATA,
   SPR6DATA,
-  SPR7DATA
+  SPR7DATA,
 ];
 const List<int> SPRxDATB = [
   SPR0DATB,
@@ -293,7 +292,7 @@ const List<int> SPRxDATB = [
   SPR4DATB,
   SPR5DATB,
   SPR6DATB,
-  SPR7DATB
+  SPR7DATB,
 ];
 const List<int> COLORx = [
   COLOR00,
@@ -327,7 +326,7 @@ const List<int> COLORx = [
   COLOR28,
   COLOR29,
   COLOR30,
-  COLOR31
+  COLOR31,
 ];
 
 // Pointer register pairs

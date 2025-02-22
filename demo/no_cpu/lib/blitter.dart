@@ -83,7 +83,8 @@ class Blit implements CopperComponent {
 
   @override
   void addToCopper(Copper copper) {
-    int channelMask = this.channelMask ??
+    int channelMask =
+        this.channelMask ??
         (aPtr != null ? 0x8 : 0) |
             (bPtr != null ? 0x4 : 0) |
             (cPtr != null ? 0x2 : 0) |

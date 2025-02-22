@@ -10,15 +10,18 @@ main() {
   sub.wait(v: 80, h: 7);
   sub.move(COLOR00, 0x0F0);
 
-  List<Copper> frames =
-      List.generate(16, (i) => Copper(isPrimary: true, origin: i));
+  List<Copper> frames = List.generate(
+    16,
+    (i) => Copper(isPrimary: true, origin: i),
+  );
   for (var (i, frame) in frames.indexed) {
     var color = FreeLabel("color");
-    var blit = Blit()
-      ..adPtr = color
-      ..adStride = 0
-      ..aShift = 1
-      ..height = 2;
+    var blit =
+        Blit()
+          ..adPtr = color
+          ..adStride = 0
+          ..aShift = 1
+          ..height = 2;
 
     frame >> blit >> WaitBlit();
     frame.move(COLOR00, 0x005, label: color);
