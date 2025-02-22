@@ -3,9 +3,14 @@ import 'dart:io';
 import 'package:no_cpu/blitter.dart';
 import 'package:no_cpu/copper.dart';
 import 'package:no_cpu/custom.dart';
+import 'package:no_cpu/display.dart';
 import 'package:no_cpu/memory.dart';
 
 main() {
+  int mask = int.parse("111000000001110000000011100000000111", radix: 2);
+  Data bitmap = Data(alignment: 3)
+    ..addLongwords(List.generate(320 * 100 ~/ 32, (i) => mask >> (i % 11)));
+
   Copper sub = Copper(origin: "Subroutine");
   sub.wait(v: 80, h: 7);
   sub.move(COLOR00, 0x0F0);
@@ -15,6 +20,12 @@ main() {
     (i) => Copper(isPrimary: true, origin: i),
   );
   for (var (i, frame) in frames.indexed) {
+    var display =
+        Display()
+          ..bitplanes = [bitmap.label]
+          ..alignment = i % 3 + 1;
+    frame >> display;
+
     var color = FreeLabel("color");
     var blit =
         Blit()
@@ -36,6 +47,8 @@ main() {
 
   Copper initialCopper = Copper(isPrimary: true, origin: "Initial")
     ..data.address = 0x00_0000;
+  initialCopper.move(DIWSTRT, 0x5281);
+  initialCopper.move(DIWSTOP, 0x06C1);
   initialCopper.ptr(COP1LC, frames[0].label);
 
   Memory m = Memory.fromRoots(0x20_0000, [initialCopper.data]);
