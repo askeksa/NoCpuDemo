@@ -30,7 +30,6 @@ class ProtrackerPlayer {
   int _restart = 0;
   int _speed = 6;
   int _bpm = 125;
-  int _bpmCount = 125;
   int _patternDelay = 0;
 
   ProtrackerPlayer(this._module)
@@ -257,6 +256,8 @@ class ProtrackerPlayer {
           if (_patternDelay == 0) {
             _patternDelay = event.effectParameter;
           }
+        case 0xEF:
+          print("Warning: EFx (funk repeat) used, this is unsupported");
         case 0xF:
           if (event.effectParameter >= 0x20) {
             _bpm = event.effectParameter;
@@ -366,6 +367,7 @@ class ProtrackerPlayer {
         case 0xEA:
         case 0xEB:
         case 0xEE:
+        case 0xEF:
         case 0xF:
           // Ignore, not handled on these substeps
           break;
@@ -400,6 +402,7 @@ class ProtrackerPlayer {
   }
 
   Iterable<MusicFrame> _bpmFrames() sync* {
+    var bpmCount = 125;
     var it = _songFrames().iterator;
 
     while (true) {
@@ -410,16 +413,16 @@ class ProtrackerPlayer {
               (_) => MusicFrameChannel(),
             );
 
-      if (_bpmCount < 125) {
-        _bpmCount += _bpm;
+      if (bpmCount < 125) {
+        bpmCount += _bpm;
         yield frame;
       } else {
-        while (_bpmCount >= 125) {
+        while (bpmCount >= 125) {
           if (!it.moveNext()) {
             return;
           }
 
-          _bpmCount -= 125;
+          bpmCount -= 125;
 
           var newFrame = it.current;
           for (var (i, newChannel) in newFrame.channels.indexed) {
@@ -435,7 +438,7 @@ class ProtrackerPlayer {
             }
           }
         }
-        _bpmCount += _bpm;
+        bpmCount += _bpm;
 
         yield frame;
       }
