@@ -541,6 +541,8 @@ mixin DataContainer {
 
   void addLongwords(List<int> values) =>
       setLongwords(_addSize(values.length * 4), values);
+
+  void addSpace(int size) => _addSize(size);
 }
 
 extension SetAtTarget on Label {
