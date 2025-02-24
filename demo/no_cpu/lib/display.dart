@@ -6,6 +6,7 @@
 // - No priorities
 // - No color offsets
 
+import 'bitmap.dart';
 import 'copper.dart';
 import 'custom.dart';
 import 'memory.dart';
@@ -23,6 +24,15 @@ class Display implements CopperComponent {
   set stride(int value) => oddStride = evenStride = value;
 
   int get depth => bitplanes.length;
+
+  void setBitmap(Bitmap bitmap) {
+    assert(bitmap.alignment >= alignment);
+    bitplanes = List.generate(
+      bitmap.depth,
+      (i) => bitmap.bitplanes + i * bitmap.planeStride,
+    );
+    stride = bitmap.rowStride;
+  }
 
   @override
   void addToCopper(Copper copper) {
