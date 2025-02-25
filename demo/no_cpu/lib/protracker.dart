@@ -67,7 +67,7 @@ class ProtrackerPatternEvents {
 }
 
 /// A complete pattern. A pattern contains a number of
-/// ProtrackerPatternChannels (most likely 4)
+/// ProtrackerPatternEvents (most likely 4)
 class ProtrackerPattern {
   final List<ProtrackerPatternEvents> channels;
 
@@ -121,7 +121,7 @@ class ProtrackerInstrument extends Instrument {
   ) {
     file.setPositionSync(_instrumentPosition(instrumentIndex) + _nameLength);
 
-    var length = file.readWordSync() * 2;
+    var lengthInFile = file.readWordSync() * 2;
     var finetune = file.readByteSync();
     var volume = file.readByteSync();
     var repeat = file.readWordSync() * 2;
@@ -130,7 +130,7 @@ class ProtrackerInstrument extends Instrument {
     Data data = _readSampleData(
       file,
       samplePosition,
-      repeat != 0 ? repeat + replen : length,
+      repeat != 0 ? repeat + replen : lengthInFile,
     );
 
     var instrument = ProtrackerInstrument(
@@ -139,7 +139,7 @@ class ProtrackerInstrument extends Instrument {
       replen,
       finetune,
       volume,
-      length,
+      lengthInFile,
     );
     data.origin = instrument;
 
