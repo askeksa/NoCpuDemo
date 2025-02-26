@@ -16,8 +16,8 @@ class ProtrackerPlayerChannelState {
   int tremoloSpeed = 0;
   int tremoloDepth = 0;
   int tremoloPosition = 0;
-  int offset = 0;
-  int quirkPeriod = 0;
+  int offset = 0; // buffered 9xx offset
+  int restoreBasePeriod = 0; // period to restore on next step
   bool useOffset = false; // this is used for handling the buffering of 9xx
 }
 
@@ -135,9 +135,9 @@ class ProtrackerPlayer {
     var frameChannel = MusicFrameChannel();
     var isPortamento = event.effect == 3 || event.effect == 5;
 
-    if (channel.quirkPeriod != 0) {
-      frameChannel.period = channel.quirkPeriod;
-      channel.quirkPeriod = 0;
+    if (channel.restoreBasePeriod != 0) {
+      frameChannel.period = channel.restoreBasePeriod;
+      channel.restoreBasePeriod = 0;
     }
 
     if (event.instrument != 0) {
@@ -186,6 +186,10 @@ class ProtrackerPlayer {
       var frameChannel = _performInstrumentTrigger(channel, event);
 
       switch (event.effect) {
+        case 0x0:
+          if (event.effectParameter != 0) {
+            channel.restoreBasePeriod = channel.period;
+          }
         case 0x3:
           if (event.note != null) {
             channel.portamentoTarget = _noteToPeriod(
@@ -217,15 +221,18 @@ class ProtrackerPlayer {
           if (event.effectParameter & 0x0F != 0) {
             channel.tremoloDepth = event.effectParameter & 0x0F;
           }
+        case 0x8:
+          print("Warning: 8xx used, this is unsupported");
         case 0x9:
           if (event.effectParameter != 0) {
             channel.offset = event.effectParameter * 256;
           }
           channel.useOffset = true;
         case 0xC:
-          channel.volume = frameChannel.volume = event.effectParameter;
+          channel.volume =
+              frameChannel.volume = event.effectParameter.clampVolume();
         case 0xE0:
-          // No way to control filter with copper
+          print("Warning: E0x (filter control) used, this is unsupported");
           break;
         case 0xE1:
           channel.period =
@@ -245,7 +252,7 @@ class ProtrackerPlayer {
                   (channel.volume - event.effectParameter).clampVolume();
         case 0xED:
           if (event.effectParameter >= _speed) {
-            channel.quirkPeriod = channel.period;
+            channel.restoreBasePeriod = channel.period;
           }
           if (event.effectParameter > 0) {
             // Cancel the instrument trigger on note delay (but not volume)
@@ -265,7 +272,6 @@ class ProtrackerPlayer {
           } else {
             _speed = event.effectParameter;
           }
-        case 0x0:
         case 0x1:
         case 0x2:
         case 0x6:
@@ -344,8 +350,6 @@ class ProtrackerPlayer {
           _performTremolo(channel, frameChannel);
         case 0xA:
           _performVolumeSlide(channel, frameChannel, event);
-        case 0xE0:
-          // No way to control filter with copper
           break;
         case 0xE9:
           if ((event.effectParameter < 2) ||
@@ -360,8 +364,10 @@ class ProtrackerPlayer {
           if (subStep == event.effectParameter) {
             frameChannel = _performInstrumentTrigger(channel, event);
           }
+        case 0x8:
         case 0x9:
         case 0xC:
+        case 0xE0:
         case 0xE1:
         case 0xE2:
         case 0xEA:
