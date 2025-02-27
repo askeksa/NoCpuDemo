@@ -44,9 +44,10 @@ class Blit implements CopperComponent {
   bool descending = false;
 
   /// Width (in words) and height (in rows) of the blit operation.
-  int width = 1, height = 1;
+  /// Both default to 1.
+  int? width, height;
 
-  /// Shorthands for setting multiple pointers.
+  // Shorthands for setting multiple pointers.
   set abPtr(Label value) => aPtr = bPtr = value;
   set acPtr(Label value) => aPtr = cPtr = value;
   set adPtr(Label value) => aPtr = dPtr = value;
@@ -59,7 +60,7 @@ class Blit implements CopperComponent {
   set bcdPtr(Label value) => bPtr = cPtr = dPtr = value;
   set abcdPtr(Label value) => aPtr = bPtr = cPtr = dPtr = value;
 
-  /// Shorthands for setting multiple strides.
+  // Shorthands for setting multiple strides.
   set abStride(int value) => aStride = bStride = value;
   set acStride(int value) => aStride = cStride = value;
   set adStride(int value) => aStride = dStride = value;
@@ -72,13 +73,13 @@ class Blit implements CopperComponent {
   set bcdStride(int value) => bStride = cStride = dStride = value;
   set abcdStride(int value) => aStride = bStride = cStride = dStride = value;
 
-  /// Shorthands for setting multiple data values.
+  // Shorthands for setting multiple data values.
   set abData(int value) => aData = bData = value;
   set acData(int value) => aData = cData = value;
   set bcData(int value) => bData = cData = value;
   set abcData(int value) => aData = bData = cData = value;
 
-  /// Shorthand for setting multiple shift values.
+  // Shorthand for setting multiple shift values.
   set abShift(int value) => aShift = bShift = value;
 
   @override
@@ -99,6 +100,9 @@ class Blit implements CopperComponent {
     bool cInput = cEnabled || cData != null;
     int minterms =
         this.minterms ?? (aInput ? A : 0) ^ (bInput ? B : 0) ^ (cInput ? C : 0);
+
+    int width = this.width ?? 1;
+    int height = this.height ?? 1;
 
     int ptrOffset = descending ? width * 2 - 2 : 0;
     int stride2modulo(int? stride) {
