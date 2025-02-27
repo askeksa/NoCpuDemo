@@ -2,6 +2,7 @@ import 'dart:io';
 import 'dart:math';
 
 import 'package:no_cpu/bitmap.dart';
+import 'package:no_cpu/bitmap_blit.dart';
 import 'package:no_cpu/blitter.dart';
 import 'package:no_cpu/color.dart';
 import 'package:no_cpu/copper.dart';
@@ -51,6 +52,11 @@ main() {
     frame >> bg(i.isEven ? 0xA00 : 0x500);
     frame.ptr(COP1LC, frames[(i + 1) % frames.length].label);
   }
+
+  frames[8] <<
+      (Blit()
+        ..aSetInterleaved(bitmap, x: 42, y: 42, w: 42, h: 42)
+        ..cdSetInterleaved(bitmap, x: 122, y: 87, w: 42, h: 42));
 
   Copper initialCopper = Copper(isPrimary: true, origin: "Initial")
     ..data.address = 0x00_0000;
