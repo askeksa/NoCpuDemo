@@ -3,6 +3,7 @@ import 'dart:math';
 
 import 'package:no_cpu/bitmap.dart';
 import 'package:no_cpu/blitter.dart';
+import 'package:no_cpu/color.dart';
 import 'package:no_cpu/copper.dart';
 import 'package:no_cpu/custom.dart';
 import 'package:no_cpu/display.dart';
@@ -12,9 +13,9 @@ main() {
   var chunky = ChunkyPixels.generate(
     315,
     175,
-    (x, y) => (sqrt(x * x + y * y) / 10).toInt(),
+    (x, y) => (sqrt(x * x + y * y) / 3).toInt(),
   );
-  var bitmap = Bitmap.fromChunky(chunky, depth: 2, interleaved: true);
+  var bitmap = Bitmap.fromChunky(chunky, depth: 6, interleaved: true);
   print(bitmap);
 
   Copper sub = Copper(origin: "Subroutine");
@@ -55,9 +56,13 @@ main() {
     ..data.address = 0x00_0000;
   initialCopper.move(DIWSTRT, 0x5281);
   initialCopper.move(DIWSTOP, 0x06C1);
-  initialCopper.move(COLOR01, 0x0531);
-  initialCopper.move(COLOR02, 0x0741);
-  initialCopper.move(COLOR03, 0x0951);
+  initialCopper <<
+      Palette.generateRange(
+        1,
+        63,
+        (i) => Color.rgb8(100 + i * 2, i * 3, i * 4),
+      );
+  initialCopper.move(BPLCON3, 0x0000);
   initialCopper.ptr(COP1LC, frames[0].label);
 
   Memory m = Memory.fromRoots(0x20_0000, [initialCopper.data]);
