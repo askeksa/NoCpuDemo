@@ -41,7 +41,7 @@ main(List<String> args) {
   Memory m = Memory.fromRoots(0x20_0000, [initialCopper.data]);
   m.finalize();
   print("Before dedup: ${m.dataBlocks.map((b) => b.size).sum}");
-  var chipData = m.build(finalize: false);
+  var chipData = m.build();
   print("After dedup:  ${chipData.length}");
   File("../runner/chip.dat").writeAsBytesSync(chipData);
 }

@@ -14,6 +14,8 @@ class Memory {
   List<Data> dataBlocks = [];
   List<Space> spaceBlocks = [];
 
+  bool isFinalized = false;
+
   Iterable<Block> get blocks => [...dataBlocks, ...spaceBlocks];
 
   final int size;
@@ -190,13 +192,15 @@ class Memory {
 
   void finalize() {
     // Run finalizers.
+    assert(!isFinalized);
     for (Data data in dataBlocks) {
       data.finalizer?.call(data);
     }
+    isFinalized = true;
   }
 
-  Uint8List build({bool finalize = true}) {
-    if (finalize) {
+  Uint8List build() {
+    if (!isFinalized) {
       this.finalize();
     }
 
