@@ -25,7 +25,7 @@ main() {
 
   List<Copper> frames = List.generate(
     16,
-    (i) => Copper(isPrimary: true, origin: i),
+    (i) => Copper(isPrimary: true, origin: i)..useInFrame(i),
   );
   for (var (i, frame) in frames.indexed) {
     var display =
@@ -58,8 +58,10 @@ main() {
         ..aSetInterleaved(bitmap, x: 42, y: 42, w: 42, h: 42)
         ..cdSetInterleaved(bitmap, x: 122, y: 87, w: 42, h: 42));
 
-  Copper initialCopper = Copper(isPrimary: true, origin: "Initial")
-    ..data.address = 0x00_0000;
+  Copper initialCopper =
+      Copper(isPrimary: true, origin: "Initial")
+        ..data.address = 0x00_0000
+        ..useInFrame(-1);
   initialCopper.move(DIWSTRT, 0x5281);
   initialCopper.move(DIWSTOP, 0x06C1);
   initialCopper <<

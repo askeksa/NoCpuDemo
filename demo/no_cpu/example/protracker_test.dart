@@ -19,11 +19,13 @@ main(List<String> args) {
   var music = ProtrackerPlayer(module).toMusic();
 
   // Copperlists
-  Copper initialCopper = Copper(isPrimary: true, origin: "Initial")
-    ..data.address = 0x00_0000;
+  Copper initialCopper =
+      Copper(isPrimary: true, origin: "Initial")
+        ..data.address = 0x00_0000
+        ..useInFrame(-1);
   Copper prev = initialCopper;
   List<Copper> frames = List.generate(music.frames.length, (i) {
-    Copper frame = Copper(isPrimary: true, origin: i);
+    Copper frame = Copper(isPrimary: true, origin: i)..useInFrame(i);
     frame >> music.frames[i];
     prev.ptr(COP1LC, frame.label);
     prev = frame;

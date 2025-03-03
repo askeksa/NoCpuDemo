@@ -14,6 +14,8 @@ class Memory {
   List<Data> dataBlocks = [];
   List<Space> spaceBlocks = [];
 
+  Iterable<Block> get blocks => [...dataBlocks, ...spaceBlocks];
+
   final int size;
 
   late final int dataSize;
@@ -35,6 +37,34 @@ class Memory {
     memory.spaceBlocks.addAll(blocks.whereType<Space>());
 
     return memory;
+  }
+
+  void _inferLiveness() {
+    void propagate(
+      int? Function(Block) read,
+      bool Function(Block, int) update,
+      String when,
+    ) {
+      Set<Block> roots = blocks.where((b) => read(b) != null).toSet();
+      List<Block> worklist = List.from(roots);
+      while (worklist.isNotEmpty) {
+        Block block = worklist.removeLast();
+        for (Block dependency in block.dependencies) {
+          if (!roots.contains(dependency) && update(dependency, read(block)!)) {
+            worklist.add(dependency);
+          }
+        }
+      }
+
+      for (Block block in blocks) {
+        if (read(block) == null) {
+          throw Exception("No $when frame inferred for block '$block'");
+        }
+      }
+    }
+
+    propagate((b) => b.firstFrame, (b, f) => b._updateFirstFrame(f), "first");
+    propagate((b) => b.lastFrame, (b, f) => b._updateLastFrame(f), "last");
   }
 
   void _deduplicate() {
@@ -115,6 +145,8 @@ class Memory {
       representative.alignment = max(representative.alignment, b.alignment);
       representative.singlePage |= b.singlePage;
       representative.extraDependencies.addAll(b.extraDependencies);
+      representative._updateFirstFrame(b.firstFrame!);
+      representative._updateLastFrame(b.lastFrame!);
       // Redirect references.
       b.label.block = representative;
       return true;
@@ -169,6 +201,7 @@ class Memory {
     }
 
     // Assemble the blocks into a memory image.
+    _inferLiveness();
     _deduplicate();
     _assignAddresses();
     _resolveReferences();
@@ -284,14 +317,22 @@ abstract base class Block {
   /// The memory address of the block.
   ///
   /// This can be set explicitly to assign a fixed address to the block.
-  /// Otherwise, the block will be assigned an address when the memory is
-  /// finalized.
+  /// Otherwise, the block will be assigned an address when the memory image
+  /// is built.
   int? address;
 
   /// The first frame where the block is used.
+  ///
+  /// This can be set explicitly to manually specify when the block is first
+  /// used. Otherwise, the first frame will be inferred from other blocks for
+  /// which this block is a dependency.
   int? firstFrame;
 
   /// The last frame where the block is used.
+  ///
+  /// This can be set explicitly to manually specify when the block is last
+  /// used. Otherwise, the last frame will be inferred from other blocks for
+  /// which this block is a dependency.
   int? lastFrame;
 
   /// Label pointing to the start of the block.
@@ -326,12 +367,24 @@ abstract base class Block {
 
   /// Mark the block as used in a given frame.
   void useInFrame(int frame) {
+    _updateFirstFrame(frame);
+    _updateLastFrame(frame);
+  }
+
+  bool _updateFirstFrame(int frame) {
     if (firstFrame == null || frame < firstFrame!) {
       firstFrame = frame;
+      return true;
     }
+    return false;
+  }
+
+  bool _updateLastFrame(int frame) {
     if (lastFrame == null || frame > lastFrame!) {
       lastFrame = frame;
+      return true;
     }
+    return false;
   }
 
   /// Set a label at a given offset from the start of the block.
