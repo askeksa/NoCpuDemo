@@ -143,6 +143,77 @@ class Bitmap {
     return bitmap;
   }
 
+  int getPlanePixel(int x, int y, int plane) {
+    final data = (bitplanes.block as Data).bytes;
+
+    final offset =
+        bitplanes.offsetInBlock +
+        y * rowStride +
+        plane * planeStride +
+        (x >> 3);
+
+    final byte = data[offset];
+    final bit = 7 - (x & 7);
+    return (byte >> bit) & 1;
+  }
+
+  int getPixel(int x, int y) {
+    int value = 0;
+    for (int plane = 0; plane < depth; plane++) {
+      value |= getPlanePixel(x, y, plane) << plane;
+    }
+    return value;
+  }
+
+  void setPlanePixel(int x, int y, int plane, int value) {
+    final data = (bitplanes.block as Data).bytes;
+
+    final offset =
+        bitplanes.offsetInBlock +
+        y * rowStride +
+        plane * planeStride +
+        (x >> 3);
+
+    final bit = 7 - (x & 7);
+    if ((value & 1) == 0) {
+      data[offset] &= ~(1 << bit);
+    } else {
+      data[offset] |= (1 << bit);
+    }
+  }
+
+  void setPixel(int x, int y, int value) {
+    for (int plane = 0; plane < depth; plane++) {
+      setPlanePixel(x, y, plane, (value >> plane) & 1);
+    }
+  }
+
+  Bitmap transform(
+    int Function(int x, int y, int pixel) transformer, {
+    int? depth,
+    bool? interleaved,
+    Mutability mutability = Mutability.immutable,
+  }) {
+    var transformed = Bitmap.blank(
+      width,
+      height,
+      depth ?? this.depth,
+      alignment: alignment,
+      interleaved: interleaved ?? this.interleaved,
+      mutability: mutability,
+    );
+
+    for (var y = 0; y < height; y++) {
+      for (var x = 0; x < width; x++) {
+        final pixel = getPixel(x, y);
+        final newPixel = transformer(x, y, pixel);
+        transformed.setPixel(x, y, newPixel);
+      }
+    }
+
+    return transformed;
+  }
+
   @override
   String toString() =>
       "Bitmap: $width x $height x $depth"
