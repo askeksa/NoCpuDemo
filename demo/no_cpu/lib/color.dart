@@ -1,5 +1,6 @@
 import 'copper.dart';
 import 'custom.dart';
+import 'iff.dart';
 
 /// Global border blanking flag.
 bool borderBlank = true;
@@ -111,6 +112,19 @@ class Palette implements CopperComponent {
     Color Function(int index) generator,
   ) {
     return Palette([PaletteRange.generate(start, count, generator)]);
+  }
+
+  factory Palette.fromIlbm(IlbmData ilbm) {
+    final colorMap = ilbm.colorMapData;
+    if (colorMap == null) {
+      throw ArgumentError("ILBM data does not contain a color map");
+    }
+    return Palette.generateRange(
+      0,
+      colorMap.length ~/ 3,
+      (i) =>
+          Color.rgb8(colorMap[i * 3], colorMap[i * 3 + 1], colorMap[i * 3 + 2]),
+    );
   }
 
   Palette shift(int delta) {
