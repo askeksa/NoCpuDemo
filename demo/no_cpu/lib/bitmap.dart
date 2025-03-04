@@ -1,5 +1,6 @@
 import 'dart:typed_data';
 
+import 'iff.dart';
 import 'memory.dart';
 
 class ChunkyPixels {
@@ -139,6 +140,36 @@ class Bitmap {
         }
       }
     }
+
+    return bitmap;
+  }
+
+  factory Bitmap.fromIlbm(
+    IlbmData ilbm, {
+    Mutability mutability = Mutability.immutable,
+  }) {
+    if (ilbm.imageData == null) {
+      throw ArgumentError("ILBM data does not contain image data");
+    }
+
+    int paddedWidth = (ilbm.width + 15) & ~15;
+    int alignment = 1;
+    while ((paddedWidth >> (alignment + 3)) & 1 == 0) {
+      alignment++;
+    }
+
+    var bitmap = Bitmap.blank(
+      ilbm.width,
+      ilbm.height,
+      ilbm.bitplanes,
+      alignment: alignment,
+      interleaved: true,
+      mutability: mutability,
+    );
+
+    final data = (bitmap.bitplanes.block as Data).bytes;
+    assert(data.length == ilbm.imageData!.length);
+    data.setAll(0, ilbm.imageData!);
 
     return bitmap;
   }
