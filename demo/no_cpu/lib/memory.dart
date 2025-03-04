@@ -70,14 +70,8 @@ class Memory {
   }
 
   void _deduplicate() {
-    // Hack: Avoid deduplicating primary copperlists for speed.
-    // TODO: Have a proper mutability flag on data blocks.
     List<List<Data>> clusters = [
-      dataBlocks.where((b) {
-        var origin = b.origin;
-        if (origin is! Copper) return true;
-        return !origin.isPrimary;
-      }).toList(),
+      dataBlocks.where((b) => b.canBeDeduplicated).toList(),
     ];
 
     List<List<Data>> clusterBy(bool Function(Data, Data) equals) {
@@ -222,6 +216,8 @@ abstract base class Label {
   Block get block;
   int get offsetInBlock;
 
+  void assertMutable();
+
   Label add(int offset) => OffsetLabel(this, offset);
 
   Label operator +(int offset) => add(offset);
@@ -244,6 +240,13 @@ final class BlockLabel extends Label {
 
   @override
   int get offsetInBlock => 0;
+
+  @override
+  void assertMutable() {
+    if (!block.isMutable) {
+      throw Exception("Block '$block' is not mutable");
+    }
+  }
 }
 
 final class OffsetLabel extends Label {
@@ -262,14 +265,28 @@ final class OffsetLabel extends Label {
 
   @override
   int get offsetInBlock => target.offsetInBlock + offset;
+
+  @override
+  void assertMutable() => target.assertMutable();
 }
 
 final class FreeLabel extends Label {
   String name;
+  bool? requireMutable;
 
   Label? _target;
 
+  /// A label that requires its target to be mutable if the label itself is
+  /// required to be mutable.
   FreeLabel([this.name = "unnamed"]);
+
+  /// A label that requires its target to be mutable, even if the label itself
+  /// is not required to be mutable.
+  FreeLabel.mutable([this.name = "unnamed"]) : requireMutable = true;
+
+  /// A label that does not require its target to be mutable, even if the label
+  /// itself is required to be mutable.
+  FreeLabel.immutable([this.name = "unnamed"]) : requireMutable = false;
 
   Label get target => _target ?? (throw Exception("Label '$name' not bound"));
 
@@ -278,6 +295,9 @@ final class FreeLabel extends Label {
       throw Exception("Label '$name' already bound");
     }
     _target = target;
+    if (requireMutable ?? false) {
+      target.assertMutable();
+    }
   }
 
   bool get isBound => _target != null;
@@ -290,6 +310,14 @@ final class FreeLabel extends Label {
 
   @override
   int get offsetInBlock => target.offsetInBlock;
+
+  @override
+  void assertMutable() {
+    requireMutable ??= true;
+    if (requireMutable! && isBound) {
+      target.assertMutable();
+    }
+  }
 }
 
 /// A word in a data block containing part of the address of a label in the
@@ -302,6 +330,23 @@ class Reference {
   Reference(this.offsetInBlock, this.target, this.shift);
 
   int get value => (target.address >> shift) & 0xFFFF;
+}
+
+/// Mutability of a data block.
+enum Mutability {
+  /// Immutable. Writing to the block will produce an error.
+  /// Can be de-duplicated with other immutable blocks.
+  immutable,
+
+  /// Generally mutable. Can't be de-duplicated.
+  mutable,
+
+  /// Mutable, but always modified immediately before or during use.
+  /// Can be de-duplicated with other locally mutable blocks.
+  local,
+
+  /// Immutable, but inhibits de-duplication.
+  unique,
 }
 
 /// Base class for memory blocks.
@@ -363,6 +408,8 @@ abstract base class Block {
 
   /// Whether the block has been allocated to a specific address.
   bool get isAllocated => address != null;
+
+  bool get isMutable;
 
   /// Add a block as an explicit dependency.
   void addDependency(Block block) {
@@ -433,14 +480,37 @@ abstract base class Block {
 final class Data extends Block with DataContainer {
   final List<Reference> references = [];
 
+  Mutability mutability;
+
   /// Callback to run when the block is finalized.
   void Function(Data)? finalizer;
 
-  Data({super.alignment, super.singlePage, super.origin});
+  Data({
+    super.alignment,
+    super.singlePage,
+    super.origin,
+    this.mutability = Mutability.immutable,
+  });
+
+  Data.mutable({super.alignment, super.singlePage, super.origin})
+    : mutability = Mutability.mutable;
+
+  Data.local({super.alignment, super.singlePage, super.origin})
+    : mutability = Mutability.local;
+
+  Data.unique({super.alignment, super.singlePage, super.origin})
+    : mutability = Mutability.unique;
 
   @override
   Iterable<Block> get dependencies =>
       references.map((r) => r.target.block).followedBy(extraDependencies);
+
+  @override
+  bool get isMutable =>
+      mutability == Mutability.mutable || mutability == Mutability.local;
+
+  bool get canBeDeduplicated =>
+      mutability == Mutability.immutable || mutability == Mutability.local;
 
   /// Add a label at the end of the block.
   Label addLabel() => setLabel(size);
@@ -516,6 +586,9 @@ final class Space extends Block {
 
   @override
   Iterable<Block> get dependencies => extraDependencies;
+
+  @override
+  bool get isMutable => true;
 }
 
 mixin DataContainer {

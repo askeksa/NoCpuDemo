@@ -18,8 +18,18 @@ class Copper {
   /// Is this copperlist terminated?
   bool isTerminated = false;
 
-  Copper({int alignment = 2, this.isPrimary = false, this.origin})
-    : data = Data(alignment: alignment, singlePage: isPrimary) {
+  Copper({
+    int alignment = 2,
+    this.isPrimary = false,
+    this.origin,
+    Mutability? mutability,
+  }) : data = Data(
+         alignment: alignment,
+         singlePage: isPrimary,
+         mutability:
+             mutability ??
+             (isPrimary ? Mutability.unique : Mutability.immutable),
+       ) {
     data.origin = this;
     data.finalizer = (_) {
       finalizer?.call(this);
@@ -38,6 +48,10 @@ class Copper {
 
   /// Whether the copperlist is empty.
   bool get isEmpty => data.isEmpty;
+
+  Mutability get mutability => data.mutability;
+  set mutability(Mutability value) => data.mutability = value;
+  bool get isMutable => data.isMutable;
 
   /// Mark the copperlist as used in a given frame.
   void useInFrame(int frame) => data.useInFrame(frame);
