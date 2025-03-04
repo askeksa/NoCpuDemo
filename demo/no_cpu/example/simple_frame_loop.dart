@@ -16,7 +16,12 @@ main() {
     175,
     (x, y) => (sqrt(x * x + y * y) / 3).toInt(),
   );
-  var bitmap = Bitmap.fromChunky(chunky, depth: 6, interleaved: true);
+  var bitmap = Bitmap.fromChunky(
+    chunky,
+    depth: 6,
+    interleaved: true,
+    mutability: Mutability.local,
+  );
   print(bitmap);
 
   Copper sub = Copper(origin: "Subroutine");
@@ -25,7 +30,10 @@ main() {
 
   List<Copper> frames = List.generate(
     16,
-    (i) => Copper(isPrimary: true, origin: i)..useInFrame(i),
+    (i) =>
+        Copper(isPrimary: true, origin: i)
+          ..useInFrame(i)
+          ..mutability = Mutability.mutable,
   );
   for (var (i, frame) in frames.indexed) {
     var display =

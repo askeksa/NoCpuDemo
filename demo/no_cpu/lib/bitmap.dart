@@ -85,10 +85,15 @@ class Bitmap {
     this.alignment = 3,
     this.interleaved = false,
     bool singlePage = false,
+    Mutability mutability = Mutability.immutable,
   }) {
     bytesPerRow = bytesPerRowFor(width, alignment);
-    var data = Data(alignment: alignment, singlePage: singlePage, origin: this)
-      ..addSpace(sizeInBytes);
+    var data = Data(
+      alignment: alignment,
+      singlePage: singlePage,
+      origin: this,
+      mutability: mutability,
+    )..addSpace(sizeInBytes);
     bitplanes = data.label;
   }
 
@@ -98,6 +103,7 @@ class Bitmap {
     int alignment = 3,
     bool interleaved = false,
     bool singlePage = false,
+    Mutability mutability = Mutability.immutable,
   }) {
     // "Convert chunky to planar". Good enough for now.
     var bitmap = Bitmap.blank(
@@ -107,6 +113,7 @@ class Bitmap {
       alignment: alignment,
       interleaved: interleaved,
       singlePage: singlePage,
+      mutability: mutability,
     );
 
     final data = (bitmap.bitplanes.block as Data).bytes;

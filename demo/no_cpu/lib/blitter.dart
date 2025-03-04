@@ -137,6 +137,9 @@ class Blit implements CopperComponent {
       copper.move(BLTSIZV, height);
       copper.move(BLTSIZH, width);
     }
+
+    // Require target to be mutable.
+    dPtr?.assertMutable();
   }
 }
 
