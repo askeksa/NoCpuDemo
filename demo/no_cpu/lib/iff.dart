@@ -1,23 +1,27 @@
 import 'dart:io';
 import 'dart:typed_data';
 
-class IlbmData {
+class IlbmImage {
   int width;
   int height;
   int bitplanes;
   Uint8List? imageData;
   Uint8List? colorMapData;
 
-  IlbmData({
+  IlbmImage({
     required this.width,
     required this.height,
     required this.bitplanes,
     this.imageData,
     this.colorMapData,
   });
+
+  factory IlbmImage.fromFile(String filePath) {
+    return _readIlbm(filePath);
+  }
 }
 
-IlbmData readIlbm(String filePath) {
+IlbmImage _readIlbm(String filePath) {
   final file = File(filePath);
   final bytes = file.readAsBytesSync();
   final byteData = ByteData.view(bytes.buffer);
@@ -85,7 +89,7 @@ IlbmData readIlbm(String filePath) {
     throw Exception('Incomplete ILBM data');
   }
 
-  return IlbmData(
+  return IlbmImage(
     width: width,
     height: height,
     bitplanes: bitplanes,

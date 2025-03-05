@@ -145,7 +145,7 @@ class Bitmap {
   }
 
   factory Bitmap.fromIlbm(
-    IlbmData ilbm, {
+    IlbmImage ilbm, {
     Mutability mutability = Mutability.immutable,
   }) {
     if (ilbm.imageData == null) {
