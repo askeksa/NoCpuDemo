@@ -114,7 +114,7 @@ class Palette implements CopperComponent {
     return Palette([PaletteRange.generate(start, count, generator)]);
   }
 
-  factory Palette.fromIlbm(IlbmData ilbm) {
+  factory Palette.fromIlbm(IlbmImage ilbm) {
     final colorMap = ilbm.colorMapData;
     if (colorMap == null) {
       throw ArgumentError("ILBM data does not contain a color map");

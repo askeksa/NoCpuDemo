@@ -1,14 +1,7 @@
 import 'dart:io';
 import 'dart:math';
 
-import 'package:no_cpu/bitmap.dart';
-import 'package:no_cpu/bitmap_blit.dart';
-import 'package:no_cpu/blitter.dart';
-import 'package:no_cpu/color.dart';
-import 'package:no_cpu/copper.dart';
-import 'package:no_cpu/custom.dart';
-import 'package:no_cpu/display.dart';
-import 'package:no_cpu/memory.dart';
+import 'package:no_cpu/no_cpu.dart';
 
 main() {
   var chunky = ChunkyPixels.generate(

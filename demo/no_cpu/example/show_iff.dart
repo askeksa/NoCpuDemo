@@ -1,15 +1,9 @@
 import 'dart:io';
 
-import 'package:no_cpu/bitmap.dart';
-import 'package:no_cpu/color.dart';
-import 'package:no_cpu/copper.dart';
-import 'package:no_cpu/custom.dart';
-import 'package:no_cpu/display.dart';
-import 'package:no_cpu/iff.dart';
-import 'package:no_cpu/memory.dart';
+import 'package:no_cpu/no_cpu.dart';
 
 main(List<String> args) {
-  var image = readIlbm(args[0]);
+  var image = IlbmImage.fromFile(args[0]);
   var bitmap = Bitmap.fromIlbm(image);
   var palette = Palette.fromIlbm(image);
 

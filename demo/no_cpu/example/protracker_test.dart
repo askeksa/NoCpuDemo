@@ -1,12 +1,7 @@
 import 'dart:io';
 
 import 'package:collection/collection.dart';
-
-import 'package:no_cpu/copper.dart';
-import 'package:no_cpu/custom.dart';
-import 'package:no_cpu/memory.dart';
-import 'package:no_cpu/protracker.dart';
-import 'package:no_cpu/protracker_player.dart';
+import 'package:no_cpu/no_cpu.dart';
 
 main(List<String> args) {
   if (args.isEmpty) {
