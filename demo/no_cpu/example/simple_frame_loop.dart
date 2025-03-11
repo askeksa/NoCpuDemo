@@ -57,7 +57,8 @@ main() {
   frames[8] <<
       (Blit()
         ..aSetInterleaved(bitmap, x: 42, y: 42, w: 42, h: 42)
-        ..cdSetInterleaved(bitmap, x: 122, y: 87, w: 42, h: 42));
+        ..cdSetInterleaved(bitmap, x: 122, y: 87, w: 42, h: 42)
+        ..descending = true);
 
   Copper initialCopper =
       Copper(isPrimary: true, origin: "Initial")

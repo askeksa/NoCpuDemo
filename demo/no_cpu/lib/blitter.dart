@@ -110,14 +110,14 @@ class Blit implements CopperComponent {
       return (descending ? -stride : stride) - width * 2;
     }
 
-    int bltcon0 = (aShift << 12) | (channelMask << 8) | minterms;
+    int bltcon0 = (aShift << 12) | (channelMask << 8) | (minterms & 0xFF);
     int bltcon1 = (bShift << 12) | (descending ? 0x0002 : 0);
 
     copper.waitBlit();
     copper.move(BLTCON0, bltcon0);
     copper.move(BLTCON1, bltcon1);
-    copper.move(BLTAFWM, aFWM);
-    copper.move(BLTALWM, aLWM);
+    copper.move(BLTAFWM, descending ? aLWM : aFWM);
+    copper.move(BLTALWM, descending ? aFWM : aLWM);
     if (cPtr != null) copper.ptr(BLTCPT, cPtr! + ptrOffset);
     if (bPtr != null) copper.ptr(BLTBPT, bPtr! + ptrOffset);
     if (aPtr != null) copper.ptr(BLTAPT, aPtr! + ptrOffset);
