@@ -10,13 +10,13 @@ class Transition {
   Transition.generate(
     int width,
     int height,
-    int Function(int x, int y) generator,
+    num Function(int x, int y) generator,
   ) : this(
         Bitmap.fromChunky(
           ChunkyPixels.generate(
             width,
             height,
-            (x, y) => generator(x, y).clamp(0, 127),
+            (x, y) => generator(x, y).clamp(0, 127).toInt(),
           ),
           depth: 7,
         ),
