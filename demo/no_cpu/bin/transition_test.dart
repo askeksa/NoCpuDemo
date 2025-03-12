@@ -9,21 +9,16 @@ main() {
   var trans1 = Transition.generate(320, 180, (x, y) {
     var dx = x - 80;
     var dy = y - 80;
-    return (20 +
-            sqrt(dx * dx + dy * dy) * 0.28 +
-            (cos(x * 0.3) + cos(y * 0.3)) * 10)
-        .toInt();
+    return 20 +
+        sqrt(dx * dx + dy * dy) * 0.28 +
+        (cos(x * 0.3) + cos(y * 0.3)) * 10;
   });
-  var trans2 = Transition.generate(
-    320,
-    180,
-    (x, y) =>
-        (20 +
-                x * (0.2 + y * 0.001) -
-                y * 0.1 +
-                (sin(y * 0.11 + x * 0.013) + sin(y * 0.13 - x * 0.015)) * 5)
-            .toInt(),
-  );
+  var trans2 = Transition.generate(320, 180, (x, y) {
+    return 20 +
+        x * (0.2 + y * 0.001) -
+        y * 0.1 +
+        (sin(y * 0.11 + x * 0.013) + sin(y * 0.13 - x * 0.015)) * 5;
+  });
   var result = trans1.result = trans2.result;
 
   List<Copper> frames = List.generate(
