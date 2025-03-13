@@ -2,8 +2,8 @@ import 'dart:math';
 
 import 'package:no_cpu/no_cpu.dart';
 
-import 'base.dart';
-import 'effects/transition.dart';
+import '../bin/base.dart';
+import '../bin/effects/transition.dart';
 
 main() {
   TransitionTest().build();
