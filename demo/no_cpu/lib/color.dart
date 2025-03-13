@@ -1,3 +1,5 @@
+import 'dart:collection';
+
 import 'copper.dart';
 import 'custom.dart';
 import 'iff.dart';
@@ -55,55 +57,61 @@ extension type Color(int rgb) {
     return Color.clamped(r + other.r, g + other.g, b + other.b);
   }
 
+  Color interpolate(Color other, double weight) {
+    assert(weight >= 0 && weight <= 1, "Weight must be between 0 and 1");
+    return Color.clamped(
+      (r + (other.r - r) * weight).round(),
+      (g + (other.g - g) * weight).round(),
+      (b + (other.b - b) * weight).round(),
+    );
+  }
+
   int get upper =>
       ((rgb >> 12) & 0xF00) | ((rgb >> 8) & 0x0F0) | ((rgb >> 4) & 0x00F);
   int get lower => ((rgb >> 8) & 0xF00) | ((rgb >> 4) & 0x0F0) | (rgb & 0x00F);
 }
 
-class PaletteRange {
-  final int start;
-  final List<Color> colors;
-
-  PaletteRange(this.start, this.colors) {
-    assert(start >= 0, "Palette range start must be non-negative");
-    assert(
-      start + colors.length <= 256,
-      "Palette range must not exceed index 255",
-    );
-  }
-
-  factory PaletteRange.generate(
-    int start,
-    int count,
-    Color Function(int index) generator,
-  ) {
-    return PaletteRange(
-      start,
-      List<Color>.generate(count, (index) => generator(index)),
-    );
-  }
-
-  PaletteRange shift(int delta) =>
-      PaletteRange(start + delta, List<Color>.from(colors));
-
-  int get length => colors.length;
-}
-
 class Palette implements CopperComponent {
-  final List<PaletteRange> ranges;
+  final SplayTreeMap<int, Color> colors;
 
-  Palette(this.ranges) {
+  Palette(this.colors) {
     assert(() {
-      for (int i = 0; i < ranges.length - 1; i++) {
-        if (ranges[i].start >= ranges[i + 1].start) {
-          return false; // Ranges must be in order of increasing start index
-        }
-        if (ranges[i].start + ranges[i].length > ranges[i + 1].start) {
-          return false; // Ranges must not overlap
+      for (final index in colors.keys) {
+        if (index < 0 || index > 255) {
+          return false;
         }
       }
       return true;
-    }(), "Palette ranges must be in order and must not overlap");
+    }(), "Palette indices must be between 0 and 255");
+  }
+
+  Palette.empty() : this(SplayTreeMap<int, Color>());
+
+  Palette.fromMap(Map<int, Color> map) : this(SplayTreeMap.from(map));
+
+  factory Palette.rgb12(List<int> rgb12List, {int start = 0}) {
+    final colors = SplayTreeMap<int, Color>();
+    for (int i = 0; i < rgb12List.length; i++) {
+      colors[start + i] = Color.rgb12(rgb12List[i]);
+    }
+    return Palette(colors);
+  }
+
+  factory Palette.rgb24(List<int> rgb24List, {int start = 0}) {
+    final colors = SplayTreeMap<int, Color>();
+    for (int i = 0; i < rgb24List.length; i++) {
+      colors[start + i] = Color.rgb24(rgb24List[i]);
+    }
+    return Palette(colors);
+  }
+
+  factory Palette.generate(int count, (int, Color) Function(int) generator) {
+    final colors = SplayTreeMap<int, Color>();
+    for (int i = 0; i < count; i++) {
+      var (index, color) = generator(i);
+      colors[index] = color;
+    }
+    return Palette(colors);
   }
 
   factory Palette.generateRange(
@@ -111,7 +119,11 @@ class Palette implements CopperComponent {
     int count,
     Color Function(int index) generator,
   ) {
-    return Palette([PaletteRange.generate(start, count, generator)]);
+    final colors = SplayTreeMap<int, Color>();
+    for (int i = 0; i < count; i++) {
+      colors[start + i] = generator(i);
+    }
+    return Palette(colors);
   }
 
   factory Palette.fromIlbm(IlbmImage ilbm) {
@@ -119,41 +131,84 @@ class Palette implements CopperComponent {
     if (colorMap == null) {
       throw ArgumentError("ILBM data does not contain a color map");
     }
-    return Palette.generateRange(
-      0,
-      colorMap.length ~/ 3,
-      (i) =>
-          Color.rgb8(colorMap[i * 3], colorMap[i * 3 + 1], colorMap[i * 3 + 2]),
-    );
+    return Palette.generateRange(0, colorMap.length ~/ 3, (i) {
+      return Color.rgb8(
+        colorMap[i * 3],
+        colorMap[i * 3 + 1],
+        colorMap[i * 3 + 2],
+      );
+    });
   }
 
   Palette shift(int delta) {
-    return Palette(ranges.map((range) => range.shift(delta)).toList());
+    final shiftedColors = SplayTreeMap<int, Color>();
+    colors.forEach((index, color) {
+      shiftedColors[index + delta] = color;
+    });
+    return Palette(shiftedColors);
   }
 
   Color operator [](int index) {
-    for (final range in ranges) {
-      if (index >= range.start && index < range.start + range.length) {
-        return range.colors[index - range.start];
+    if (colors.containsKey(index)) {
+      return colors[index]!;
+    }
+    throw RangeError.index(index, this, "palette index", null, 256);
+  }
+
+  operator []=(int index, Color color) {
+    if (index < 0 || index > 255) {
+      throw RangeError.range(index, 0, 255, "palette index");
+    }
+    colors[index] = color;
+  }
+
+  Palette sub(int start, int end) {
+    if (start < 0 || start > 255) {
+      throw RangeError.range(start, 0, 255, "start");
+    }
+    if (end < 0 || end > 255) {
+      throw RangeError.range(end, 0, 255, "end");
+    }
+    if (start > end) {
+      throw ArgumentError("Start must be less than or equal to end");
+    }
+
+    final subColors = SplayTreeMap<int, Color>();
+    for (int i = start; i <= end; i++) {
+      if (colors.containsKey(i)) {
+        subColors[i] = colors[i]!;
       }
     }
-    throw RangeError.index(index, this, "palette index", null, ranges.length);
+    return Palette(subColors);
   }
 
   Palette merge(Palette other) {
-    final combined = List<PaletteRange>.from(ranges)..addAll(other.ranges);
-    combined.sort((a, b) => a.start.compareTo(b.start));
+    final combined = SplayTreeMap<int, Color>.from(colors)
+      ..addAll(other.colors);
     return Palette(combined);
   }
 
   Palette operator |(Palette other) => merge(other);
 
   Iterable<(int, Color)> get entries sync* {
-    for (final range in ranges) {
-      for (int i = 0; i < range.length; i++) {
-        yield (range.start + i, range.colors[i]);
-      }
+    for (final entry in colors.entries) {
+      yield (entry.key, entry.value);
     }
+  }
+
+  Palette interpolate(Palette other, double weight, {Color? defaultColor}) {
+    assert(weight >= 0 && weight <= 1, "Weight must be between 0 and 1");
+    final interpolatedColors = SplayTreeMap<int, Color>();
+    for (final (index, color) in entries) {
+      final otherColor =
+          other.colors[index] ??
+          defaultColor ??
+          (throw ArgumentError(
+            "Missing color at index $index and no default color provided",
+          ));
+      interpolatedColors[index] = color.interpolate(otherColor, weight);
+    }
+    return Palette(interpolatedColors);
   }
 
   @override
