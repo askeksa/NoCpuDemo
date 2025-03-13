@@ -2,6 +2,11 @@ import 'dart:io';
 import 'dart:math';
 
 import 'package:no_cpu/no_cpu.dart';
+import 'package:path/path.dart' show dirname;
+
+String scriptPath = dirname(Platform.script.toFilePath());
+String runnerPath = "$scriptPath/../../../runner";
+String outputFile = "$runnerPath/chip.dat";
 
 main() {
   var chunky = ChunkyPixels.generate(
@@ -76,7 +81,7 @@ main() {
   initialCopper.ptr(COP1LC, frames[0].label);
 
   Memory m = Memory.fromRoots(0x20_0000, [initialCopper.data]);
-  File("../runner/chip.dat").writeAsBytesSync(m.build());
+  File(outputFile).writeAsBytesSync(m.build());
 }
 
 class SetBackground implements CopperComponent {
