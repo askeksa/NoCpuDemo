@@ -61,3 +61,17 @@ class DemoBase {
     File(outputFile).writeAsBytesSync(chipData);
   }
 }
+
+class MusicDemoBase extends DemoBase {
+  final Music music;
+
+  MusicDemoBase(this.music)
+    : super(music.frames.length, loopFrame: music.restart) {
+    for (int i = 0; i < frames.length; i++) {
+      frames[i] >> music.frames[i];
+    }
+  }
+
+  MusicDemoBase.withProtrackerFile(String filename)
+    : this(ProtrackerPlayer(ProtrackerModule.readFromFile(filename)).toMusic());
+}
