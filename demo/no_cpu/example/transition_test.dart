@@ -37,7 +37,6 @@ class TransitionTest extends DemoBase {
       }
     }
 
-    initialCopper.move(COLOR00, 0x205);
-    initialCopper.move(COLOR01, 0xa85);
+    initialCopper << Palette.rgb12([0x205, 0xa85]);
   }
 }

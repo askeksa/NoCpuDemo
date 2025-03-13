@@ -65,18 +65,22 @@ main() {
         ..cdSetInterleaved(bitmap, x: 122, y: 87, w: 42, h: 42)
         ..descending = true);
 
+  var palette = Palette.generateRange(1, 63, (i) {
+    return Color.rgb8(100 + i * 2, i * 3, i * 4);
+  });
+  palette |= Palette.rgb12(start: 10, [0x005, 0x00A, 0x00F]);
+  palette |= palette
+      .sub(20, 25)
+      .shift(30)
+      .interpolate(Palette.empty(), 0.3, defaultColor: Color.rgb8(0, 0, 100));
+
   Copper initialCopper =
       Copper(isPrimary: true, origin: "Initial")
         ..data.address = 0x00_0000
         ..useInFrame(-1);
   initialCopper.move(DIWSTRT, 0x5281);
   initialCopper.move(DIWSTOP, 0x06C1);
-  initialCopper <<
-      Palette.generateRange(
-        1,
-        63,
-        (i) => Color.rgb8(100 + i * 2, i * 3, i * 4),
-      );
+  initialCopper << palette;
   initialCopper.move(BPLCON3, 0x0000);
   initialCopper.ptr(COP1LC, frames[0].label);
 
