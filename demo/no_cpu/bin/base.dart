@@ -45,10 +45,12 @@ class DemoBase {
     }
     frames.last.finalizer = (c) => c.ptr(COP1LC, finalCopper.label);
 
-    // 320x180, borderblank
+    // Enable sprites, 320x180, borderblank
+    initialCopper.move(DMACON, 0x8020);
     initialCopper.move(DIWSTRT, 0x5281);
     initialCopper.move(DIWSTOP, 0x06C1);
     initialCopper.move(BPLCON3, 0x0020);
+    initialCopper >> Display();
   }
 
   void build() {

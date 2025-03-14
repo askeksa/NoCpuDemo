@@ -10,3 +10,4 @@ export 'memory.dart';
 export 'music.dart';
 export 'protracker.dart';
 export 'protracker_player.dart';
+export 'sprites.dart';
