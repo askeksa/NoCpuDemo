@@ -22,6 +22,8 @@ main() {
   );
   print(bitmap);
 
+  var sprite = Sprite.generate(50, (x, y) => (x + y) ~/ 5);
+
   Copper sub = Copper(origin: "Subroutine");
   sub.wait(v: 80, h: 7);
   sub.move(COLOR00, 0x0F0);
@@ -37,7 +39,10 @@ main() {
     var display =
         Display()
           ..setBitmap(bitmap)
-          ..alignment = i % 3 + 1;
+          ..alignment = i % 3 + 1
+          ..sprites = [sprite.label]
+          ..priority = 4
+          ..spriteColorOffset = 16;
     frame >> display;
 
     var color = FreeLabel("color");
@@ -50,6 +55,8 @@ main() {
 
     frame >> blit >> WaitBlit();
     frame.move(COLOR00, 0x005, label: color);
+
+    frame >> sprite.updatePosition(v: 200 + i * 4, h: 800 + i * 37);
 
     frame.call(sub);
     frame.wait(v: 100, h: 7);
@@ -68,7 +75,7 @@ main() {
   var palette = Palette.generateRange(1, 63, (i) {
     return Color.rgb8(100 + i * 2, i * 3, i * 4);
   });
-  palette |= Palette.rgb12(start: 10, [0x005, 0x00A, 0x00F]);
+  palette |= Palette.rgb12(start: 17, [0x005, 0x00A, 0x00F]);
   palette |= palette
       .sub(20, 25)
       .shift(30)
@@ -78,6 +85,7 @@ main() {
       Copper(isPrimary: true, origin: "Initial")
         ..data.address = 0x00_0000
         ..useInFrame(-1);
+  initialCopper.move(DMACON, 0x8020);
   initialCopper.move(DIWSTRT, 0x5281);
   initialCopper.move(DIWSTOP, 0x06C1);
   initialCopper << palette;
