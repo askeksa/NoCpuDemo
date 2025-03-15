@@ -1,7 +1,16 @@
 import 'dart:math';
-import 'package:no_cpu/memory.dart';
 import 'package:no_cpu/music.dart';
 import 'package:no_cpu/protracker.dart';
+
+class ProtrackerMusic extends Music {
+  Map<(int, int), int> timestamps = {};
+
+  /// Returns the frame at which the given [position] and [row] starts playing.
+  @override
+  int getTimestamp(int position, int row) {
+    return timestamps[(position, row)]!;
+  }
+}
 
 // The current playback state for one channel
 class ProtrackerPlayerChannelState {
@@ -17,40 +26,38 @@ class ProtrackerPlayerChannelState {
   int tremoloDepth = 0;
   int tremoloPosition = 0;
   int offset = 0; // buffered 9xx offset
-  int restoreBasePeriod = 0; // period to restore on next step
+  int? restoreBasePeriod; // period to restore on next step
   bool useOffset = false; // this is used for handling the buffering of 9xx
 }
 
 // "Plays" a ProtrackerModule by generating a Music object.
 class ProtrackerPlayer {
   final ProtrackerModule _module;
-  final List<ProtrackerPatternEvents> _channelEvents;
   final List<ProtrackerPlayerChannelState> _channelState;
 
-  int _restart = 0;
   int _speed = 6;
   int _bpm = 125;
   int _patternDelay = 0;
+  int _frameCount = 0;
+  final Map<(int, int), int> _timestamps = {};
 
   ProtrackerPlayer(this._module)
-    : _channelEvents = List.generate(
-        _module.totalChannels,
-        (_) => ProtrackerPatternEvents(),
-      ),
-      _channelState = List.generate(
+    : _channelState = List.generate(
         _module.totalChannels,
         (_) => ProtrackerPlayerChannelState(),
       );
 
   Music toMusic() {
-    _unroll();
+    var unrolled = ProtrackerUnroller.unroll(_module);
+    var frames = _bpmFrames(unrolled).toList();
 
     var music =
-        Music()
+        ProtrackerMusic()
+          ..frames = frames
+          ..timestamps = _timestamps
           ..instruments = _module.instruments
-          ..restart = _restart;
+          ..restart = unrolled.restart;
 
-    music.frames.addAll(_bpmFrames());
     return music;
   }
 
@@ -399,17 +406,22 @@ class ProtrackerPlayer {
     }
   }
 
-  Iterable<MusicFrame> _songFrames() sync* {
-    var totalRows = _channelEvents[0].length;
+  Iterable<MusicFrame> _songFrames(ProtrackerUnroller unrolled) sync* {
+    var totalRows = unrolled.channelEvents[0].length;
     for (var row = 0; row < totalRows; row++) {
-      var events = _channelEvents.map((channel) => channel.events[row]);
+      _timestamps[unrolled.unrolledPositions[row]] = _frameCount;
+
+      var events = unrolled.channelEvents.map((channel) => channel.events[row]);
+
       yield* _rowFrames(events);
     }
   }
 
-  Iterable<MusicFrame> _bpmFrames() sync* {
+  Iterable<MusicFrame> _bpmFrames(ProtrackerUnroller unrolled) sync* {
     var bpmCount = 125;
-    var it = _songFrames().iterator;
+    var it = _songFrames(unrolled).iterator;
+
+    _frameCount = 0;
 
     while (true) {
       var frame =
@@ -448,34 +460,54 @@ class ProtrackerPlayer {
 
         yield frame;
       }
+      _frameCount++;
     }
   }
+}
 
-  List<ProtrackerPatternEvents> _unroll() {
+class ProtrackerUnroller {
+  final ProtrackerModule module;
+  final List<ProtrackerPatternEvents> channelEvents;
+  final List<(int, int)> unrolledPositions = [];
+  int? restart;
+
+  ProtrackerUnroller.unroll(this.module)
+    : channelEvents = List.generate(
+        module.totalChannels,
+        (_) => ProtrackerPatternEvents(),
+      ) {
+    _unroll();
+  }
+
+  void _unroll() {
     var sequencePosition = 0;
     var row = 0;
     var songEnded = false;
     var loopPoints = List.filled(4, 0);
     var loopCounters = List.filled(4, 0);
+    var seenPositions = <(int, int)>{};
 
-    while (sequencePosition < _module.patternSequence.length && !songEnded) {
+    while (sequencePosition < module.patternSequence.length && !songEnded) {
       while (row < _rowsPerPattern && !songEnded) {
+        // If we have seen this row before and we're not in a loop, end the song
+        if (seenPositions.contains((sequencePosition, row)) &&
+            loopCounters.every((n) => n == 0)) {
+          songEnded = true;
+          break;
+        }
+
         var doBreak = false;
         var breakRow = 0;
-        var pattern =
-            _module.patterns[_module.patternSequence[sequencePosition]];
+        var pattern = module.patterns[module.patternSequence[sequencePosition]];
 
-        for (var i = 0; i < _module.totalChannels; i++) {
+        unrolledPositions.add((sequencePosition, row));
+        seenPositions.add((sequencePosition, row));
+
+        for (var i = 0; i < module.totalChannels; i++) {
           var event = pattern.channels[i].events[row];
           switch (event.effect) {
             case 0xB:
               // Position jump
-              if (event.effectParameter < sequencePosition) {
-                // We're jumping backwards in the song, assume it's a repeat
-                // and thus the end of the song
-                _restart = event.effectParameter;
-                songEnded = true;
-              }
 
               // -1 because it is incremented later
               sequencePosition = event.effectParameter - 1;
@@ -523,7 +555,7 @@ class ProtrackerPlayer {
                 );
               }
           }
-          _channelEvents[i].addEvent(event);
+          channelEvents[i].addEvent(event);
         }
 
         row++;
@@ -531,9 +563,9 @@ class ProtrackerPlayer {
         if (doBreak) {
           row = breakRow;
           sequencePosition++;
-          if (sequencePosition >= _module.patternSequence.length) {
+          if (sequencePosition >= module.patternSequence.length) {
             sequencePosition = 0;
-            _restart = 0;
+            restart = 0;
             songEnded = true;
           }
         }
@@ -541,8 +573,6 @@ class ProtrackerPlayer {
       sequencePosition++;
       row = 0;
     }
-
-    return _channelEvents;
   }
 }
 
