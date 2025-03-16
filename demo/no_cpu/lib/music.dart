@@ -69,6 +69,9 @@ class MusicFrame implements CopperComponent {
         if (trigger != null && trigger.offset != null) {
           int length =
               trigger.length ?? trigger.instrument.length - trigger.offset!;
+          assert(
+            length > 0 && trigger.offset! + length <= trigger.instrument.length,
+          );
           copper.ptr(
             AUDxLC[i],
             trigger.instrument.data.label + trigger.offset!,
