@@ -8,7 +8,7 @@ import 'package:no_cpu/no_cpu.dart';
 class DemoBase {
   late final Copper initialCopper;
   List<Copper> frames = [];
-  Copper? endCopper;
+  late final Copper endCopper;
 
   int startFrame = 0;
   int? loopFrame;
@@ -32,11 +32,11 @@ class DemoBase {
     });
     roots.addAll(frames.map((f) => f.data));
 
+    endCopper = Copper(isPrimary: true, origin: "End");
     if (loopFrame == null) {
-      endCopper = Copper(isPrimary: true, origin: "End");
-      roots.add(endCopper!.data);
+      roots.add(endCopper.data);
     }
-    Copper finalCopper = endCopper ?? frames[loopFrame!];
+    Copper finalCopper = loopFrame != null ? frames[loopFrame!] : endCopper;
 
     // Set up frame links in finalizers.
     initialCopper.finalizer = (c) => c.ptr(COP1LC, frames[startFrame].label);
@@ -51,6 +51,12 @@ class DemoBase {
     initialCopper.move(DIWSTOP, 0x06C1);
     initialCopper.move(BPLCON3, 0x0020);
     initialCopper >> Display();
+
+    // Request demo exit by clearing Blitter Nasty.
+    // Also clear bitplane and sprite DMA to blank the screen.
+    endCopper.move(DMACON, 0x052F);
+    endCopper.move(BPLCON3, 0x0020);
+    endCopper.move(COLOR00, 0x000);
   }
 
   void build() {
