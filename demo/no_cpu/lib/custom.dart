@@ -35,7 +35,6 @@ const int DIWSTOP = 0x090;
 const int DDFSTRT = 0x092;
 const int DDFSTOP = 0x094;
 const int DMACON = 0x096;
-const int INTREQ = 0x09C;
 const int ADKCON = 0x09E;
 const int AUD0LCH = 0x0A0;
 const int AUD0LCL = 0x0A2;
