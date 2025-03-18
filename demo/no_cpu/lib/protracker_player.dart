@@ -2,16 +2,6 @@ import 'dart:math';
 import 'package:no_cpu/music.dart';
 import 'package:no_cpu/protracker.dart';
 
-class ProtrackerMusic extends Music {
-  Map<(int, int), int> timestamps = {};
-
-  /// Returns the frame at which the given [position] and [row] starts playing.
-  @override
-  int getTimestamp(int position, int row) {
-    return timestamps[(position, row)]!;
-  }
-}
-
 // The current playback state for one channel
 class ProtrackerPlayerChannelState {
   ProtrackerInstrument? instrument;
@@ -52,11 +42,12 @@ class ProtrackerPlayer {
     var frames = _bpmFrames(unrolled).toList();
 
     var music =
-        ProtrackerMusic()
+        Music()
           ..frames = frames
           ..timestamps = _timestamps
           ..instruments = _module.instruments
-          ..restart = unrolled.restart;
+          ..restart =
+              unrolled.restart != null ? _timestamps[unrolled.restart!] : null;
 
     return music;
   }
@@ -469,7 +460,7 @@ class ProtrackerUnroller {
   final ProtrackerModule module;
   final List<ProtrackerPatternEvents> channelEvents;
   final List<(int, int)> unrolledPositions = [];
-  int? restart;
+  (int, int)? restart = (0, 0);
 
   ProtrackerUnroller.unroll(this.module)
     : channelEvents = List.generate(
@@ -492,6 +483,7 @@ class ProtrackerUnroller {
         // If we have seen this row before and we're not in a loop, end the song
         if (seenPositions.contains((sequencePosition, row)) &&
             loopCounters.every((n) => n == 0)) {
+          restart = (sequencePosition, row);
           songEnded = true;
           break;
         }
@@ -554,6 +546,12 @@ class ProtrackerUnroller {
                   subParameter,
                 );
               }
+            case 0xF:
+              if (event.effectParameter == 0) {
+                restart = null;
+                songEnded = true;
+              }
+              break;
           }
           channelEvents[i].addEvent(event);
         }
@@ -565,7 +563,6 @@ class ProtrackerUnroller {
           sequencePosition++;
           if (sequencePosition >= module.patternSequence.length) {
             sequencePosition = 0;
-            restart = 0;
             songEnded = true;
           }
         }

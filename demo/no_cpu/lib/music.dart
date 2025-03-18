@@ -12,10 +12,11 @@ class Music {
   /// or `null` if the music doesn't loop.
   int? restart;
 
+  Map<(int, int), int> timestamps = {};
+
   /// Returns the frame at which the given [position] and [row] starts playing.
   int getTimestamp(int position, int row) {
-    // TODO
-    return 0;
+    return timestamps[(position, row)]!;
   }
 }
 
