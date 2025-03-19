@@ -5,6 +5,11 @@ import 'package:path/path.dart' show dirname;
 
 import 'package:no_cpu/no_cpu.dart';
 
+String scriptPath = dirname(Platform.script.toFilePath());
+String assetsPath = "$scriptPath/../../assets";
+String runnerPath = "$scriptPath/../../../runner";
+String outputFile = "$runnerPath/chip.dat";
+
 class DemoBase {
   late final Copper initialCopper;
   List<Copper> frames = [];
@@ -14,11 +19,6 @@ class DemoBase {
   int? loopFrame;
 
   List<Block> roots = [];
-
-  late String scriptPath = dirname(Platform.script.toFilePath());
-  late String assetsPath = "$scriptPath/../../assets";
-  late String runnerPath = "$scriptPath/../../../runner";
-  late String outputFile = "$runnerPath/chip.dat";
 
   DemoBase(int frameCount, {this.loopFrame}) {
     initialCopper =
