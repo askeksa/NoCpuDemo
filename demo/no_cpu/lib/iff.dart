@@ -1,17 +1,23 @@
 import 'dart:io';
 import 'dart:typed_data';
 
-class IlbmImage {
-  int width;
-  int height;
-  int bitplanes;
-  Uint8List? imageData;
-  Uint8List? colorMapData;
+import 'bitmap.dart';
+import 'color.dart';
 
-  IlbmImage({
-    required this.width,
-    required this.height,
-    required this.bitplanes,
+class IlbmImage {
+  final int width;
+  final int height;
+  final int bitplanes;
+  final Uint8List? imageData;
+  final Uint8List? colorMapData;
+
+  late final bitmap = Bitmap.fromIlbm(this);
+  late final palette = Palette.fromIlbm(this);
+
+  IlbmImage(
+    this.width,
+    this.height,
+    this.bitplanes, {
     this.imageData,
     this.colorMapData,
   });
@@ -90,9 +96,9 @@ IlbmImage _readIlbm(String filePath) {
   }
 
   return IlbmImage(
-    width: width,
-    height: height,
-    bitplanes: bitplanes,
+    width,
+    height,
+    bitplanes,
     imageData: imageData,
     colorMapData: colorMapData,
   );
