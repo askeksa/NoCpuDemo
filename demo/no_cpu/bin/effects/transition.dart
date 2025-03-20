@@ -12,12 +12,10 @@ class Transition {
     int height,
     num Function(int x, int y) generator,
   ) : this(
-        Bitmap.fromChunky(
-          ChunkyPixels.generate(
-            width,
-            height,
-            (x, y) => generator(x, y).clamp(0, 127).toInt(),
-          ),
+        Bitmap.generate(
+          width,
+          height,
+          (x, y) => generator(x, y).clamp(0, 127).toInt(),
           depth: 7,
         ),
       );

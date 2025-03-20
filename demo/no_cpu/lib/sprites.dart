@@ -52,12 +52,11 @@ class Sprite {
       attached: attached,
       mutability: mutability,
     );
-    for (int y = 0; y < height; y++) {
-      for (int x = 0; x < 64; x++) {
-        sprite.bitmap.setPixel(x, y, generator(x, y));
-      }
-    }
-    return sprite;
+    return sprite..fill(generator);
+  }
+
+  void fill(int Function(int x, int y) generator) {
+    bitmap.fill(generator);
   }
 
   void setPosition({required int v, int h = 0x200}) {
