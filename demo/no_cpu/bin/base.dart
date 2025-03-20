@@ -20,6 +20,15 @@ class DemoBase {
 
   List<Block> roots = [];
 
+  int getTimestamp(int position, int row) {
+    // Dummy timestamp for demos without music.
+    return (position * 64 + row) * 6;
+  }
+
+  FrameScheduler F(int position, int row, [int offset = 0]) {
+    return FrameScheduler(this, [frames[getTimestamp(position, row) + offset]]);
+  }
+
   DemoBase(int frameCount, {this.loopFrame}) {
     initialCopper =
         Copper(isPrimary: true, origin: "Initial")
@@ -67,6 +76,11 @@ class DemoBase {
 class MusicDemoBase extends DemoBase {
   final Music music;
 
+  @override
+  int getTimestamp(int position, int row) {
+    return music.getTimestamp(position, row);
+  }
+
   MusicDemoBase(this.music)
     : super(music.frames.length, loopFrame: music.restart) {
     for (int i = 0; i < frames.length; i++) {
@@ -76,4 +90,85 @@ class MusicDemoBase extends DemoBase {
 
   MusicDemoBase.withProtrackerFile(String filename)
     : this(ProtrackerPlayer(ProtrackerModule.readFromFile(filename)).toMusic());
+}
+
+extension FrameIndex on Copper {
+  int get index {
+    if (this.isPrimary && this.origin is int) {
+      return this.origin as int;
+    } else {
+      throw Exception("'$this' is not a frame copperlist");
+    }
+  }
+}
+
+class FrameScheduler {
+  final DemoBase demo;
+  final List<Copper> frames;
+
+  FrameScheduler(this.demo, this.frames);
+
+  int _frame(Object f) {
+    int frame = switch (f) {
+      (int p, int r) => demo.getTimestamp(p, r),
+      (int p, int r, int o) => demo.getTimestamp(p, r) + o,
+      int i => frames.last.index + i,
+      _ => throw Exception("Invalid frame specifier: $f"),
+    };
+    if (frame <= frames.last.index) {
+      throw Exception(
+        "Frame $f is before the last frame by ${frames.last.index - frame}",
+      );
+    }
+    return frame;
+  }
+
+  FrameScheduler operator +(Object f) {
+    int frame = _frame(f);
+    frames.add(demo.frames[frame]);
+    return this;
+  }
+
+  FrameScheduler operator -(Object f) {
+    int frame = _frame(f);
+    for (int i = frames.last.index + 1; i <= frame; i++) {
+      frames.add(demo.frames[i]);
+    }
+    return this;
+  }
+
+  FrameScheduler operator <<(CopperComponent component) {
+    for (final f in frames) {
+      f << component;
+    }
+    return this;
+  }
+
+  FrameScheduler operator >>(CopperComponent component) {
+    for (final f in frames) {
+      f >> component;
+    }
+    return this;
+  }
+
+  FrameScheduler operator >>>(List<CopperComponent> components) {
+    for (final (i, f) in frames.indexed) {
+      f >> components[i % components.length];
+    }
+    return this;
+  }
+
+  FrameScheduler operator |(void Function(int, Copper) callback) {
+    for (final (i, f) in frames.indexed) {
+      f | (c) => callback(i, c);
+    }
+    return this;
+  }
+
+  FrameScheduler operator ^(void Function(int, Copper) callback) {
+    for (final (i, f) in frames.indexed) {
+      f ^ (c) => callback(i, c);
+    }
+    return this;
+  }
 }

@@ -27,15 +27,9 @@ class TransitionTest extends DemoBase {
   TransitionTest() : super(256, loopFrame: 0) {
     var result = trans1.result = trans2.result;
 
-    for (final (i, f) in frames.indexed) {
-      f >> (Display()..setBitmap(result));
-      f.wait(v: 0x54);
-      if (i < 128) {
-        f << trans1.run(i, inverse: true);
-      } else {
-        f << trans2.run(256 - i, inverse: true);
-      }
-    }
+    F(0, 0) - 255 >> (Display()..setBitmap(result)) | (i, f) => f.wait(v: 0x54);
+    F(0, 0) - 127 | (i, f) => f << trans1.run(i, inverse: true);
+    F(0, 0, 128) - 127 | (i, f) => f << trans2.run(128 - i, inverse: true);
 
     initialCopper << Palette.rgb12([0x205, 0xa85]);
   }

@@ -16,7 +16,11 @@ class Music {
 
   /// Returns the frame at which the given [position] and [row] starts playing.
   int getTimestamp(int position, int row) {
-    return timestamps[(position, row)]!;
+    int? time = timestamps[(position, row)];
+    if (time == null) {
+      throw Exception("No timestamp for position $position, row $row");
+    }
+    return time;
   }
 }
 
