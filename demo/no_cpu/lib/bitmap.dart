@@ -106,7 +106,6 @@ class Bitmap {
     bool singlePage = false,
     Mutability mutability = Mutability.immutable,
   }) {
-    // "Convert chunky to planar". Good enough for now.
     var bitmap = Bitmap.blank(
       pixels.width,
       pixels.height,
@@ -117,10 +116,15 @@ class Bitmap {
       mutability: mutability,
     );
 
-    final data = (bitmap.bitplanes.block as Data).bytes;
-    final bpr = bitmap.bytesPerRow;
-    final rowStride = bitmap.rowStride;
-    final planeStride = bitmap.planeStride;
+    return bitmap..chunky2planar(pixels);
+  }
+
+  void fill(int Function(int x, int y) generator) {
+    chunky2planar(ChunkyPixels.generate(width, height, generator));
+  }
+
+  void chunky2planar(ChunkyPixels pixels) {
+    final data = (bitplanes.block as Data).bytes;
 
     for (var y = 0; y < pixels.height; y++) {
       for (var x = 0; x < pixels.width; x++) {
@@ -129,19 +133,36 @@ class Bitmap {
         final byte = x >> 3;
 
         for (var plane = 0; plane < depth; plane++) {
-          final offset =
-              interleaved
-                  ? y * rowStride + plane * bpr + byte
-                  : plane * planeStride + y * bpr + byte;
+          final offset = plane * planeStride + y * rowStride + byte;
 
           if ((pixel & (1 << plane)) != 0) {
             data[offset] |= 1 << bit;
+          } else {
+            data[offset] &= ~(1 << bit);
           }
         }
       }
     }
+  }
 
-    return bitmap;
+  factory Bitmap.generate(
+    int width,
+    int height,
+    int Function(int x, int y) generator, {
+    int depth = 8,
+    int alignment = 3,
+    bool interleaved = false,
+    bool singlePage = false,
+    Mutability mutability = Mutability.immutable,
+  }) {
+    return Bitmap.fromChunky(
+      ChunkyPixels.generate(width, height, generator),
+      depth: depth,
+      alignment: alignment,
+      interleaved: interleaved,
+      singlePage: singlePage,
+      mutability: mutability,
+    );
   }
 
   factory Bitmap.fromIlbm(
@@ -225,24 +246,15 @@ class Bitmap {
     bool? interleaved,
     Mutability mutability = Mutability.immutable,
   }) {
-    var transformed = Bitmap.blank(
+    return Bitmap.generate(
       width,
       height,
-      depth ?? this.depth,
+      (x, y) => transformer(x, y, getPixel(x, y)),
+      depth: depth ?? this.depth,
       alignment: alignment,
       interleaved: interleaved ?? this.interleaved,
       mutability: mutability,
     );
-
-    for (var y = 0; y < height; y++) {
-      for (var x = 0; x < width; x++) {
-        final pixel = getPixel(x, y);
-        final newPixel = transformer(x, y, pixel);
-        transformed.setPixel(x, y, newPixel);
-      }
-    }
-
-    return transformed;
   }
 
   @override

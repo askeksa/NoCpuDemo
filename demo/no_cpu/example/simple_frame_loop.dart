@@ -9,13 +9,10 @@ String runnerPath = "$scriptPath/../../../runner";
 String outputFile = "$runnerPath/chip.dat";
 
 main() {
-  var chunky = ChunkyPixels.generate(
+  var bitmap = Bitmap.generate(
     315,
     175,
     (x, y) => (sqrt(x * x + y * y) / 3).toInt(),
-  );
-  var bitmap = Bitmap.fromChunky(
-    chunky,
     depth: 6,
     interleaved: true,
     mutability: Mutability.local,
