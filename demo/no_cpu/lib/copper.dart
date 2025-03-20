@@ -180,41 +180,73 @@ abstract interface class CopperComponent {
   void addToCopper(Copper copper);
 }
 
+class AdHocCopperComponent implements CopperComponent {
+  final void Function(Copper) callback;
+
+  AdHocCopperComponent(this.callback);
+
+  @override
+  void addToCopper(Copper copper) => callback(copper);
+}
+
 extension ComponentsInCopper on Copper {
   Copper addComponent(CopperComponent component) {
     component.addToCopper(this);
     return this;
   }
 
-  Copper addComponentCalled(CopperComponent component) {
+  Copper callComponent(CopperComponent component) {
     var copper = Copper(origin: component);
     component.addToCopper(copper);
-    if (copper.isEmpty) return this;
-
-    call(copper);
-    return copper;
+    if (!copper.isEmpty) {
+      call(copper);
+    }
+    return this;
   }
+
+  Copper added(void Function(Copper) callback) =>
+      addComponent(AdHocCopperComponent(callback));
+
+  Copper called(void Function(Copper) callback) =>
+      callComponent(AdHocCopperComponent(callback));
 
   Copper operator <<(CopperComponent component) => addComponent(component);
 
-  Copper operator >>(CopperComponent component) =>
-      addComponentCalled(component);
+  Copper operator >>(CopperComponent component) => callComponent(component);
+
+  Copper operator |(void Function(Copper) callback) => added(callback);
+
+  Copper operator ^(void Function(Copper) callback) => called(callback);
 }
 
-class JoinedCopperComponents implements CopperComponent {
-  final List<CopperComponent> components;
-
-  JoinedCopperComponents(this.components);
-
-  @override
-  void addToCopper(Copper copper) {
-    for (var component in components) {
-      component.addToCopper(copper);
-    }
-  }
-}
-
-extension JoinCopperComponents on CopperComponent {
+extension CopperComponentOperators on CopperComponent {
   CopperComponent operator +(CopperComponent other) =>
-      JoinedCopperComponents([this, other]);
+      AdHocCopperComponent((copper) {
+        addToCopper(copper);
+        other.addToCopper(copper);
+      });
+
+  CopperComponent operator <<(CopperComponent other) =>
+      AdHocCopperComponent((copper) {
+        addToCopper(copper);
+        copper << other;
+      });
+
+  CopperComponent operator >>(CopperComponent other) =>
+      AdHocCopperComponent((copper) {
+        addToCopper(copper);
+        copper >> other;
+      });
+
+  CopperComponent operator |(void Function(Copper) callback) =>
+      AdHocCopperComponent((copper) {
+        addToCopper(copper);
+        copper | callback;
+      });
+
+  CopperComponent operator ^(void Function(Copper) callback) =>
+      AdHocCopperComponent((copper) {
+        addToCopper(copper);
+        copper ^ callback;
+      });
 }
