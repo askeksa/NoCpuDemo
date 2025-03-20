@@ -53,15 +53,15 @@ main() {
           ..aShift = 1
           ..height = 2;
 
-    frame >> blit >> WaitBlit();
+    frame >> (blit >> WaitBlit());
     frame.move(COLOR00, 0x005, label: color);
 
     frame >> sprite.updatePosition(v: 200 + i * 4, h: 800 + i * 37);
 
     frame.call(sub);
-    frame.wait(v: 100, h: 7);
+    frame | (c) => c.wait(v: 100, h: 7);
     frame << bg(i * 0x111);
-    frame.wait(v: 200, h: 7);
+    frame ^ (c) => c.wait(v: 200, h: 7);
     frame >> bg(i.isEven ? 0xA00 : 0x500);
     frame.ptr(COP1LC, frames[(i + 1) % frames.length].label);
   }
