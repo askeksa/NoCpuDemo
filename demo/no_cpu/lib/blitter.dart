@@ -47,6 +47,22 @@ class Blit implements CopperComponent {
   /// Both default to 1.
   int? width, height;
 
+  /// Whether the A channel mask registers should be written.
+  ///
+  /// Defaults to `true` if any of the following conditions are met:
+  /// - The A channel is enabled.
+  /// - The A data is set.
+  /// - The logic function depends on A (the upper nibble of the minterms
+  ///   differs from the lower nibble).
+  /// - Any of the masks ([aFWM], [aLWM]) are changed from their default
+  ///   values (0xFFFF).
+  bool? emitMasks;
+
+  /// Whether the modulo registers should be written for enabled channels.
+  ///
+  /// Defaults to `true` if the height of the blit is greater than 1.
+  bool? emitModulos;
+
   // Shorthands for setting multiple pointers.
   set abPtr(Label value) => aPtr = bPtr = value;
   set acPtr(Label value) => aPtr = cPtr = value;
@@ -98,8 +114,9 @@ class Blit implements CopperComponent {
     bool aInput = aEnabled || aData != null;
     bool bInput = bEnabled || bData != null;
     bool cInput = cEnabled || cData != null;
-    int minterms =
-        this.minterms ?? (aInput ? A : 0) ^ (bInput ? B : 0) ^ (cInput ? C : 0);
+    int defaultLogic = (aInput ? A : 0) ^ (bInput ? B : 0) ^ (cInput ? C : 0);
+    int minterms = (this.minterms ?? defaultLogic) & 0xFF;
+    bool dependsOnA = (minterms >> 4) != (minterms & 0x0F);
 
     int width = this.width ?? 1;
     int height = this.height ?? 1;
@@ -110,22 +127,32 @@ class Blit implements CopperComponent {
       return (descending ? -stride : stride) - width * 2;
     }
 
-    int bltcon0 = (aShift << 12) | (channelMask << 8) | (minterms & 0xFF);
+    bool emitMasks =
+        this.emitMasks ??
+        aInput || dependsOnA || aFWM != 0xFFFF || aLWM != 0xFFFF;
+
+    bool emitModulos = this.emitModulos ?? height > 1;
+
+    int bltcon0 = (aShift << 12) | (channelMask << 8) | minterms;
     int bltcon1 = (bShift << 12) | (descending ? 0x0002 : 0);
 
     copper.waitBlit();
     copper.move(BLTCON0, bltcon0);
     copper.move(BLTCON1, bltcon1);
-    copper.move(BLTAFWM, descending ? aLWM : aFWM);
-    copper.move(BLTALWM, descending ? aFWM : aLWM);
+    if (emitMasks) {
+      copper.move(BLTAFWM, descending ? aLWM : aFWM);
+      copper.move(BLTALWM, descending ? aFWM : aLWM);
+    }
     if (cPtr != null) copper.ptr(BLTCPT, cPtr! + ptrOffset);
     if (bPtr != null) copper.ptr(BLTBPT, bPtr! + ptrOffset);
     if (aPtr != null) copper.ptr(BLTAPT, aPtr! + ptrOffset);
     if (dPtr != null) copper.ptr(BLTDPT, dPtr! + ptrOffset);
-    if (cEnabled) copper.move(BLTCMOD, stride2modulo(cStride));
-    if (bEnabled) copper.move(BLTBMOD, stride2modulo(bStride));
-    if (aEnabled) copper.move(BLTAMOD, stride2modulo(aStride));
-    if (dEnabled) copper.move(BLTDMOD, stride2modulo(dStride));
+    if (emitModulos) {
+      if (cEnabled) copper.move(BLTCMOD, stride2modulo(cStride));
+      if (bEnabled) copper.move(BLTBMOD, stride2modulo(bStride));
+      if (aEnabled) copper.move(BLTAMOD, stride2modulo(aStride));
+      if (dEnabled) copper.move(BLTDMOD, stride2modulo(dStride));
+    }
     if (cData != null) copper.move(BLTCDAT, cData!);
     if (bData != null) copper.move(BLTBDAT, bData!);
     if (aData != null) copper.move(BLTADAT, aData!);
