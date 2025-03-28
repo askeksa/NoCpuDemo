@@ -1,6 +1,8 @@
 import 'custom.dart';
 import 'memory.dart';
 
+typedef RegisterCallback = void Function(int register, Label label);
+
 /// A sequence of copper instructions.
 class Copper {
   /// Data for the copperlist.
@@ -17,6 +19,8 @@ class Copper {
 
   /// Is this copperlist terminated?
   bool isTerminated = false;
+
+  List<(Set<int>, RegisterCallback)> _watchStack = [];
 
   Copper({
     int alignment = 2,
@@ -59,11 +63,25 @@ class Copper {
   @override
   String toString() => "Copper: $origin";
 
+  void _pushWatch(Iterable<int> registers, RegisterCallback callback) {
+    _watchStack.add((registers.toSet(), callback));
+  }
+
+  void _popWatch() {
+    _watchStack.removeLast();
+  }
+
   void _move(int register, void Function() value, {FreeLabel? label}) {
     assert(!isTerminated);
     data.addWord(register);
-    label?.bind(data.addLabel());
     value();
+    late Label valueLabel = data.addLabel() - 2;
+    label?.bind(valueLabel);
+    for (var (registers, callback) in _watchStack) {
+      if (registers.contains(register)) {
+        callback(register, valueLabel);
+      }
+    }
   }
 
   /// A copper MOVE instruction.
@@ -249,4 +267,27 @@ extension CopperComponentOperators on CopperComponent {
         addToCopper(copper);
         copper ^ callback;
       });
+
+  CopperComponent watch(Iterable<int> registers, RegisterCallback callback) =>
+      AdHocCopperComponent((copper) {
+        copper._pushWatch(registers, callback);
+        addToCopper(copper);
+        copper._popWatch();
+      });
+
+  CopperComponent bind(Map<int, FreeLabel> labels) =>
+      watch(labels.keys, (register, label) => labels[register]?.bind(label)) |
+      (_) {
+        for (var register in labels.keys) {
+          var label = labels[register]!;
+          if (!label.isBound) {
+            String reg = register.toRadixString(16).padLeft(3, '0');
+            throw Exception(
+              "Label ${label.name} was not bound to register \$$reg",
+            );
+          }
+        }
+      };
+
+  CopperComponent operator /(Map<int, FreeLabel> labels) => bind(labels);
 }
