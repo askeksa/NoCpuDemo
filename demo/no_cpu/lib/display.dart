@@ -4,8 +4,6 @@
 // - No shifts
 // - No bitplane color offsets
 
-import 'package:path/path.dart';
-
 import 'bitmap.dart';
 import 'copper.dart';
 import 'custom.dart';
@@ -84,7 +82,7 @@ class Display implements CopperComponent {
           horizontalBitmapOffset(horizontalScroll);
     });
     evenStride = evenBitmap.rowStride;
-    oddStride = evenBitmap.rowStride;
+    oddStride = oddBitmap.rowStride;
   }
 
   int horizontalBitmapOffset(int horizontalScroll) {
