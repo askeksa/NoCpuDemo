@@ -224,8 +224,20 @@ abstract base class Label {
 
   Label operator -(int offset) => add(-offset);
 
+  int diff(Label other) {
+    if (block != other.block) {
+      throw Exception("Labels '$this' and '$other' are in different blocks");
+    }
+    return other.offsetInBlock - offsetInBlock;
+  }
+
+  int operator ^(Label other) => diff(other);
+
   bool isAlignedTo(int alignment) =>
       block.alignment >= alignment && offsetInBlock.isAlignedTo(alignment);
+
+  @override
+  String toString() => "$block + $offsetInBlock";
 }
 
 final class BlockLabel extends Label {
