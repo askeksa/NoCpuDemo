@@ -2,6 +2,12 @@ import 'copper.dart';
 import 'custom.dart';
 import 'memory.dart';
 
+// Channel enable constants
+const int enableA = 0x8;
+const int enableB = 0x4;
+const int enableC = 0x2;
+const int enableD = 0x1;
+
 // Minterm constants
 const int A = 0xF0;
 const int B = 0xCC;
@@ -102,14 +108,14 @@ class Blit implements CopperComponent {
   void addToCopper(Copper copper) {
     int channelMask =
         this.channelMask ??
-        (aPtr != null ? 0x8 : 0) |
-            (bPtr != null ? 0x4 : 0) |
-            (cPtr != null ? 0x2 : 0) |
-            (dPtr != null ? 0x1 : 0);
-    bool aEnabled = channelMask & 0x8 != 0;
-    bool bEnabled = channelMask & 0x4 != 0;
-    bool cEnabled = channelMask & 0x2 != 0;
-    bool dEnabled = channelMask & 0x1 != 0;
+        (aPtr != null ? enableA : 0) |
+            (bPtr != null ? enableB : 0) |
+            (cPtr != null ? enableC : 0) |
+            (dPtr != null ? enableD : 0);
+    bool aEnabled = channelMask & enableA != 0;
+    bool bEnabled = channelMask & enableB != 0;
+    bool cEnabled = channelMask & enableC != 0;
+    bool dEnabled = channelMask & enableD != 0;
 
     bool aInput = aEnabled || aData != null;
     bool bInput = bEnabled || bData != null;
