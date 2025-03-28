@@ -5,6 +5,8 @@ class Transition {
   late Bitmap temp = Bitmap.space(pattern.width, pattern.height, 1);
   late Bitmap result = Bitmap.space(pattern.width, pattern.height, 1);
 
+  late Copper subCopper = _makeCopper();
+
   Transition(this.pattern) : assert(pattern.depth == 7);
 
   Transition.generate(
@@ -24,6 +26,51 @@ class Transition {
 
   Transition.fromFile(String path) : this.fromIlbm(IlbmImage.fromFile(path));
 
+  Copper _makeCopper() {
+    var modulo = FreeLabel("modulo");
+    var con1 = FreeLabel("con1");
+    var con2 = FreeLabel("con2");
+    var con3 = FreeLabel("con3");
+
+    var setcon =
+        Blit()
+          ..channelMask = enableC | enableD
+          ..dPtr = con1
+          ..height = 3;
+
+    var pass1 =
+        Blit()
+          ..aSetBitplane(pattern, 2)
+          ..bSetBitplane(pattern, 1)
+          ..cSetBitplane(pattern, 0)
+          ..dSetBitplane(temp, 0);
+
+    var pass2 =
+        Blit()
+          ..aSetBitplane(pattern, 4)
+          ..bSetBitplane(pattern, 3)
+          ..cdSetBitplane(temp, 0);
+
+    var pass3 =
+        Blit()
+          ..aSetBitplane(pattern, 6)
+          ..bSetBitplane(pattern, 5)
+          ..cSetBitplane(temp, 0)
+          ..dSetBitplane(result, 0);
+
+    Copper copper = Copper(mutability: Mutability.local);
+    copper << setcon / {BLTDMOD: modulo};
+    copper << pass1 / {BLTCON0: con1};
+    copper << pass2 / {BLTCON0: con2};
+    copper << pass3 / {BLTCON0: con3};
+
+    int stride = con1 ^ con2;
+    assert(con2 ^ con3 == stride);
+    modulo.setWord(stride - 2);
+
+    return copper;
+  }
+
   /// Set bits in the result where the corresponding pixel in the pattern is
   /// greater or equal to (less than, if [inverse] is true) the [threshold].
   CopperComponent run(int threshold, {bool inverse = false}) {
@@ -39,36 +86,19 @@ class TransitionRun implements CopperComponent {
 
   TransitionRun(this.transition, this.threshold, this.inverse);
 
-  Bitmap get pattern => transition.pattern;
-  Bitmap get temp => transition.temp;
-  Bitmap get result => transition.result;
-
   @override
   void addToCopper(Copper copper) {
-    var pass1 =
-        Blit()
-          ..aSetBitplane(pattern, 2)
-          ..bSetBitplane(pattern, 1)
-          ..cSetBitplane(pattern, 0)
-          ..dSetBitplane(temp, 0)
-          ..minterms = (-1 << (threshold & 7)) & 0xFF;
+    int minterms1 = (-1 << (threshold & 7)) & 0xFF;
+    int minterms2 = (-2 << ((threshold >> 2) & 6)) & 0xFF;
+    int minterms3 =
+        ((-2 << ((threshold >> 4) & 14)) & 0xFF) ^ (inverse ? 0xFF : 0);
 
-    var pass2 =
-        Blit()
-          ..aSetBitplane(pattern, 4)
-          ..bSetBitplane(pattern, 3)
-          ..cdSetBitplane(temp, 0)
-          ..minterms = (-2 << ((threshold >> 2) & 6)) & 0xFF;
+    Data data = Data();
+    data.addWord(0x0F00 | minterms1);
+    data.addWord(0x0F00 | minterms2);
+    data.addWord(0x0F00 | minterms3);
 
-    var pass3 =
-        Blit()
-          ..aSetBitplane(pattern, 6)
-          ..bSetBitplane(pattern, 5)
-          ..cSetBitplane(temp, 0)
-          ..dSetBitplane(result, 0)
-          ..minterms =
-              ((-2 << ((threshold >> 4) & 14)) & 0xFF) ^ (inverse ? 0xFF : 0);
-
-    copper << pass1 << pass2 << pass3;
+    copper.ptr(BLTCPT, data.label);
+    copper.call(transition.subCopper);
   }
 }
