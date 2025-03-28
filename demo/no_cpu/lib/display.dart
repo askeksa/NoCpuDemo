@@ -4,6 +4,8 @@
 // - No shifts
 // - No bitplane color offsets
 
+import 'package:path/path.dart';
+
 import 'bitmap.dart';
 import 'copper.dart';
 import 'custom.dart';
@@ -25,23 +27,78 @@ class Display implements CopperComponent {
   // Sprite color offsets.
   int oddSpriteColorOffset = 0, evenSpriteColorOffset = 0;
 
+  // Bitplane horizontal scroll in SHIRES pixels.
+  int oddHorizontalScroll = 0, evenHorizontalScroll = 0;
+
+  // Bitplane vertical scroll in rows.
+  int oddVerticalScroll = 0, evenVerticalScroll = 0;
+
   // Bitplane alignment, corresponding to the fetch mode.
   int alignment = 3;
 
   set stride(int value) => oddStride = evenStride = value;
   set priority(int value) => oddPriority = evenPriority = value;
+  set horizontalScroll(int value) =>
+      oddHorizontalScroll = evenHorizontalScroll = value;
+  set verticalScroll(int value) =>
+      oddVerticalScroll = evenVerticalScroll = value;
   set spriteColorOffset(int value) =>
       oddSpriteColorOffset = evenSpriteColorOffset = value;
 
+  int get byteAlignment => 1 << alignment;
   int get depth => bitplanes.length;
+
+  int get _pixelScrollMask => 0xFF >> (3 - alignment);
+  bool get _hasPixelHScroll =>
+      (evenHorizontalScroll & _pixelScrollMask != 0) ||
+      (oddHorizontalScroll & _pixelScrollMask != 0);
 
   void setBitmap(Bitmap bitmap) {
     assert(bitmap.alignment >= alignment);
+    assert(evenHorizontalScroll == oddHorizontalScroll);
+    assert(evenVerticalScroll == oddVerticalScroll);
     bitplanes = List.generate(
       bitmap.depth,
-      (i) => bitmap.bitplanes + i * bitmap.planeStride,
+      (i) =>
+          bitmap.bitplanes +
+          i * bitmap.planeStride +
+          evenVerticalScroll * bitmap.rowStride +
+          horizontalBitmapOffset(evenHorizontalScroll),
     );
     stride = bitmap.rowStride;
+  }
+
+  void setBitmaps(Bitmap evenBitmap, Bitmap oddBitmap) {
+    assert(
+      evenBitmap.alignment >= alignment && oddBitmap.alignment >= alignment,
+    );
+    bitplanes = List.generate(evenBitmap.depth + oddBitmap.depth, (i) {
+      int plane = i >> 1;
+      Bitmap bitmap = i & 1 == 0 ? evenBitmap : oddBitmap;
+      int horizontalScroll =
+          i & 1 == 0 ? evenHorizontalScroll : oddHorizontalScroll;
+      int verticalScroll = i & 1 == 0 ? evenVerticalScroll : oddVerticalScroll;
+      return bitmap.bitplanes +
+          plane * bitmap.planeStride +
+          verticalScroll * bitmap.rowStride +
+          horizontalBitmapOffset(horizontalScroll);
+    });
+    evenStride = evenBitmap.rowStride;
+    oddStride = evenBitmap.rowStride;
+  }
+
+  int horizontalBitmapOffset(int horizontalScroll) {
+    int pixelScroll = horizontalScroll & _pixelScrollMask;
+    int wordScroll =
+        (horizontalScroll & ~_pixelScrollMask) >> 6; // 64 shres pixels per word
+
+    if (_hasPixelHScroll && pixelScroll == 0) {
+      // If we're pixel scrolling (DDFSTRT outside border), but this playfield
+      // is not pixelscrolling, then correct bitmap pointer
+      return wordScroll * 2 - byteAlignment;
+    }
+
+    return wordScroll * 2;
   }
 
   @override
@@ -49,6 +106,7 @@ class Display implements CopperComponent {
     int bytesPerRow = 40;
     int oddStride = this.oddStride ?? bytesPerRow;
     int evenStride = this.evenStride ?? bytesPerRow;
+    int moduloAdjust = _hasPixelHScroll ? byteAlignment : 0;
 
     assert(depth <= 8);
     assert(sprites.length <= 8);
@@ -60,15 +118,22 @@ class Display implements CopperComponent {
     assert(oddSpriteColorOffset & ~0xF0 == 0);
     assert(evenSpriteColorOffset & ~0xF0 == 0);
 
-    copper.move(DDFSTRT, 0x0038);
+    copper.move(
+      DDFSTRT,
+      _hasPixelHScroll ? 0x0038 - (8 << alignment - 1) : 0x0038,
+    );
     copper.move(DDFSTOP, 0x00E0 - 0x10 * alignment);
     copper.move(BPLCON0, 0x0201 | (depth & 0x7) << 12 | (depth & 0x8) << 1);
-    copper.move(BPLCON1, 0x0000);
+    copper.move(
+      BPLCON1,
+      _swizzleHorizontalScroll(evenHorizontalScroll) |
+          (_swizzleHorizontalScroll(oddHorizontalScroll) << 4),
+    );
     copper.move(BPLCON2, 0x0200 | evenPriority << 3 | oddPriority);
     // BPLCON3 is written in palette.
     copper.move(BPLCON4, evenSpriteColorOffset | oddSpriteColorOffset >> 4);
-    copper.move(BPL1MOD, oddStride - bytesPerRow);
-    copper.move(BPL2MOD, evenStride - bytesPerRow);
+    copper.move(BPL1MOD, oddStride - bytesPerRow - moduloAdjust);
+    copper.move(BPL2MOD, evenStride - bytesPerRow - moduloAdjust);
     copper.move(FMODE, 0x000C | 0x3 >> (3 - alignment));
     for (int i = 0; i < depth; i++) {
       assert(bitplanes[i].isAlignedTo(alignment));
@@ -76,6 +141,16 @@ class Display implements CopperComponent {
     }
 
     copper >> SpritePointers(sprites);
+  }
+
+  int _swizzleHorizontalScroll(int scroll) {
+    scroll &= _pixelScrollMask;
+
+    if (scroll != 0) scroll = _pixelScrollMask - scroll;
+
+    return ((scroll & 0xC0) << 4) |
+        ((scroll & 0x3C) >> 2) |
+        ((scroll & 0x03) << 8);
   }
 }
 
