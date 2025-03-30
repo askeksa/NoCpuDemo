@@ -98,6 +98,7 @@ class TransitionRun implements CopperComponent {
     data.addWord(0x0F00 | minterms2);
     data.addWord(0x0F00 | minterms3);
 
+    copper.waitBlit();
     copper.ptr(BLTCPT, data.label);
     copper.call(transition.subCopper);
   }
