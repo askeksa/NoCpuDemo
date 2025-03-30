@@ -1,8 +1,9 @@
 // Limitations so far:
 // - Only lores
 // - No special modes
-// - No shifts
 // - No bitplane color offsets
+
+import 'dart:math';
 
 import 'bitmap.dart';
 import 'copper.dart';
@@ -106,8 +107,12 @@ class Display implements CopperComponent {
     int evenStride = this.evenStride ?? bytesPerRow;
     int moduloAdjust = _hasPixelHScroll ? byteAlignment : 0;
 
+    int ddfStart = _hasPixelHScroll ? 0x0038 - (8 << alignment - 1) : 0x0038;
+    int ddfStop = 0x00E0 - 0x10 * alignment;
+    int maxSprites = min(8, (ddfStart - 0x14) >> 2);
+
     assert(depth <= 8);
-    assert(sprites.length <= 8);
+    assert(sprites.length <= maxSprites);
     assert(alignment >= 1 && alignment <= 3);
     assert(oddStride.isAlignedTo(alignment));
     assert(evenStride.isAlignedTo(alignment));
@@ -116,11 +121,8 @@ class Display implements CopperComponent {
     assert(oddSpriteColorOffset & ~0xF0 == 0);
     assert(evenSpriteColorOffset & ~0xF0 == 0);
 
-    copper.move(
-      DDFSTRT,
-      _hasPixelHScroll ? 0x0038 - (8 << alignment - 1) : 0x0038,
-    );
-    copper.move(DDFSTOP, 0x00E0 - 0x10 * alignment);
+    copper.move(DDFSTRT, ddfStart);
+    copper.move(DDFSTOP, ddfStop);
     copper.move(BPLCON0, 0x0201 | (depth & 0x7) << 12 | (depth & 0x8) << 1);
     copper.move(
       BPLCON1,
