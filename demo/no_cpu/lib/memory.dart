@@ -633,10 +633,9 @@ final class Data extends Block with DataContainer {
   void addData(Data data) {
     Label dataLabel = addLabel();
     for (Reference reference in data.references) {
-      Label target =
-          reference.target.block == data
-              ? dataLabel + reference.target.offsetInBlock
-              : reference.target;
+      Label target = reference.target.block == data
+          ? dataLabel + reference.target.offsetInBlock
+          : reference.target;
       setReference(size + reference.offsetInBlock, target, reference.shift);
     }
     addBytes(data.bytes);
@@ -677,9 +676,9 @@ mixin DataContainer {
       while (newSize > capacity) {
         capacity *= 2;
       }
-      _data =
-          (Uint8List(capacity)
-            ..setAll(0, _data.buffer.asUint8List())).buffer.asByteData();
+      _data = (Uint8List(
+        capacity,
+      )..setAll(0, _data.buffer.asUint8List())).buffer.asByteData();
     }
     _size = newSize;
   }

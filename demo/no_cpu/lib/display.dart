@@ -74,8 +74,9 @@ class Display implements CopperComponent {
     bitplanes = List.generate(evenBitmap.depth + oddBitmap.depth, (i) {
       int plane = i >> 1;
       Bitmap bitmap = i & 1 == 0 ? evenBitmap : oddBitmap;
-      int horizontalScroll =
-          i & 1 == 0 ? evenHorizontalScroll : oddHorizontalScroll;
+      int horizontalScroll = i & 1 == 0
+          ? evenHorizontalScroll
+          : oddHorizontalScroll;
       int verticalScroll = i & 1 == 0 ? evenVerticalScroll : oddVerticalScroll;
       return bitmap.bitplanes +
           plane * bitmap.planeStride +

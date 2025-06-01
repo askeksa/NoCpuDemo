@@ -27,28 +27,25 @@ main() {
 
   List<Copper> frames = List.generate(
     16,
-    (i) =>
-        Copper(isPrimary: true, origin: i)
-          ..useInFrame(i)
-          ..mutability = Mutability.mutable,
+    (i) => Copper(isPrimary: true, origin: i)
+      ..useInFrame(i)
+      ..mutability = Mutability.mutable,
   );
   for (var (i, frame) in frames.indexed) {
-    var display =
-        Display()
-          ..setBitmap(bitmap)
-          ..alignment = i % 3 + 1
-          ..sprites = [sprite.label]
-          ..priority = 4
-          ..spriteColorOffset = 16;
+    var display = Display()
+      ..setBitmap(bitmap)
+      ..alignment = i % 3 + 1
+      ..sprites = [sprite.label]
+      ..priority = 4
+      ..spriteColorOffset = 16;
     frame >> display;
 
     var color = FreeLabel("color");
-    var blit =
-        Blit()
-          ..adPtr = color
-          ..adStride = 0
-          ..aShift = 1
-          ..height = 2;
+    var blit = Blit()
+      ..adPtr = color
+      ..adStride = 0
+      ..aShift = 1
+      ..height = 2;
 
     frame >> (blit >> WaitBlit());
     frame.move(COLOR00, 0x005, label: color);
@@ -78,10 +75,9 @@ main() {
       .shift(30)
       .interpolate(Palette.empty(), 0.3, defaultColor: Color.rgb8(0, 0, 100));
 
-  Copper initialCopper =
-      Copper(isPrimary: true, origin: "Initial")
-        ..data.address = 0x00_0000
-        ..useInFrame(-1);
+  Copper initialCopper = Copper(isPrimary: true, origin: "Initial")
+    ..data.address = 0x00_0000
+    ..useInFrame(-1);
   initialCopper.move(DMACON, 0x8020);
   initialCopper.move(DIWSTRT, 0x5281);
   initialCopper.move(DIWSTOP, 0x06C1);

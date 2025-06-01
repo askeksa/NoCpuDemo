@@ -30,10 +30,9 @@ class DemoBase {
   }
 
   DemoBase(int frameCount, {this.loopFrame}) {
-    initialCopper =
-        Copper(isPrimary: true, origin: "Initial")
-          ..data.address = 0x00_0000
-          ..useInFrame(-1);
+    initialCopper = Copper(isPrimary: true, origin: "Initial")
+      ..data.address = 0x00_0000
+      ..useInFrame(-1);
     roots.add(initialCopper.data);
 
     frames = List.generate(frameCount, (i) {

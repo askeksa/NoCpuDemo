@@ -89,14 +89,13 @@ class Bitmap {
     Mutability mutability = Mutability.immutable,
   }) {
     bytesPerRow = bytesPerRowFor(width, alignment);
-    bitplanes =
-        Data.blank(
-          sizeInBytes,
-          alignment: alignment,
-          singlePage: singlePage,
-          origin: this,
-          mutability: mutability,
-        ).label;
+    bitplanes = Data.blank(
+      sizeInBytes,
+      alignment: alignment,
+      singlePage: singlePage,
+      origin: this,
+      mutability: mutability,
+    ).label;
   }
 
   factory Bitmap.fromChunky(

@@ -36,12 +36,11 @@ class Sprite {
     this.attached = false,
     Mutability mutability = Mutability.immutable,
   }) {
-    label =
-        Data.blank(
-          (height + 2) * 16,
-          alignment: 3,
-          mutability: mutability,
-        ).label;
+    label = Data.blank(
+      (height + 2) * 16,
+      alignment: 3,
+      mutability: mutability,
+    ).label;
   }
 
   factory Sprite.generate(

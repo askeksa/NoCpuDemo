@@ -41,13 +41,13 @@ class ProtrackerPlayer {
     var unrolled = ProtrackerUnroller.unroll(_module);
     var frames = _bpmFrames(unrolled).toList();
 
-    var music =
-        Music()
-          ..frames = frames
-          ..timestamps = _timestamps
-          ..instruments = _module.instruments
-          ..restart =
-              unrolled.restart != null ? _timestamps[unrolled.restart!] : null;
+    var music = Music()
+      ..frames = frames
+      ..timestamps = _timestamps
+      ..instruments = _module.instruments
+      ..restart = unrolled.restart != null
+          ? _timestamps[unrolled.restart!]
+          : null;
 
     return music;
   }
@@ -92,13 +92,11 @@ class ProtrackerPlayer {
     ProtrackerEvent event,
   ) {
     if (event.effectParameter & 0xF0 != 0) {
-      channel.volume =
-          frameChannel.volume =
-              (channel.volume + (event.effectParameter >> 4)).clampVolume();
+      channel.volume = frameChannel.volume =
+          (channel.volume + (event.effectParameter >> 4)).clampVolume();
     } else if (event.effectParameter & 0x0F != 0) {
-      channel.volume =
-          frameChannel.volume =
-              (channel.volume - (event.effectParameter & 0x0F)).clampVolume();
+      channel.volume = frameChannel.volume =
+          (channel.volume - (event.effectParameter & 0x0F)).clampVolume();
     }
   }
 
@@ -108,17 +106,15 @@ class ProtrackerPlayer {
   ) {
     if (channel.portamentoTarget != 0) {
       if (channel.portamentoTarget > channel.period) {
-        channel.period =
-            frameChannel.period = min(
-              channel.period + channel.portamentoSpeed,
-              channel.portamentoTarget,
-            );
+        channel.period = frameChannel.period = min(
+          channel.period + channel.portamentoSpeed,
+          channel.portamentoTarget,
+        );
       } else if (channel.portamentoTarget < channel.period) {
-        channel.period =
-            frameChannel.period = max(
-              channel.period - channel.portamentoSpeed,
-              channel.portamentoTarget,
-            );
+        channel.period = frameChannel.period = max(
+          channel.period - channel.portamentoSpeed,
+          channel.portamentoTarget,
+        );
       }
       if (channel.period == channel.portamentoTarget) {
         channel.portamentoTarget = 0;
@@ -142,17 +138,18 @@ class ProtrackerPlayer {
       channel.instrument = _module.instruments[event.instrument - 1];
       channel.volume = frameChannel.volume = channel.instrument!.volume;
       channel.useOffset = false;
-      frameChannel.trigger =
-          frameChannel.trigger = InstrumentTrigger(channel.instrument!, null);
+      frameChannel.trigger = frameChannel.trigger = InstrumentTrigger(
+        channel.instrument!,
+        null,
+      );
     }
 
     if (event.note != null && channel.instrument != null && !isPortamento) {
       frameChannel.trigger = InstrumentTrigger(channel.instrument!);
-      channel.period =
-          frameChannel.period = _noteToPeriod(
-            event.note!,
-            channel.instrument!.finetune,
-          );
+      channel.period = frameChannel.period = _noteToPeriod(
+        event.note!,
+        channel.instrument!.finetune,
+      );
 
       // TODO: Add waveform retrigger control
       channel.vibratoPosition = 0;
@@ -227,27 +224,23 @@ class ProtrackerPlayer {
           }
           channel.useOffset = true;
         case 0xC:
-          channel.volume =
-              frameChannel.volume = event.effectParameter.clampVolume();
+          channel.volume = frameChannel.volume = event.effectParameter
+              .clampVolume();
         case 0xE0:
           print("Warning: E0x (filter control) used, this is unsupported");
           break;
         case 0xE1:
-          channel.period =
-              frameChannel.period =
-                  (channel.period - event.effectParameter).clampSlidePeriod();
+          channel.period = frameChannel.period =
+              (channel.period - event.effectParameter).clampSlidePeriod();
         case 0xE2:
-          channel.period =
-              frameChannel.period =
-                  (channel.period + event.effectParameter).clampSlidePeriod();
+          channel.period = frameChannel.period =
+              (channel.period + event.effectParameter).clampSlidePeriod();
         case 0xEA:
-          channel.volume =
-              frameChannel.volume =
-                  (channel.volume + event.effectParameter).clampVolume();
+          channel.volume = frameChannel.volume =
+              (channel.volume + event.effectParameter).clampVolume();
         case 0xEB:
-          channel.volume =
-              frameChannel.volume =
-                  (channel.volume - event.effectParameter).clampVolume();
+          channel.volume = frameChannel.volume =
+              (channel.volume - event.effectParameter).clampVolume();
         case 0xED:
           if (event.effectParameter >= _speed) {
             channel.restoreBasePeriod = channel.period;
@@ -327,13 +320,11 @@ class ProtrackerPlayer {
             }
           }
         case 0x1:
-          channel.period =
-              frameChannel.period =
-                  (channel.period - event.effectParameter).clampSlidePeriod();
+          channel.period = frameChannel.period =
+              (channel.period - event.effectParameter).clampSlidePeriod();
         case 0x2:
-          channel.period =
-              frameChannel.period =
-                  (channel.period + event.effectParameter).clampSlidePeriod();
+          channel.period = frameChannel.period =
+              (channel.period + event.effectParameter).clampSlidePeriod();
         case 0x3:
           _performPortamento(channel, frameChannel);
         case 0x4:
@@ -415,12 +406,11 @@ class ProtrackerPlayer {
     _frameCount = 0;
 
     while (true) {
-      var frame =
-          MusicFrame()
-            ..channels = List.generate(
-              _module.totalChannels,
-              (_) => MusicFrameChannel(),
-            );
+      var frame = MusicFrame()
+        ..channels = List.generate(
+          _module.totalChannels,
+          (_) => MusicFrameChannel(),
+        );
 
       if (bpmCount < 125) {
         bpmCount += _bpm;

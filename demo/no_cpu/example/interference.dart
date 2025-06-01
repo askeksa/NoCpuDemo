@@ -54,10 +54,9 @@ main() {
 
   List<Copper> frames = List.generate(
     800,
-    (i) =>
-        Copper(isPrimary: true, origin: i)
-          ..useInFrame(i)
-          ..mutability = Mutability.mutable,
+    (i) => Copper(isPrimary: true, origin: i)
+      ..useInFrame(i)
+      ..mutability = Mutability.mutable,
   );
   for (var (i, frame) in frames.indexed) {
     var evenXf = (sin(i / 50) + sin(i / 33)) / 2;
@@ -70,12 +69,11 @@ main() {
     var oddX = (oddXf * 160 * 4 + 160 * 4).toInt();
     var oddY = (oddYf * 90 + 90).toInt();
 
-    var display =
-        Display()
-          ..oddHorizontalScroll = oddX
-          ..oddVerticalScroll = oddY
-          ..evenHorizontalScroll = evenX
-          ..evenVerticalScroll = evenY;
+    var display = Display()
+      ..oddHorizontalScroll = oddX
+      ..oddVerticalScroll = oddY
+      ..evenHorizontalScroll = evenX
+      ..evenVerticalScroll = evenY;
 
     if (i < 200) {
       display.setBitmaps(bitmap3, bitmap3);
@@ -108,10 +106,9 @@ main() {
     return Color.rgb8(color * 8 + 50, color * 0x11, color * 5 + 120);
   });
 
-  Copper initialCopper =
-      Copper(isPrimary: true, origin: "Initial")
-        ..data.address = 0x00_0000
-        ..useInFrame(-1);
+  Copper initialCopper = Copper(isPrimary: true, origin: "Initial")
+    ..data.address = 0x00_0000
+    ..useInFrame(-1);
   initialCopper.move(DMACON, 0x8020);
   initialCopper.move(DIWSTRT, 0x5281);
   initialCopper.move(DIWSTOP, 0x06C1);

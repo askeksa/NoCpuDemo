@@ -32,31 +32,27 @@ class Transition {
     var con2 = FreeLabel("con2");
     var con3 = FreeLabel("con3");
 
-    var setcon =
-        Blit()
-          ..channelMask = enableC | enableD
-          ..dPtr = con1
-          ..height = 3;
+    var setcon = Blit()
+      ..channelMask = enableC | enableD
+      ..dPtr = con1
+      ..height = 3;
 
-    var pass1 =
-        Blit()
-          ..aSetBitplane(pattern, 2)
-          ..bSetBitplane(pattern, 1)
-          ..cSetBitplane(pattern, 0)
-          ..dSetBitplane(temp, 0);
+    var pass1 = Blit()
+      ..aSetBitplane(pattern, 2)
+      ..bSetBitplane(pattern, 1)
+      ..cSetBitplane(pattern, 0)
+      ..dSetBitplane(temp, 0);
 
-    var pass2 =
-        Blit()
-          ..aSetBitplane(pattern, 4)
-          ..bSetBitplane(pattern, 3)
-          ..cdSetBitplane(temp, 0);
+    var pass2 = Blit()
+      ..aSetBitplane(pattern, 4)
+      ..bSetBitplane(pattern, 3)
+      ..cdSetBitplane(temp, 0);
 
-    var pass3 =
-        Blit()
-          ..aSetBitplane(pattern, 6)
-          ..bSetBitplane(pattern, 5)
-          ..cSetBitplane(temp, 0)
-          ..dSetBitplane(result, 0);
+    var pass3 = Blit()
+      ..aSetBitplane(pattern, 6)
+      ..bSetBitplane(pattern, 5)
+      ..cSetBitplane(temp, 0)
+      ..dSetBitplane(result, 0);
 
     Copper copper = Copper(mutability: Mutability.local);
     copper << setcon / {BLTDMOD: modulo};
