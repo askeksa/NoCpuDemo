@@ -504,6 +504,66 @@ final class Data extends Block with DataContainer {
     this.mutability = Mutability.immutable,
   });
 
+  factory Data.blank(
+    int size, {
+    int alignment = 1,
+    bool singlePage = false,
+    Object? origin,
+    Mutability mutability = Mutability.mutable,
+  }) {
+    return Data(
+      alignment: alignment,
+      singlePage: singlePage,
+      origin: origin,
+      mutability: mutability,
+    )..addSpace(size);
+  }
+
+  factory Data.fromBytes(
+    List<int> bytes, {
+    int alignment = 1,
+    bool singlePage = false,
+    Object? origin,
+    Mutability mutability = Mutability.immutable,
+  }) {
+    return Data(
+      alignment: alignment,
+      singlePage: singlePage,
+      origin: origin,
+      mutability: mutability,
+    )..addBytes(bytes);
+  }
+
+  factory Data.fromWords(
+    List<int> words, {
+    int alignment = 1,
+    bool singlePage = false,
+    Object? origin,
+    Mutability mutability = Mutability.immutable,
+  }) {
+    return Data(
+      alignment: alignment,
+      singlePage: singlePage,
+      origin: origin,
+      mutability: mutability,
+    )..addWords(words);
+  }
+
+  factory Data.fromLongwords(
+    List<int> longwords, {
+    int alignment = 2,
+    bool singlePage = false,
+    Object? origin,
+    Mutability mutability = Mutability.immutable,
+  }) {
+    return Data(
+      alignment: alignment,
+      singlePage: singlePage,
+      origin: origin,
+      mutability: mutability,
+    )..addLongwords(longwords);
+  }
+
   Data.mutable({super.alignment, super.singlePage, super.origin})
     : mutability = Mutability.mutable;
 

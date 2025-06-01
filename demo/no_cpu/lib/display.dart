@@ -161,7 +161,7 @@ class SpritePointers implements CopperComponent {
 
   @override
   void addToCopper(Copper copper) {
-    late Label empty = (Data()..addSpace(16)).label;
+    late Label empty = Data.blank(16).label;
     for (int i = 0; i < 8; i++) {
       copper.ptr(SPRxPT[i], i < sprites.length ? sprites[i] : empty);
     }

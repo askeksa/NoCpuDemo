@@ -93,10 +93,11 @@ class TransitionRun implements CopperComponent {
     int minterms3 =
         ((-2 << ((threshold >> 4) & 14)) & 0xFF) ^ (inverse ? 0xFF : 0);
 
-    Data data = Data();
-    data.addWord(0x0F00 | minterms1);
-    data.addWord(0x0F00 | minterms2);
-    data.addWord(0x0F00 | minterms3);
+    Data data = Data.fromWords([
+      0x0F00 | minterms1,
+      0x0F00 | minterms2,
+      0x0F00 | minterms3,
+    ]);
 
     copper.waitBlit();
     copper.ptr(BLTCPT, data.label);

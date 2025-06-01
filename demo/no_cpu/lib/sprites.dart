@@ -34,18 +34,21 @@ class Sprite {
   Sprite.blank(
     this.height, {
     this.attached = false,
-    Mutability mutability = Mutability.mutable,
+    Mutability mutability = Mutability.immutable,
   }) {
     label =
-        (Data(alignment: 3, mutability: mutability)
-          ..addSpace((height + 2) * 16)).label;
+        Data.blank(
+          (height + 2) * 16,
+          alignment: 3,
+          mutability: mutability,
+        ).label;
   }
 
   factory Sprite.generate(
     int height,
     int Function(int x, int y) generator, {
     bool attached = false,
-    Mutability mutability = Mutability.mutable,
+    Mutability mutability = Mutability.immutable,
   }) {
     var sprite = Sprite.blank(
       height,
@@ -67,10 +70,7 @@ class Sprite {
 
   CopperComponent updatePosition({required int v, int h = 0x200}) {
     var (posReg, ctlReg) = spriteControlWords(v, h, height, attached);
-    Data data =
-        Data()
-          ..addWord(posReg)
-          ..addWord(ctlReg);
+    Data data = Data.fromWords([posReg, ctlReg]);
     return Blit()
       ..cPtr = data.label
       ..dPtr = label
