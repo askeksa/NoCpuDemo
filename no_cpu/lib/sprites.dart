@@ -34,7 +34,7 @@ class Sprite {
   Sprite.blank(
     this.height, {
     this.attached = false,
-    Mutability mutability = Mutability.immutable,
+    Mutability mutability = Mutability.mutable,
   }) {
     label = Data.blank(
       (height + 2) * 16,
@@ -47,7 +47,7 @@ class Sprite {
     int height,
     int Function(int x, int y) generator, {
     bool attached = false,
-    Mutability mutability = Mutability.immutable,
+    Mutability mutability = Mutability.mutable,
   }) {
     var sprite = Sprite.blank(
       height,
