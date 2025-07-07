@@ -2,6 +2,8 @@ import 'dart:io';
 
 import 'package:no_cpu/no_cpu.dart';
 
+import '../bin/base.dart' show outputFile;
+
 main(List<String> args) {
   var image = IlbmImage.fromFile(args[0]);
 
@@ -14,5 +16,5 @@ main(List<String> args) {
   copper << image.palette;
 
   Memory m = Memory.fromRoots(0x20_0000, [copper.data]);
-  File("../runner/chip.dat").writeAsBytesSync(m.build());
+  File(outputFile).writeAsBytesSync(m.build());
 }

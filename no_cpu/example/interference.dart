@@ -2,11 +2,8 @@ import 'dart:io';
 import 'dart:math';
 
 import 'package:no_cpu/no_cpu.dart';
-import 'package:path/path.dart' show dirname;
 
-String scriptPath = dirname(Platform.script.toFilePath());
-String runnerPath = "$scriptPath/../../../runner";
-String outputFile = "$runnerPath/chip.dat";
+import '../bin/base.dart' show outputFile;
 
 main() {
   var bitmap1 = Bitmap.generate(

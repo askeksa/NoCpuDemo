@@ -7,7 +7,7 @@ import 'package:no_cpu/no_cpu.dart';
 
 String scriptPath = dirname(Platform.script.toFilePath());
 String assetsPath = "$scriptPath/../../assets";
-String runnerPath = "$scriptPath/../../../runner";
+String runnerPath = "$scriptPath/../../../NoCpuChallenge/runner";
 String outputFile = "$runnerPath/chip.dat";
 
 class DemoBase {
