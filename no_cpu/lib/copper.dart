@@ -291,3 +291,13 @@ extension CopperComponentOperators on CopperComponent {
 
   CopperComponent operator /(Map<int, FreeLabel> labels) => bind(labels);
 }
+
+extension JoinCopperComponents on Iterable<CopperComponent> {
+  CopperComponent get joined {
+    return AdHocCopperComponent((copper) {
+      for (var component in this) {
+        component.addToCopper(copper);
+      }
+    });
+  }
+}
