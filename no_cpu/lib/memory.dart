@@ -3,8 +3,6 @@ import 'dart:typed_data';
 
 import 'package:collection/collection.dart';
 
-import 'copper.dart';
-
 extension IsAlignedTo on int {
   bool isAlignedTo(int alignment) => this & ((1 << alignment) - 1) == 0;
 }
