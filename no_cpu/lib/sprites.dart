@@ -1,6 +1,7 @@
 import 'bitmap.dart';
+import 'bitmap_blit.dart';
 import 'blitter.dart';
-import 'copper.dart';
+import 'iff.dart';
 import 'memory.dart';
 
 (int, int) spriteControlWords(int v, int h, int height, bool attached) {
@@ -57,6 +58,27 @@ class Sprite {
     return sprite..fill(generator);
   }
 
+  factory Sprite.fromBitmap(
+    Bitmap bitmap, {
+    bool attached = false,
+    Mutability mutability = Mutability.mutable,
+  }) {
+    return Sprite.generate(
+      bitmap.height,
+      bitmap.getPixel,
+      attached: attached,
+      mutability: mutability,
+    );
+  }
+
+  factory Sprite.fromIlbm(IlbmImage image) {
+    return Sprite.fromBitmap(Bitmap.fromIlbm(image));
+  }
+
+  factory Sprite.fromFile(String path) {
+    return Sprite.fromIlbm(IlbmImage.fromFile(path));
+  }
+
   void fill(int Function(int x, int y) generator) {
     bitmap.fill(generator);
   }
@@ -67,7 +89,7 @@ class Sprite {
     (label + 8).setWord(ctlReg);
   }
 
-  CopperComponent updatePosition({required int v, int h = 0x200}) {
+  Blit updatePosition({required int v, int h = 0x200}) {
     var (posReg, ctlReg) = spriteControlWords(v, h, height, attached);
     Data data = Data.fromWords([posReg, ctlReg]);
     return Blit()
@@ -75,5 +97,179 @@ class Sprite {
       ..dPtr = label
       ..dStride = 8
       ..height = 2;
+  }
+
+  Blit blit(
+    int plane, {
+    Bitmap? aBitmap,
+    Bitmap? bBitmap,
+    Bitmap? cBitmap,
+    int? minterms,
+    int fromPlane = 0,
+    int x = 0,
+    int y = 0,
+  }) {
+    assert(plane >= 0 && plane < 2);
+    assert(
+      fromPlane >= 0 &&
+          [?aBitmap, ?bBitmap, ?cBitmap].every((b) => fromPlane < b.depth),
+    );
+    Blit blit = Blit()..dSetBitplane(bitmap, plane);
+    if (aBitmap != null) {
+      blit.aSetBitplane(aBitmap, fromPlane, x: x, y: y, w: 64, h: height);
+    }
+    if (bBitmap != null) {
+      blit.bSetBitplane(bBitmap, fromPlane, x: x, y: y, w: 64, h: height);
+    }
+    if (cBitmap != null) {
+      blit.cSetBitplane(cBitmap, fromPlane, x: x, y: y, w: 64, h: height);
+    }
+    if (minterms != null) {
+      blit.minterms = minterms;
+    }
+    return blit;
+  }
+}
+
+class SpriteInGroup {
+  final Sprite sprite;
+  final int xOffset;
+  final int planeOffset;
+
+  SpriteInGroup(this.sprite, this.xOffset, this.planeOffset);
+}
+
+class SpriteGroup {
+  final List<SpriteInGroup> sprites = [];
+
+  List<Label> get labels => [for (var s in sprites) s.sprite.label];
+
+  SpriteGroup.space(int width, int height, {bool attached = false}) {
+    for (int xOffset = 0; xOffset < width; xOffset += 64) {
+      sprites.add(
+        SpriteInGroup(Sprite.space(height, attached: false), xOffset, 0),
+      );
+      if (attached) {
+        sprites.add(
+          SpriteInGroup(Sprite.space(height, attached: true), xOffset, 2),
+        );
+      }
+    }
+    assert(
+      sprites.length <= 8,
+      "SpriteGroup can only have up to 8 sprites, got ${sprites.length}",
+    );
+  }
+
+  SpriteGroup.blank(
+    int width,
+    int height, {
+    bool attached = false,
+    Mutability mutability = Mutability.mutable,
+  }) {
+    for (int xOffset = 0; xOffset < width; xOffset += 64) {
+      sprites.add(
+        SpriteInGroup(
+          Sprite.blank(height, attached: false, mutability: mutability),
+          xOffset,
+          0,
+        ),
+      );
+      if (attached) {
+        sprites.add(
+          SpriteInGroup(
+            Sprite.blank(height, attached: true, mutability: mutability),
+            xOffset,
+            2,
+          ),
+        );
+      }
+    }
+    assert(
+      sprites.length <= 8,
+      "SpriteGroup can only have up to 8 sprites, got ${sprites.length}",
+    );
+  }
+
+  factory SpriteGroup.generate(
+    int width,
+    int height,
+    int Function(int x, int y) generator, {
+    bool attached = false,
+    Mutability mutability = Mutability.mutable,
+  }) {
+    return SpriteGroup.blank(
+      width,
+      height,
+      attached: attached,
+      mutability: mutability,
+    )..fill(generator);
+  }
+
+  factory SpriteGroup.fromBitmap(
+    Bitmap bitmap, {
+    bool attached = false,
+    Mutability mutability = Mutability.mutable,
+  }) {
+    return SpriteGroup.generate(
+      bitmap.width,
+      bitmap.height,
+      bitmap.getPixel,
+      attached: attached,
+      mutability: mutability,
+    );
+  }
+
+  factory SpriteGroup.fromIlbm(IlbmImage image) {
+    return SpriteGroup.fromBitmap(Bitmap.fromIlbm(image));
+  }
+
+  factory SpriteGroup.fromFile(String path) {
+    return SpriteGroup.fromIlbm(IlbmImage.fromFile(path));
+  }
+
+  void fill(int Function(int x, int y) generator) {
+    for (var s in sprites) {
+      s.sprite.fill((x, y) => generator(x + s.xOffset, y) >> s.planeOffset);
+    }
+  }
+
+  void setPosition({required int v, int h = 0x200}) {
+    for (var s in sprites) {
+      s.sprite.setPosition(v: v, h: h + s.xOffset * 4);
+    }
+  }
+
+  List<Blit> updatePosition({required int v, int h = 0x200}) {
+    return [
+      for (var s in sprites)
+        s.sprite.updatePosition(v: v, h: h + s.xOffset * 4),
+    ];
+  }
+
+  List<Blit> blit(
+    int plane, {
+    Bitmap? aBitmap,
+    Bitmap? bBitmap,
+    Bitmap? cBitmap,
+    int? minterms,
+    int fromPlane = 0,
+    int x = 0,
+    int y = 0,
+  }) {
+    return [
+      for (var s in sprites)
+        if (plane >= s.planeOffset && plane < s.planeOffset + 2)
+          s.sprite.blit(
+            plane - s.planeOffset,
+            aBitmap: aBitmap,
+            bBitmap: bBitmap,
+            cBitmap: cBitmap,
+            minterms: minterms,
+            fromPlane: fromPlane,
+            x: x + s.xOffset,
+            y: y,
+          ),
+    ];
   }
 }
