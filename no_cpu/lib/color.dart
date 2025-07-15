@@ -140,6 +140,10 @@ class Palette implements CopperComponent {
     });
   }
 
+  factory Palette.fromFile(String path) {
+    return Palette.fromIlbm(IlbmImage.fromFile(path));
+  }
+
   Palette shift(int delta) {
     final shiftedColors = SplayTreeMap<int, Color>();
     colors.forEach((index, color) {
