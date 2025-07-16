@@ -1,6 +1,9 @@
+import 'dart:collection';
+
 import 'bitmap.dart';
 import 'bitmap_blit.dart';
 import 'blitter.dart';
+import 'color.dart';
 import 'iff.dart';
 import 'memory.dart';
 
@@ -141,10 +144,11 @@ class SpriteInGroup {
 
 class SpriteGroup {
   final List<SpriteInGroup> sprites = [];
+  final bool attached;
 
   List<Label> get labels => [for (var s in sprites) s.sprite.label];
 
-  SpriteGroup.space(int width, int height, {bool attached = false}) {
+  SpriteGroup.space(int width, int height, {this.attached = false}) {
     for (int xOffset = 0; xOffset < width; xOffset += 64) {
       sprites.add(
         SpriteInGroup(Sprite.space(height, attached: false), xOffset, 0),
@@ -164,7 +168,7 @@ class SpriteGroup {
   SpriteGroup.blank(
     int width,
     int height, {
-    bool attached = false,
+    this.attached = false,
     Mutability mutability = Mutability.mutable,
   }) {
     for (int xOffset = 0; xOffset < width; xOffset += 64) {
@@ -271,5 +275,33 @@ class SpriteGroup {
             y: y,
           ),
     ];
+  }
+
+  Palette palette(Palette spritePalette, [int evenOffset = 0, int? oddOffset]) {
+    oddOffset ??= evenOffset;
+    assert(evenOffset & ~0xF0 == 0, "Even offset must be a multiple of 16");
+    assert(oddOffset & ~0xF0 == 0, "Odd offset must be a multiple of 16");
+
+    if (attached) {
+      assert(
+        spritePalette.colors.keys.every((k) => k >= 1 && k <= 15),
+        "Palette indices for attached sprites must be between 1 and 15",
+      );
+      return spritePalette.shift(oddOffset);
+    }
+
+    assert(
+      spritePalette.colors.keys.every((k) => k >= 1 && k <= 3),
+      "Palette indices for unattached sprites must be between 1 and 3",
+    );
+    var colors = SplayTreeMap<int, Color>();
+    for (int i = 0; i < sprites.length; i++) {
+      for (var color in spritePalette.colors.entries) {
+        int offset = i.isEven ? evenOffset : oddOffset;
+        int spriteOffset = (i & 0x6) << 1;
+        colors[offset + spriteOffset + color.key] = color.value;
+      }
+    }
+    return Palette(colors);
   }
 }
