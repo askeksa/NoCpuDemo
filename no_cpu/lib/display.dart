@@ -141,7 +141,7 @@ class Display implements CopperComponent {
       copper.ptr(BPLxPT[i], bitplanes[i]);
     }
 
-    copper >> SpritePointers(sprites);
+    copper << SpritePointers(sprites);
   }
 
   int _swizzleHorizontalScroll(int scroll) {
