@@ -2,6 +2,7 @@ import 'dart:io';
 
 import 'package:collection/collection.dart';
 import 'package:path/path.dart' show dirname;
+import 'package:sprintf/sprintf.dart';
 
 import 'package:no_cpu/no_cpu.dart';
 
@@ -69,11 +70,25 @@ class DemoBase {
 
   void build() {
     Memory m = Memory.fromRoots(0x20_0000, roots);
+
+    void p(String title) {
+      print(
+        sprintf("%-15s   %9d    %9d  %9d   %9d", [
+          title,
+          m.dataBlocks.where((b) => b.origin is Copper).length,
+          m.dataBlocks.where((b) => b.origin is Copper).map((b) => b.size).sum,
+          m.dataBlocks.map((b) => b.size).sum,
+          m.spaceBlocks.map((b) => b.size).sum,
+        ]),
+      );
+    }
+
+    print("                Copperlists  Copper size  Data size  Space size");
+    p("Initial");
     m.finalize();
-    print("Total data:  ${m.dataBlocks.map((b) => b.size).sum}");
-    print("Total space: ${m.spaceBlocks.map((b) => b.size).sum}");
+    p("After finalize");
     var chipData = m.build();
-    print("File size:   ${chipData.length}");
+    p("After dedup");
     File(outputFile).writeAsBytesSync(chipData);
   }
 }
