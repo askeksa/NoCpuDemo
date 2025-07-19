@@ -12,6 +12,7 @@ extension SetBitmaps on Blit {
     int y,
     int? w,
     int? h,
+    bool size,
     bool mask,
   ) {
     w ??= bitmap.width - x;
@@ -20,16 +21,18 @@ extension SetBitmaps on Blit {
     int xword = x >> 4;
     int lastxword = lastx >> 4;
 
-    int width = lastxword - xword + 1;
-    int height = h;
-    if (this.width != null && this.width != width) {
-      throw Exception("Mismatching width");
+    if (size) {
+      int width = lastxword - xword + 1;
+      int height = h;
+      if (this.width != null && this.width != width) {
+        throw Exception("Mismatching width");
+      }
+      if (this.height != null && this.height != height) {
+        throw Exception("Mismatching height");
+      }
+      this.width = width;
+      this.height = height;
     }
-    if (this.height != null && this.height != height) {
-      throw Exception("Mismatching height");
-    }
-    this.width = width;
-    this.height = height;
 
     if (mask) {
       aFWM = 0xFFFF >> (x & 15);
@@ -49,9 +52,10 @@ extension SetBitmaps on Blit {
     int y = 0,
     int? w,
     int? h,
+    bool size = true,
     bool mask = true,
   }) {
-    aPtr = _setBitplane(bitmap, plane, x, y, w, h, mask);
+    aPtr = _setBitplane(bitmap, plane, x, y, w, h, size, mask);
     aStride = bitmap.rowStride;
   }
 
@@ -62,9 +66,10 @@ extension SetBitmaps on Blit {
     int y = 0,
     int? w,
     int? h,
+    bool size = true,
     bool mask = false,
   }) {
-    bPtr = _setBitplane(bitmap, plane, x, y, w, h, mask);
+    bPtr = _setBitplane(bitmap, plane, x, y, w, h, size, mask);
     bStride = bitmap.rowStride;
   }
 
@@ -75,9 +80,10 @@ extension SetBitmaps on Blit {
     int y = 0,
     int? w,
     int? h,
+    bool size = true,
     bool mask = false,
   }) {
-    cPtr = _setBitplane(bitmap, plane, x, y, w, h, mask);
+    cPtr = _setBitplane(bitmap, plane, x, y, w, h, size, mask);
     cStride = bitmap.rowStride;
   }
 
@@ -88,9 +94,10 @@ extension SetBitmaps on Blit {
     int y = 0,
     int? w,
     int? h,
+    bool size = true,
     bool mask = false,
   }) {
-    dPtr = _setBitplane(bitmap, plane, x, y, w, h, mask);
+    dPtr = _setBitplane(bitmap, plane, x, y, w, h, size, mask);
     dStride = bitmap.rowStride;
   }
 
@@ -101,9 +108,10 @@ extension SetBitmaps on Blit {
     int y = 0,
     int? w,
     int? h,
+    bool size = true,
     bool mask = true,
   }) {
-    abPtr = _setBitplane(bitmap, plane, x, y, w, h, mask);
+    abPtr = _setBitplane(bitmap, plane, x, y, w, h, size, mask);
     abStride = bitmap.rowStride;
   }
 
@@ -114,9 +122,10 @@ extension SetBitmaps on Blit {
     int y = 0,
     int? w,
     int? h,
+    bool size = true,
     bool mask = true,
   }) {
-    acPtr = _setBitplane(bitmap, plane, x, y, w, h, mask);
+    acPtr = _setBitplane(bitmap, plane, x, y, w, h, size, mask);
     acStride = bitmap.rowStride;
   }
 
@@ -127,9 +136,10 @@ extension SetBitmaps on Blit {
     int y = 0,
     int? w,
     int? h,
+    bool size = true,
     bool mask = true,
   }) {
-    adPtr = _setBitplane(bitmap, plane, x, y, w, h, mask);
+    adPtr = _setBitplane(bitmap, plane, x, y, w, h, size, mask);
     adStride = bitmap.rowStride;
   }
 
@@ -140,9 +150,10 @@ extension SetBitmaps on Blit {
     int y = 0,
     int? w,
     int? h,
+    bool size = true,
     bool mask = false,
   }) {
-    bcPtr = _setBitplane(bitmap, plane, x, y, w, h, mask);
+    bcPtr = _setBitplane(bitmap, plane, x, y, w, h, size, mask);
     bcStride = bitmap.rowStride;
   }
 
@@ -153,9 +164,10 @@ extension SetBitmaps on Blit {
     int y = 0,
     int? w,
     int? h,
+    bool size = true,
     bool mask = false,
   }) {
-    bdPtr = _setBitplane(bitmap, plane, x, y, w, h, mask);
+    bdPtr = _setBitplane(bitmap, plane, x, y, w, h, size, mask);
     bdStride = bitmap.rowStride;
   }
 
@@ -166,9 +178,10 @@ extension SetBitmaps on Blit {
     int y = 0,
     int? w,
     int? h,
+    bool size = true,
     bool mask = false,
   }) {
-    cdPtr = _setBitplane(bitmap, plane, x, y, w, h, mask);
+    cdPtr = _setBitplane(bitmap, plane, x, y, w, h, size, mask);
     cdStride = bitmap.rowStride;
   }
 
@@ -179,9 +192,10 @@ extension SetBitmaps on Blit {
     int y = 0,
     int? w,
     int? h,
+    bool size = true,
     bool mask = true,
   }) {
-    abcPtr = _setBitplane(bitmap, plane, x, y, w, h, mask);
+    abcPtr = _setBitplane(bitmap, plane, x, y, w, h, size, mask);
     abcStride = bitmap.rowStride;
   }
 
@@ -192,9 +206,10 @@ extension SetBitmaps on Blit {
     int y = 0,
     int? w,
     int? h,
+    bool size = true,
     bool mask = true,
   }) {
-    abdPtr = _setBitplane(bitmap, plane, x, y, w, h, mask);
+    abdPtr = _setBitplane(bitmap, plane, x, y, w, h, size, mask);
     abdStride = bitmap.rowStride;
   }
 
@@ -205,9 +220,10 @@ extension SetBitmaps on Blit {
     int y = 0,
     int? w,
     int? h,
+    bool size = true,
     bool mask = true,
   }) {
-    acdPtr = _setBitplane(bitmap, plane, x, y, w, h, mask);
+    acdPtr = _setBitplane(bitmap, plane, x, y, w, h, size, mask);
     acdStride = bitmap.rowStride;
   }
 
@@ -218,9 +234,10 @@ extension SetBitmaps on Blit {
     int y = 0,
     int? w,
     int? h,
+    bool size = true,
     bool mask = false,
   }) {
-    bcdPtr = _setBitplane(bitmap, plane, x, y, w, h, mask);
+    bcdPtr = _setBitplane(bitmap, plane, x, y, w, h, size, mask);
     bcdStride = bitmap.rowStride;
   }
 
@@ -231,9 +248,10 @@ extension SetBitmaps on Blit {
     int y = 0,
     int? w,
     int? h,
+    bool size = true,
     bool mask = true,
   }) {
-    abcdPtr = _setBitplane(bitmap, plane, x, y, w, h, mask);
+    abcdPtr = _setBitplane(bitmap, plane, x, y, w, h, size, mask);
     abcdStride = bitmap.rowStride;
   }
 
@@ -243,6 +261,7 @@ extension SetBitmaps on Blit {
     int y,
     int? w,
     int? h,
+    bool size,
     bool mask,
   ) {
     assert(bitmap.interleaved);
@@ -253,16 +272,18 @@ extension SetBitmaps on Blit {
     int xword = x >> 4;
     int lastxword = lastx >> 4;
 
-    int width = lastxword - xword + 1;
-    int height = h * bitmap.depth;
-    if (this.width != null && this.width != width) {
-      throw Exception("Mismatching width");
+    if (size) {
+      int width = lastxword - xword + 1;
+      int height = h * bitmap.depth;
+      if (this.width != null && this.width != width) {
+        throw Exception("Mismatching width");
+      }
+      if (this.height != null && this.height != height) {
+        throw Exception("Mismatching height");
+      }
+      this.width = width;
+      this.height = height;
     }
-    if (this.height != null && this.height != height) {
-      throw Exception("Mismatching height");
-    }
-    this.width = width;
-    this.height = height;
 
     if (mask) {
       aFWM = 0xFFFF >> (x & 15);
@@ -278,9 +299,10 @@ extension SetBitmaps on Blit {
     int y = 0,
     int? w,
     int? h,
+    bool size = true,
     bool mask = true,
   }) {
-    aPtr = _setInterleaved(bitmap, x, y, w, h, mask);
+    aPtr = _setInterleaved(bitmap, x, y, w, h, size, mask);
     aStride = bitmap.planeStride;
   }
 
@@ -290,9 +312,10 @@ extension SetBitmaps on Blit {
     int y = 0,
     int? w,
     int? h,
+    bool size = true,
     bool mask = false,
   }) {
-    bPtr = _setInterleaved(bitmap, x, y, w, h, mask);
+    bPtr = _setInterleaved(bitmap, x, y, w, h, size, mask);
     bStride = bitmap.planeStride;
   }
 
@@ -302,9 +325,10 @@ extension SetBitmaps on Blit {
     int y = 0,
     int? w,
     int? h,
+    bool size = true,
     bool mask = false,
   }) {
-    cPtr = _setInterleaved(bitmap, x, y, w, h, mask);
+    cPtr = _setInterleaved(bitmap, x, y, w, h, size, mask);
     cStride = bitmap.planeStride;
   }
 
@@ -314,9 +338,10 @@ extension SetBitmaps on Blit {
     int y = 0,
     int? w,
     int? h,
+    bool size = true,
     bool mask = false,
   }) {
-    dPtr = _setInterleaved(bitmap, x, y, w, h, mask);
+    dPtr = _setInterleaved(bitmap, x, y, w, h, size, mask);
     dStride = bitmap.planeStride;
   }
 
@@ -326,9 +351,10 @@ extension SetBitmaps on Blit {
     int y = 0,
     int? w,
     int? h,
+    bool size = true,
     bool mask = true,
   }) {
-    abPtr = _setInterleaved(bitmap, x, y, w, h, mask);
+    abPtr = _setInterleaved(bitmap, x, y, w, h, size, mask);
     abStride = bitmap.planeStride;
   }
 
@@ -338,9 +364,10 @@ extension SetBitmaps on Blit {
     int y = 0,
     int? w,
     int? h,
+    bool size = true,
     bool mask = true,
   }) {
-    acPtr = _setInterleaved(bitmap, x, y, w, h, mask);
+    acPtr = _setInterleaved(bitmap, x, y, w, h, size, mask);
     acStride = bitmap.planeStride;
   }
 
@@ -350,9 +377,10 @@ extension SetBitmaps on Blit {
     int y = 0,
     int? w,
     int? h,
+    bool size = true,
     bool mask = true,
   }) {
-    adPtr = _setInterleaved(bitmap, x, y, w, h, mask);
+    adPtr = _setInterleaved(bitmap, x, y, w, h, size, mask);
     adStride = bitmap.planeStride;
   }
 
@@ -362,9 +390,10 @@ extension SetBitmaps on Blit {
     int y = 0,
     int? w,
     int? h,
+    bool size = true,
     bool mask = false,
   }) {
-    bcPtr = _setInterleaved(bitmap, x, y, w, h, mask);
+    bcPtr = _setInterleaved(bitmap, x, y, w, h, size, mask);
     bcStride = bitmap.planeStride;
   }
 
@@ -374,9 +403,10 @@ extension SetBitmaps on Blit {
     int y = 0,
     int? w,
     int? h,
+    bool size = true,
     bool mask = false,
   }) {
-    bdPtr = _setInterleaved(bitmap, x, y, w, h, mask);
+    bdPtr = _setInterleaved(bitmap, x, y, w, h, size, mask);
     bdStride = bitmap.planeStride;
   }
 
@@ -386,9 +416,10 @@ extension SetBitmaps on Blit {
     int y = 0,
     int? w,
     int? h,
+    bool size = true,
     bool mask = false,
   }) {
-    cdPtr = _setInterleaved(bitmap, x, y, w, h, mask);
+    cdPtr = _setInterleaved(bitmap, x, y, w, h, size, mask);
     cdStride = bitmap.planeStride;
   }
 
@@ -398,9 +429,10 @@ extension SetBitmaps on Blit {
     int y = 0,
     int? w,
     int? h,
+    bool size = true,
     bool mask = true,
   }) {
-    abcPtr = _setInterleaved(bitmap, x, y, w, h, mask);
+    abcPtr = _setInterleaved(bitmap, x, y, w, h, size, mask);
     abcStride = bitmap.planeStride;
   }
 
@@ -410,9 +442,10 @@ extension SetBitmaps on Blit {
     int y = 0,
     int? w,
     int? h,
+    bool size = true,
     bool mask = true,
   }) {
-    abdPtr = _setInterleaved(bitmap, x, y, w, h, mask);
+    abdPtr = _setInterleaved(bitmap, x, y, w, h, size, mask);
     abdStride = bitmap.planeStride;
   }
 
@@ -422,9 +455,10 @@ extension SetBitmaps on Blit {
     int y = 0,
     int? w,
     int? h,
+    bool size = true,
     bool mask = true,
   }) {
-    acdPtr = _setInterleaved(bitmap, x, y, w, h, mask);
+    acdPtr = _setInterleaved(bitmap, x, y, w, h, size, mask);
     acdStride = bitmap.planeStride;
   }
 
@@ -434,9 +468,10 @@ extension SetBitmaps on Blit {
     int y = 0,
     int? w,
     int? h,
+    bool size = true,
     bool mask = false,
   }) {
-    bcdPtr = _setInterleaved(bitmap, x, y, w, h, mask);
+    bcdPtr = _setInterleaved(bitmap, x, y, w, h, size, mask);
     bcdStride = bitmap.planeStride;
   }
 
@@ -446,9 +481,10 @@ extension SetBitmaps on Blit {
     int y = 0,
     int? w,
     int? h,
+    bool size = true,
     bool mask = true,
   }) {
-    abcdPtr = _setInterleaved(bitmap, x, y, w, h, mask);
+    abcdPtr = _setInterleaved(bitmap, x, y, w, h, size, mask);
     abcdStride = bitmap.planeStride;
   }
 }
