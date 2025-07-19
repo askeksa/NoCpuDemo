@@ -89,20 +89,20 @@ class Palette implements CopperComponent {
 
   Palette.fromMap(Map<int, Color> map) : this(SplayTreeMap.from(map));
 
-  factory Palette.rgb12(List<int> rgb12List, {int start = 0}) {
+  factory Palette.fromList(List<Color> colorList, {int start = 0}) {
     final colors = SplayTreeMap<int, Color>();
-    for (int i = 0; i < rgb12List.length; i++) {
-      colors[start + i] = Color.rgb12(rgb12List[i]);
+    for (int i = 0; i < colorList.length; i++) {
+      colors[start + i] = colorList[i];
     }
     return Palette(colors);
   }
 
+  factory Palette.rgb12(List<int> rgb12List, {int start = 0}) {
+    return Palette.fromList(rgb12List.map(Color.rgb12).toList(), start: start);
+  }
+
   factory Palette.rgb24(List<int> rgb24List, {int start = 0}) {
-    final colors = SplayTreeMap<int, Color>();
-    for (int i = 0; i < rgb24List.length; i++) {
-      colors[start + i] = Color.rgb24(rgb24List[i]);
-    }
-    return Palette(colors);
+    return Palette.fromList(rgb24List.map(Color.rgb24).toList(), start: start);
   }
 
   factory Palette.generate(int count, (int, Color) Function(int) generator) {
