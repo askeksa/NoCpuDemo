@@ -35,11 +35,21 @@ class CheckerboardFrame implements CopperComponent {
   final Checkerboard checkerboard;
   List<(int, int, int, Color)> layers;
 
+  int get width => checkerboard.width;
+  int get height => checkerboard.height;
+  int get layerCount => checkerboard.layerCount;
+  int get topline => checkerboard.topline;
+  Bitmap get rows => checkerboard.rows;
+  Bitmap get columns => checkerboard.columns;
+  Bitmap get screen => checkerboard.screen;
+  Display get display => checkerboard.display;
+  Data get colors => checkerboard.colors;
+
   CheckerboardFrame(this.checkerboard, this.layers);
 
   @override
   void addToCopper(Copper copper) {
-    copper << checkerboard.display;
+    copper << display;
     var polarities = FreeLabel.immutable("polarities");
 
     for (int l = 0; l < layers.length; l++) {
@@ -47,29 +57,16 @@ class CheckerboardFrame implements CopperComponent {
       assert(d >= 0 && d < 128);
 
       var rowBlit = Blit()
-        ..aSetBitplane(
-          checkerboard.rows,
-          0,
-          x: 512 - checkerboard.width + 16 + x,
-          y: d,
-          size: false,
-        )
+        ..aSetBitplane(rows, 0, x: 512 - width + 16 + x, y: d, size: false)
         ..aShift = x & 15
-        ..dSetBitplane(checkerboard.screen, l)
+        ..dSetBitplane(screen, l)
         ..descending = true;
 
       var columnBlit = Blit()
         ..aPtr = polarities + 14
         ..aLWM = (0xFF0000 >> l) & 0xFFFF
         ..aShift = 15
-        ..bSetBitplane(
-          checkerboard.columns,
-          0,
-          x: d,
-          y: 128 + y,
-          w: 1,
-          h: checkerboard.height + 1,
-        )
+        ..bSetBitplane(columns, 0, x: d, y: 128 + y, w: 1, h: height + 1)
         ..bShift = d & 15
         ..cData = 0x8000
         ..dPtr = polarities + 6
@@ -81,7 +78,7 @@ class CheckerboardFrame implements CopperComponent {
         ..aData = 0xFFFF
         ..aFWM = color.upper
         ..aLWM = color.lower
-        ..dPtr = checkerboard.colors.label + (4 << l)
+        ..dPtr = colors.label + (4 << l)
         ..width = 2
         ..height = 1 << l;
 
@@ -90,29 +87,20 @@ class CheckerboardFrame implements CopperComponent {
       copper << colorBlit;
     }
 
-    if (checkerboard.layerCount < 8) {
+    if (layerCount < 8) {
       var adjustBlit = Blit()
         ..adPtr = polarities + 14
         ..adStride = 8
-        ..aShift = 8 - checkerboard.layerCount
-        ..height = checkerboard.height;
+        ..aShift = 8 - layerCount
+        ..height = height;
 
       copper << adjustBlit;
     }
 
-    copper >>
-        DynamicPalette(
-          checkerboard.colors.label,
-          0,
-          1 << checkerboard.layerCount,
-        );
+    copper >> DynamicPalette(colors.label, 0, 1 << layerCount);
 
     copper.data.bind(polarities);
-    for (
-      int v = checkerboard.topline - 2;
-      v < checkerboard.topline + checkerboard.height - 1;
-      v++
-    ) {
+    for (int v = topline - 2; v < topline + height - 1; v++) {
       copper.wait(v: v, h: 0xDF);
       copper.move(BPLCON4, 0);
     }
