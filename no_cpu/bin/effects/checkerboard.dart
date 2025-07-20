@@ -20,6 +20,7 @@ class Checkerboard {
   late Display display = Display()
     ..setBitmap(screen)
     ..stride = 0;
+  late Data colors = Data.blank(4 << layerCount);
 
   Checkerboard(this.width, this.height, this.layerCount, this.topline)
     : assert(layerCount >= 1 && layerCount <= 8);
@@ -39,14 +40,11 @@ class CheckerboardFrame implements CopperComponent {
   @override
   void addToCopper(Copper copper) {
     copper << checkerboard.display;
-    List<Color> colors = [Color.rgb12(0x000)];
     var polarities = FreeLabel.immutable("polarities");
 
     for (int l = 0; l < layers.length; l++) {
       final (x, y, d, color) = layers[l];
       assert(d >= 0 && d < 128);
-
-      colors += List.filled((1 << l), color);
 
       var rowBlit = Blit()
         ..aSetBitplane(
@@ -79,8 +77,17 @@ class CheckerboardFrame implements CopperComponent {
         ..minterms = A | (B & C)
         ..descending = true;
 
+      var colorBlit = Blit()
+        ..aData = 0xFFFF
+        ..aFWM = color.upper
+        ..aLWM = color.lower
+        ..dPtr = checkerboard.colors.label + (4 << l)
+        ..width = 2
+        ..height = 1 << l;
+
       copper << rowBlit;
       copper << columnBlit;
+      copper << colorBlit;
     }
 
     if (checkerboard.layerCount < 8) {
@@ -93,7 +100,12 @@ class CheckerboardFrame implements CopperComponent {
       copper << adjustBlit;
     }
 
-    copper << Palette.fromList(colors);
+    copper >>
+        DynamicPalette(
+          checkerboard.colors.label,
+          0,
+          1 << checkerboard.layerCount,
+        );
 
     copper.data.bind(polarities);
     for (

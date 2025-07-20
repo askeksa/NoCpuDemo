@@ -1,8 +1,11 @@
 import 'dart:collection';
+import 'dart:math';
 
+import 'blitter.dart';
 import 'copper.dart';
 import 'custom.dart';
 import 'iff.dart';
+import 'memory.dart';
 
 /// Global border blanking flag.
 bool borderBlank = true;
@@ -242,5 +245,47 @@ class Palette implements CopperComponent {
         }
       }
     }
+  }
+}
+
+// Set colors from a palette source in memory, with each color represented as
+// the upper nibbles followed by the lower nibbles, each as a 0rgb word.
+class DynamicPalette implements CopperComponent {
+  final Label source;
+  final int start, count;
+
+  DynamicPalette(this.source, this.start, this.count)
+    : assert(start >= 0 && start <= 255, "Start must be between 0 and 255"),
+      assert(count > 0 && count <= 256, "Count must be between 1 and 256");
+
+  @override
+  void addToCopper(Copper copper) {
+    var palette = FreeLabel.immutable("palette");
+
+    Label from = source;
+    Label to = palette;
+    for (int c = start; c < start + count; c = (c + 32) & -32) {
+      int block = min((c + 32) & -32, start + count) - c;
+      var copyUpper = Blit()
+        ..aPtr = from
+        ..aStride = 4
+        ..dPtr = to + 6
+        ..dStride = 4
+        ..height = block;
+      var copyLower = Blit()
+        ..aPtr = from + 2
+        ..aStride = 4
+        ..dPtr = to + 4 + block * 4 + 6
+        ..dStride = 4
+        ..height = block;
+      copper << copyUpper;
+      copper << copyLower;
+
+      from += block * 4;
+      to += (4 + block * 4) * 2;
+    }
+
+    copper.data.bind(palette);
+    copper << Palette.generateRange(start, count, (c) => Color.rgb24(0x010101));
   }
 }
