@@ -20,7 +20,7 @@ class Copper {
   /// Is this copperlist terminated?
   bool isTerminated = false;
 
-  List<(Set<int>, RegisterCallback)> _watchStack = [];
+  final List<(Set<int>, RegisterCallback)> _watchStack = [];
 
   Copper({
     int alignment = 2,

@@ -193,7 +193,7 @@ class Memory {
 
   Uint8List build() {
     if (!isFinalized) {
-      this.finalize();
+      finalize();
     }
 
     // Assemble the blocks into a memory image.

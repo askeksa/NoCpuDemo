@@ -114,8 +114,8 @@ class MusicDemoBase extends DemoBase {
 
 extension FrameIndex on Copper {
   int get index {
-    if (this.isPrimary && this.origin is int) {
-      return this.origin as int;
+    if (isPrimary && origin is int) {
+      return origin as int;
     } else {
       throw Exception("'$this' is not a frame copperlist");
     }
