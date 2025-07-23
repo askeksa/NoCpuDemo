@@ -20,7 +20,7 @@ class ColorRange {
     required this.high,
   });
 
-  double get framesPerStep => 16384 * 60 / 50 / rate;
+  double get stepsPerSecond => rate / 16384 * 60;
   bool get isActive => (flags & 1) != 0;
   bool get isReverse => (flags & 2) != 0;
 

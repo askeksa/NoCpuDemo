@@ -21,10 +21,10 @@ main(List<String> args) {
     ColorRange range = image.colorRanges[0];
     print(
       "Color range: ${range.low} - ${range.high}, "
-      "rate: ${range.rate}, "
+      "rate: ${range.stepsPerSecond}, "
       "${range.isReverse ? "reverse" : "forward"}",
     );
-    int step = min(1, range.framesPerStep.round());
+    int step = max(1, 50 / range.stepsPerSecond).round();
     int count = range.high - range.low + 1;
     List<Copper> frames = List.generate(
       step * count,
