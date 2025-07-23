@@ -13,11 +13,13 @@ class GameOfLifeTest extends DemoBase {
   GameOfLife gameOfLife = GameOfLife(336, 180, 16, 0);
 
   GameOfLifeTest() : super(2, loopFrame: 0) {
-    Random random = Random();
+    Random random = Random(DateTime.now().millisecondsSinceEpoch);
     Bitmap bitmap = Bitmap.generate(
       336,
       180,
-      (x, y) => random.nextInt(2),
+      (x, y) => x >= 160 - 32 && x < 160 + 32 && y >= 90 - 32 && y < 90 + 32
+          ? random.nextInt(2)
+          : 0,
       depth: 1,
       mutability: Mutability.mutable,
     );
