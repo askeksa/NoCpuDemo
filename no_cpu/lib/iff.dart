@@ -4,12 +4,42 @@ import 'dart:typed_data';
 import 'bitmap.dart';
 import 'color.dart';
 
+class ColorRange {
+  /// Rate of color cycling in steps per second * 16384 / 60.
+  final int rate;
+  final int flags;
+  final int low;
+  final int high;
+
+  late final IlbmImage image;
+
+  ColorRange({
+    required this.rate,
+    required this.flags,
+    required this.low,
+    required this.high,
+  });
+
+  double get framesPerStep => 16384 * 60 / 50 / rate;
+  bool get isActive => (flags & 1) != 0;
+  bool get isReverse => (flags & 2) != 0;
+
+  Palette step(int i) {
+    int s(int c, int i) => low + (c - low + i) % (high - low + 1);
+    return Palette.fromMap({
+      for (int c = low; c <= high; c++)
+        if (isReverse) c: image.palette[s(c, i)] else s(c, i): image.palette[c],
+    });
+  }
+}
+
 class IlbmImage {
   final int width;
   final int height;
   final int bitplanes;
   final Uint8List? imageData;
   final Uint8List? colorMapData;
+  final List<ColorRange> colorRanges;
 
   late final bitmap = Bitmap.fromIlbm(this);
   late final palette = Palette.fromIlbm(this);
@@ -20,10 +50,19 @@ class IlbmImage {
     this.bitplanes, {
     this.imageData,
     this.colorMapData,
-  });
+    this.colorRanges = const [],
+  }) {
+    for (final crng in colorRanges) {
+      crng.image = this;
+    }
+  }
 
   factory IlbmImage.fromFile(String filePath) {
     return _readIlbm(filePath);
+  }
+
+  void save(String filePath) {
+    _saveIlbm(this, filePath);
   }
 }
 
@@ -62,6 +101,7 @@ IlbmImage _readIlbm(String filePath) {
   int bitplanes = 0;
   Uint8List? imageData;
   Uint8List? colorMapData;
+  List<ColorRange> colorRanges = [];
   int compression = 0;
 
   while (offset < bytes.length) {
@@ -75,6 +115,17 @@ IlbmImage _readIlbm(String filePath) {
       compression = byteData.getUint8(offset + 18); // Read compression flag
     } else if (chunkId == 'CMAP') {
       colorMapData = bytes.sublist(offset + 8, offset + 8 + chunkSize);
+    } else if (chunkId == 'CRNG') {
+      // Read CRNG chunk for color cycling
+      int crngOffset = offset + 8;
+      int rate = byteData.getUint16(crngOffset + 2);
+      int flags = byteData.getUint16(crngOffset + 4);
+      int low = byteData.getUint8(crngOffset + 6);
+      int high = byteData.getUint8(crngOffset + 7);
+
+      colorRanges.add(
+        ColorRange(rate: rate, flags: flags, low: low, high: high),
+      );
     } else if (chunkId == 'BODY') {
       imageData = bytes.sublist(offset + 8, offset + 8 + chunkSize);
 
@@ -101,7 +152,91 @@ IlbmImage _readIlbm(String filePath) {
     bitplanes,
     imageData: imageData,
     colorMapData: colorMapData,
+    colorRanges: colorRanges,
   );
+}
+
+void _saveIlbm(IlbmImage image, String filePath) {
+  final chunks = <Uint8List>[];
+
+  // BMHD chunk
+  final bmhdData = ByteData(20);
+  bmhdData.setUint16(0, image.width);
+  bmhdData.setUint16(2, image.height);
+  bmhdData.setInt16(4, 0); // x
+  bmhdData.setInt16(6, 0); // y
+  bmhdData.setUint8(8, image.bitplanes);
+  bmhdData.setUint8(9, 0); // masking
+  bmhdData.setUint8(10, 0); // no compression
+  bmhdData.setUint8(11, 0); // pad1
+  bmhdData.setUint16(12, 0); // transparentColor
+  bmhdData.setUint8(14, 10); // xAspect
+  bmhdData.setUint8(15, 11); // yAspect
+  bmhdData.setInt16(16, image.width); // pageWidth
+  bmhdData.setInt16(18, image.height); // pageHeight
+  chunks.add(_createChunk('BMHD', bmhdData.buffer.asUint8List()));
+
+  // CMAP chunk
+  if (image.colorMapData != null) {
+    chunks.add(_createChunk('CMAP', image.colorMapData!));
+  }
+
+  // CRNG chunks
+  for (final crng in image.colorRanges) {
+    final crngData = ByteData(8);
+    crngData.setInt16(0, 0); // pad1
+    crngData.setInt16(2, crng.rate);
+    crngData.setInt16(4, crng.flags);
+    crngData.setUint8(6, crng.low);
+    crngData.setUint8(7, crng.high);
+    chunks.add(_createChunk('CRNG', crngData.buffer.asUint8List()));
+  }
+
+  // BODY chunk
+  if (image.imageData != null) {
+    chunks.add(_createChunk('BODY', image.imageData!));
+  }
+
+  // Calculate total size for FORM header
+  int totalSize = 4; // for 'ILBM'
+  for (final chunk in chunks) {
+    totalSize += chunk.length;
+  }
+
+  // Create the final file buffer
+  final builder = BytesBuilder();
+  final headerData = ByteData(12);
+  headerData.setUint32(0, 0x464F524D); // 'FORM'
+  headerData.setUint32(4, totalSize);
+  headerData.setUint32(8, 0x494C424D); // 'ILBM'
+  builder.add(headerData.buffer.asUint8List());
+
+  for (final chunk in chunks) {
+    builder.add(chunk);
+  }
+
+  File(filePath).writeAsBytesSync(builder.toBytes());
+}
+
+Uint8List _createChunk(String id, Uint8List data) {
+  final builder = BytesBuilder();
+  final chunkHeader = ByteData(8);
+  final idCodes = id.codeUnits;
+  chunkHeader.setUint8(0, idCodes[0]);
+  chunkHeader.setUint8(1, idCodes[1]);
+  chunkHeader.setUint8(2, idCodes[2]);
+  chunkHeader.setUint8(3, idCodes[3]);
+  chunkHeader.setUint32(4, data.length);
+
+  builder.add(chunkHeader.buffer.asUint8List());
+  builder.add(data);
+
+  // Pad to even length
+  if (data.length % 2 != 0) {
+    builder.addByte(0);
+  }
+
+  return builder.toBytes();
 }
 
 // ByteRun1 decompression algorithm
