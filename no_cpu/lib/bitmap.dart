@@ -124,7 +124,10 @@ class Bitmap {
   }
 
   void chunky2planar(ChunkyPixels pixels) {
-    final data = (bitplanes.block as Data).bytes;
+    final data = Uint8List.view(
+      (bitplanes.block as Data).bytes.buffer,
+      bitplanes.offsetInBlock,
+    );
 
     for (var y = 0; y < pixels.height; y++) {
       for (var x = 0; x < pixels.width; x++) {
