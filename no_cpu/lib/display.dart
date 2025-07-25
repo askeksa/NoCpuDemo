@@ -9,6 +9,7 @@ import 'bitmap.dart';
 import 'copper.dart';
 import 'custom.dart';
 import 'memory.dart';
+import 'sprites.dart' show emptySprite;
 
 class Display implements CopperComponent {
   // Bitplane pointers.
@@ -162,9 +163,8 @@ class SpritePointers implements CopperComponent {
 
   @override
   void addToCopper(Copper copper) {
-    late Label empty = Data.blank(16).label;
     for (int i = 0; i < 8; i++) {
-      copper.ptr(SPRxPT[i], i < sprites.length ? sprites[i] : empty);
+      copper.ptr(SPRxPT[i], i < sprites.length ? sprites[i] : emptySprite);
     }
   }
 }

@@ -136,45 +136,48 @@ class Sprite {
 
 class SpriteInGroup {
   final Sprite sprite;
+  final int index;
   final int xOffset;
   final int planeOffset;
 
-  SpriteInGroup(this.sprite, this.xOffset, this.planeOffset);
+  SpriteInGroup(this.sprite, this.index, this.xOffset, this.planeOffset)
+    : assert(index >= 0 && index < 8, "Sprite index must be between 0 and 7");
 }
 
 class SpriteGroup {
   final List<SpriteInGroup> sprites = [];
   final bool attached;
 
-  List<Label> get labels => [for (var s in sprites) s.sprite.label];
-
-  SpriteGroup.space(int width, int height, {this.attached = false}) {
-    for (int xOffset = 0; xOffset < width; xOffset += 64) {
-      sprites.add(
-        SpriteInGroup(Sprite.space(height, attached: false), xOffset, 0),
-      );
-      if (attached) {
-        sprites.add(
-          SpriteInGroup(Sprite.space(height, attached: true), xOffset, 2),
-        );
+  List<Label> get labels {
+    List<Label> labels = [];
+    for (var s in sprites) {
+      while (labels.length <= s.index) {
+        labels.add(emptySprite);
       }
+      labels.add(s.sprite.label);
     }
-    assert(
-      sprites.length <= 8,
-      "SpriteGroup can only have up to 8 sprites, got ${sprites.length}",
-    );
+    return labels;
   }
 
-  SpriteGroup.blank(
+  SpriteGroup._(
+    Sprite Function(int, {required bool attached}) spriteFactory,
     int width,
     int height, {
-    this.attached = false,
-    Mutability mutability = Mutability.mutable,
+    required int baseIndex,
+    required this.attached,
+    required bool sameParity,
   }) {
+    if (attached && baseIndex & 0x1 != 0) {
+      throw ArgumentError(
+        "Base index for attached sprites must be even, got $baseIndex",
+      );
+    }
+    int index = baseIndex;
     for (int xOffset = 0; xOffset < width; xOffset += 64) {
       sprites.add(
         SpriteInGroup(
-          Sprite.blank(height, attached: false, mutability: mutability),
+          spriteFactory(height, attached: false),
+          index,
           xOffset,
           0,
         ),
@@ -182,16 +185,50 @@ class SpriteGroup {
       if (attached) {
         sprites.add(
           SpriteInGroup(
-            Sprite.blank(height, attached: true, mutability: mutability),
+            spriteFactory(height, attached: true),
+            index + 1,
             xOffset,
             2,
           ),
         );
       }
+      index += attached || sameParity ? 2 : 1;
     }
-    assert(
-      sprites.length <= 8,
-      "SpriteGroup can only have up to 8 sprites, got ${sprites.length}",
+  }
+
+  factory SpriteGroup.space(
+    int width,
+    int height, {
+    int baseIndex = 0,
+    bool attached = false,
+    bool sameParity = false,
+  }) {
+    return SpriteGroup._(
+      Sprite.space,
+      width,
+      height,
+      baseIndex: baseIndex,
+      attached: attached,
+      sameParity: sameParity,
+    );
+  }
+
+  factory SpriteGroup.blank(
+    int width,
+    int height, {
+    int baseIndex = 0,
+    bool attached = false,
+    bool sameParity = false,
+    Mutability mutability = Mutability.mutable,
+  }) {
+    return SpriteGroup._(
+      (int height, {required bool attached}) =>
+          Sprite.blank(height, attached: attached, mutability: mutability),
+      width,
+      height,
+      baseIndex: baseIndex,
+      attached: attached,
+      sameParity: sameParity,
     );
   }
 
@@ -199,37 +236,69 @@ class SpriteGroup {
     int width,
     int height,
     int Function(int x, int y) generator, {
+    int baseIndex = 0,
     bool attached = false,
+    bool sameParity = false,
     Mutability mutability = Mutability.mutable,
   }) {
     return SpriteGroup.blank(
       width,
       height,
+      baseIndex: baseIndex,
       attached: attached,
+      sameParity: sameParity,
       mutability: mutability,
     )..fill(generator);
   }
 
   factory SpriteGroup.fromBitmap(
     Bitmap bitmap, {
+    int baseIndex = 0,
     bool attached = false,
+    bool sameParity = false,
     Mutability mutability = Mutability.mutable,
   }) {
     return SpriteGroup.generate(
       bitmap.width,
       bitmap.height,
       bitmap.getPixel,
+      baseIndex: baseIndex,
       attached: attached,
+      sameParity: sameParity,
       mutability: mutability,
     );
   }
 
-  factory SpriteGroup.fromIlbm(IlbmImage image) {
-    return SpriteGroup.fromBitmap(Bitmap.fromIlbm(image));
+  factory SpriteGroup.fromIlbm(
+    IlbmImage image, {
+    int baseIndex = 0,
+    bool attached = false,
+    bool sameParity = false,
+    Mutability mutability = Mutability.mutable,
+  }) {
+    return SpriteGroup.fromBitmap(
+      Bitmap.fromIlbm(image),
+      baseIndex: baseIndex,
+      attached: attached,
+      sameParity: sameParity,
+      mutability: mutability,
+    );
   }
 
-  factory SpriteGroup.fromFile(String path) {
-    return SpriteGroup.fromIlbm(IlbmImage.fromFile(path));
+  factory SpriteGroup.fromFile(
+    String path, {
+    int baseIndex = 0,
+    bool attached = false,
+    bool sameParity = false,
+    Mutability mutability = Mutability.mutable,
+  }) {
+    return SpriteGroup.fromIlbm(
+      IlbmImage.fromFile(path),
+      baseIndex: baseIndex,
+      attached: attached,
+      sameParity: sameParity,
+      mutability: mutability,
+    );
   }
 
   void fill(int Function(int x, int y) generator) {
@@ -295,13 +364,20 @@ class SpriteGroup {
       "Palette indices for unattached sprites must be between 1 and 3",
     );
     var colors = SplayTreeMap<int, Color>();
-    for (int i = 0; i < sprites.length; i++) {
+    for (var sprite in sprites) {
+      int index = sprite.index;
+      int offset = index.isEven ? evenOffset : oddOffset;
+      int spriteOffset = (index & 0x6) << 1;
       for (var color in spritePalette.colors.entries) {
-        int offset = i.isEven ? evenOffset : oddOffset;
-        int spriteOffset = (i & 0x6) << 1;
         colors[offset + spriteOffset + color.key] = color.value;
       }
     }
     return Palette(colors);
   }
 }
+
+Label emptySprite = Data.blank(
+  16,
+  alignment: 3,
+  mutability: Mutability.immutable,
+).label;
