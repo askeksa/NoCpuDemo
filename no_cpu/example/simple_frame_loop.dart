@@ -16,7 +16,14 @@ main() {
   );
   print(bitmap);
 
-  var sprite = Sprite.generate(50, (x, y) => (x + y) ~/ 5);
+  var sprite = SpriteGroup.generate(70, 50, (x, y) => (x + y) ~/ 5);
+  var sprite2 = SpriteGroup.generate(
+    180,
+    40,
+    (x, y) => (x + y) ~/ 11,
+    attached: true,
+    parent: sprite,
+  );
 
   Copper sub = Copper(origin: "Subroutine");
   sub.wait(v: 80, h: 7);
@@ -32,7 +39,7 @@ main() {
     var display = Display()
       ..setBitmap(bitmap)
       ..alignment = i % 3 + 1
-      ..sprites = [sprite.label]
+      ..sprites = sprite.labels
       ..priority = 4
       ..spriteColorOffset = 16;
     frame >> display;
@@ -47,7 +54,8 @@ main() {
     frame >> (blit >> WaitBlit());
     frame.move(COLOR00, 0x005, label: color);
 
-    frame >> sprite.updatePosition(v: 200 + i * 4, h: 800 + i * 37);
+    frame >> sprite.updatePosition(v: 100 + i, h: 800 + i * 3).joined;
+    frame >> sprite2.updatePosition(v: 200 + i, h: 900 - i * 13).joined;
 
     frame.call(sub);
     frame | (c) => c.wait(v: 100, h: 7);

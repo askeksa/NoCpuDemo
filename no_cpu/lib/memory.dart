@@ -649,7 +649,7 @@ final class Data extends Block with DataContainer {
 /// Uninitialized memory block.
 final class Space extends Block {
   @override
-  final int size;
+  int size;
 
   Space(this.size, {super.alignment, super.singlePage, super.origin});
 

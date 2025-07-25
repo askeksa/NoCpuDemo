@@ -9,14 +9,13 @@ import 'bitmap.dart';
 import 'copper.dart';
 import 'custom.dart';
 import 'memory.dart';
-import 'sprites.dart' show emptySprite;
 
 class Display implements CopperComponent {
   // Bitplane pointers.
   List<Label> bitplanes = [];
 
   // Sprite pointers.
-  List<Label> sprites = [];
+  List<Label?> sprites = [];
 
   // Distance in bytes from the beginning of one row to the next.
   int? oddStride, evenStride;
@@ -157,14 +156,22 @@ class Display implements CopperComponent {
 }
 
 class SpritePointers implements CopperComponent {
-  List<Label> sprites;
+  List<Label?> sprites;
 
   SpritePointers(this.sprites);
 
   @override
   void addToCopper(Copper copper) {
+    late Label emptySprite = Data.blank(
+      16,
+      alignment: 3,
+      mutability: Mutability.immutable,
+    ).label;
     for (int i = 0; i < 8; i++) {
-      copper.ptr(SPRxPT[i], i < sprites.length ? sprites[i] : emptySprite);
+      copper.ptr(
+        SPRxPT[i],
+        i < sprites.length ? sprites[i] ?? emptySprite : emptySprite,
+      );
     }
   }
 }

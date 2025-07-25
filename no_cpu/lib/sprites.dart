@@ -31,20 +31,48 @@ class Sprite {
 
   Sprite(this.label, this.height, {this.attached = false});
 
-  Sprite.space(this.height, {this.attached = false}) {
-    label = Space((height + 2) * 16, alignment: 3).label;
+  Sprite.space(this.height, {this.attached = false, Sprite? parent}) {
+    if (parent != null) {
+      var parentBlock = parent.label.block;
+      if (parentBlock is! Space) {
+        throw ArgumentError(
+          "Parent of an uninitialized sprite must be uninitialized",
+        );
+      }
+      label = parent.label + (parent.height + 1) * 16;
+      parentBlock.size += (height + 1) * 16;
+    } else {
+      label = Space((height + 2) * 16, alignment: 3).label;
+    }
   }
 
   Sprite.blank(
     this.height, {
     this.attached = false,
     Mutability mutability = Mutability.mutable,
+    Sprite? parent,
   }) {
-    label = Data.blank(
-      (height + 2) * 16,
-      alignment: 3,
-      mutability: mutability,
-    ).label;
+    if (parent != null) {
+      var parentBlock = parent.label.block;
+      if (parentBlock is! Data) {
+        throw ArgumentError(
+          "Parent of an initialized sprite must be initialized",
+        );
+      }
+      if (parentBlock.mutability != mutability) {
+        throw ArgumentError(
+          "Mutability of sprite does not match parent mutability",
+        );
+      }
+      label = parent.label + (parent.height + 1) * 16;
+      parentBlock.addSpace((height + 1) * 16);
+    } else {
+      label = Data.blank(
+        (height + 2) * 16,
+        alignment: 3,
+        mutability: mutability,
+      ).label;
+    }
   }
 
   factory Sprite.generate(
@@ -52,11 +80,13 @@ class Sprite {
     int Function(int x, int y) generator, {
     bool attached = false,
     Mutability mutability = Mutability.mutable,
+    Sprite? parent,
   }) {
     var sprite = Sprite.blank(
       height,
       attached: attached,
       mutability: mutability,
+      parent: parent,
     );
     return sprite..fill(generator);
   }
@@ -65,21 +95,43 @@ class Sprite {
     Bitmap bitmap, {
     bool attached = false,
     Mutability mutability = Mutability.mutable,
+    Sprite? parent,
   }) {
     return Sprite.generate(
       bitmap.height,
       bitmap.getPixel,
       attached: attached,
       mutability: mutability,
+      parent: parent,
     );
   }
 
-  factory Sprite.fromIlbm(IlbmImage image) {
-    return Sprite.fromBitmap(Bitmap.fromIlbm(image));
+  factory Sprite.fromIlbm(
+    IlbmImage image, {
+    bool attached = false,
+    Mutability mutability = Mutability.mutable,
+    Sprite? parent,
+  }) {
+    return Sprite.fromBitmap(
+      Bitmap.fromIlbm(image),
+      attached: attached,
+      mutability: mutability,
+      parent: parent,
+    );
   }
 
-  factory Sprite.fromFile(String path) {
-    return Sprite.fromIlbm(IlbmImage.fromFile(path));
+  factory Sprite.fromFile(
+    String path, {
+    bool attached = false,
+    Mutability mutability = Mutability.mutable,
+    Sprite? parent,
+  }) {
+    return Sprite.fromIlbm(
+      IlbmImage.fromFile(path),
+      attached: attached,
+      mutability: mutability,
+      parent: parent,
+    );
   }
 
   void fill(int Function(int x, int y) generator) {
@@ -145,38 +197,54 @@ class SpriteInGroup {
 }
 
 class SpriteGroup {
+  final int width;
   final List<SpriteInGroup> sprites = [];
   final bool attached;
+  final SpriteGroup? parent;
+  SpriteGroup? child;
 
-  List<Label> get labels {
-    List<Label> labels = [];
-    for (var s in sprites) {
-      while (labels.length <= s.index) {
-        labels.add(emptySprite);
+  List<Label?> get labels {
+    List<Label?> labels = [];
+    for (SpriteGroup? group = this; group != null; group = group.child) {
+      for (var s in group.sprites) {
+        while (labels.length <= s.index) {
+          labels.add(null);
+        }
+        labels[s.index] ??= s.sprite.label;
       }
-      labels.add(s.sprite.label);
     }
     return labels;
   }
 
   SpriteGroup._(
-    Sprite Function(int, {required bool attached}) spriteFactory,
-    int width,
+    Sprite Function(int, {required bool attached, required Sprite? parent})
+    spriteFactory,
+    this.width,
     int height, {
     required int baseIndex,
     required this.attached,
     required bool sameParity,
+    this.parent,
   }) {
     if (attached && baseIndex & 0x1 != 0) {
       throw ArgumentError(
         "Base index for attached sprites must be even, got $baseIndex",
       );
     }
+
+    parent?.child = this;
+    List<Sprite?> parentSprites = List.filled(8, null);
+    for (SpriteGroup? group = parent; group != null; group = group.parent) {
+      for (var s in group.sprites) {
+        parentSprites[s.index] ??= s.sprite;
+      }
+    }
+
     int index = baseIndex;
     for (int xOffset = 0; xOffset < width; xOffset += 64) {
       sprites.add(
         SpriteInGroup(
-          spriteFactory(height, attached: false),
+          spriteFactory(height, attached: false, parent: parentSprites[index]),
           index,
           xOffset,
           0,
@@ -185,7 +253,11 @@ class SpriteGroup {
       if (attached) {
         sprites.add(
           SpriteInGroup(
-            spriteFactory(height, attached: true),
+            spriteFactory(
+              height,
+              attached: true,
+              parent: parentSprites[index + 1],
+            ),
             index + 1,
             xOffset,
             2,
@@ -202,6 +274,7 @@ class SpriteGroup {
     int baseIndex = 0,
     bool attached = false,
     bool sameParity = false,
+    SpriteGroup? parent,
   }) {
     return SpriteGroup._(
       Sprite.space,
@@ -210,6 +283,7 @@ class SpriteGroup {
       baseIndex: baseIndex,
       attached: attached,
       sameParity: sameParity,
+      parent: parent,
     );
   }
 
@@ -220,15 +294,22 @@ class SpriteGroup {
     bool attached = false,
     bool sameParity = false,
     Mutability mutability = Mutability.mutable,
+    SpriteGroup? parent,
   }) {
     return SpriteGroup._(
-      (int height, {required bool attached}) =>
-          Sprite.blank(height, attached: attached, mutability: mutability),
+      (int height, {required bool attached, required Sprite? parent}) =>
+          Sprite.blank(
+            height,
+            attached: attached,
+            mutability: mutability,
+            parent: parent,
+          ),
       width,
       height,
       baseIndex: baseIndex,
       attached: attached,
       sameParity: sameParity,
+      parent: parent,
     );
   }
 
@@ -240,6 +321,7 @@ class SpriteGroup {
     bool attached = false,
     bool sameParity = false,
     Mutability mutability = Mutability.mutable,
+    SpriteGroup? parent,
   }) {
     return SpriteGroup.blank(
       width,
@@ -248,6 +330,7 @@ class SpriteGroup {
       attached: attached,
       sameParity: sameParity,
       mutability: mutability,
+      parent: parent,
     )..fill(generator);
   }
 
@@ -257,6 +340,7 @@ class SpriteGroup {
     bool attached = false,
     bool sameParity = false,
     Mutability mutability = Mutability.mutable,
+    SpriteGroup? parent,
   }) {
     return SpriteGroup.generate(
       bitmap.width,
@@ -266,6 +350,7 @@ class SpriteGroup {
       attached: attached,
       sameParity: sameParity,
       mutability: mutability,
+      parent: parent,
     );
   }
 
@@ -275,6 +360,7 @@ class SpriteGroup {
     bool attached = false,
     bool sameParity = false,
     Mutability mutability = Mutability.mutable,
+    SpriteGroup? parent,
   }) {
     return SpriteGroup.fromBitmap(
       Bitmap.fromIlbm(image),
@@ -282,6 +368,7 @@ class SpriteGroup {
       attached: attached,
       sameParity: sameParity,
       mutability: mutability,
+      parent: parent,
     );
   }
 
@@ -291,6 +378,7 @@ class SpriteGroup {
     bool attached = false,
     bool sameParity = false,
     Mutability mutability = Mutability.mutable,
+    SpriteGroup? parent,
   }) {
     return SpriteGroup.fromIlbm(
       IlbmImage.fromFile(path),
@@ -298,12 +386,17 @@ class SpriteGroup {
       attached: attached,
       sameParity: sameParity,
       mutability: mutability,
+      parent: parent,
     );
   }
 
   void fill(int Function(int x, int y) generator) {
     for (var s in sprites) {
-      s.sprite.fill((x, y) => generator(x + s.xOffset, y) >> s.planeOffset);
+      s.sprite.fill(
+        (x, y) => x + s.xOffset < width
+            ? generator(x + s.xOffset, y) >> s.planeOffset
+            : 0,
+      );
     }
   }
 
@@ -375,9 +468,3 @@ class SpriteGroup {
     return Palette(colors);
   }
 }
-
-Label emptySprite = Data.blank(
-  16,
-  alignment: 3,
-  mutability: Mutability.immutable,
-).label;
