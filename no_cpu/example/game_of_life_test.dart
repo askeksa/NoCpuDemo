@@ -28,8 +28,8 @@ class GameOfLifeTest extends DemoBase {
 
     var blits = gameOfLife.step(bitmap);
     F(0, 0) - 1 << display << palette;
-    F(0, 0, 0) << (blits.sublist(13) + blits.sublist(0, 9)).joined;
-    F(0, 0, 1) << blits.sublist(9, 13).joined |
+    F(0, 0, 0) << (blits.sublist(13) + blits.sublist(0, 9));
+    F(0, 0, 1) << blits.sublist(9, 13) |
         (i, c) {
           c.waitBlit();
           c.move(BPLCON3, 0X0000);

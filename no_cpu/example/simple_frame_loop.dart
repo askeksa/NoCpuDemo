@@ -54,8 +54,8 @@ main() {
     frame >> (blit >> WaitBlit());
     frame.move(COLOR00, 0x005, label: color);
 
-    frame >> sprite.updatePosition(v: 100 + i, h: 800 + i * 3).joined;
-    frame >> sprite2.updatePosition(v: 200 + i, h: 900 - i * 13).joined;
+    frame >> sprite.updatePosition(v: 100 + i, h: 800 + i * 3);
+    frame >> sprite2.updatePosition(v: 200 + i, h: 900 - i * 13);
 
     frame.call(sub);
     frame | (c) => c.wait(v: 100, h: 7);

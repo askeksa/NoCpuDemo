@@ -25,7 +25,7 @@ class GameOfLife {
       assert(xmargin >= 2),
       assert(ymargin >= 0);
 
-  List<Blit> step(Bitmap t) {
+  BlitList step(Bitmap t) {
     Blit b(
       Bitmap a,
       Bitmap b,
@@ -81,7 +81,7 @@ class GameOfLife {
         ..descending = descending;
     }
 
-    return [
+    return BlitList([
       // Singles, with wrap
       b(t, t, t, s, 0, 0, C1 | C3, rw: 2, sy: 1, y: -1, h: 1),
       b(t, t, t, s, 0, 0, C1 | C3, rw: 2, sy: 1, y: 0),
@@ -121,6 +121,6 @@ class GameOfLife {
         Blit()
           ..aSetBitplane(t, 0, y: 0, h: ymargin)
           ..dSetBitplane(t, 0, y: height - ymargin, h: ymargin),
-    ];
+    ]);
   }
 }

@@ -1,3 +1,5 @@
+import 'package:collection/collection.dart';
+
 import 'copper.dart';
 import 'custom.dart';
 import 'memory.dart';
@@ -181,5 +183,28 @@ class WaitBlit implements CopperComponent {
   @override
   void addToCopper(Copper copper) {
     copper.waitBlit();
+  }
+}
+
+/// A list of [Blit]s that is itself a [CopperComponent].
+class BlitList extends DelegatingList<Blit> implements CopperComponent {
+  BlitList(super.base);
+
+  @override
+  BlitList sublist(int start, [int? end]) {
+    return BlitList(super.sublist(start, end));
+  }
+
+  @override
+  BlitList operator +(List<Blit> other) {
+    return BlitList(super + other);
+  }
+
+  @override
+  void addToCopper(Copper copper) {
+    // TODO: Omit redundant register writes.
+    for (var blit in this) {
+      blit.addToCopper(copper);
+    }
   }
 }

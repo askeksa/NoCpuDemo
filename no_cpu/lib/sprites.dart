@@ -406,14 +406,14 @@ class SpriteGroup {
     }
   }
 
-  List<Blit> updatePosition({required int v, int h = 0x200}) {
-    return [
+  BlitList updatePosition({required int v, int h = 0x200}) {
+    return BlitList([
       for (var s in sprites)
         s.sprite.updatePosition(v: v, h: h + s.xOffset * 4),
-    ];
+    ]);
   }
 
-  List<Blit> blit(
+  BlitList blit(
     int plane, {
     Bitmap? aBitmap,
     Bitmap? bBitmap,
@@ -423,7 +423,7 @@ class SpriteGroup {
     int x = 0,
     int y = 0,
   }) {
-    return [
+    return BlitList([
       for (var s in sprites)
         if (plane >= s.planeOffset && plane < s.planeOffset + 2)
           s.sprite.blit(
@@ -436,7 +436,7 @@ class SpriteGroup {
             x: x + s.xOffset,
             y: y,
           ),
-    ];
+    ]);
   }
 
   Palette palette(Palette spritePalette, [int evenOffset = 0, int? oddOffset]) {
