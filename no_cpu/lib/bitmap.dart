@@ -1,3 +1,4 @@
+import 'dart:io';
 import 'dart:typed_data';
 
 import 'iff.dart';
@@ -23,6 +24,17 @@ class ChunkyPixels {
       }
     }
     return pixels;
+  }
+
+  factory ChunkyPixels.fromFile(String filePath, int width, int height) {
+    final file = File(filePath);
+    final bytes = file.readAsBytesSync();
+
+    assert(bytes.length == width * height,
+        "Invalid file size for ChunkyPixels: ${bytes.length}, expected ${width * height}");
+
+    return ChunkyPixels(width, height)
+      ..pixels.setAll(0, bytes);
   }
 
   int getPixel(int x, int y) => pixels[y * width + x];
