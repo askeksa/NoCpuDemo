@@ -272,6 +272,18 @@ class Bitmap {
     );
   }
 
+  Bitmap crop({int x = 0, int y = 0, int? w, int? h, int pad = 0}) {
+    w ??= width - x;
+    h ??= height - y;
+    return Bitmap.generate(w, h, (px, py) {
+      px += x;
+      py += y;
+      return px >= 0 && px < width && py >= 0 && py < height
+          ? getPixel(px, py)
+          : pad;
+    });
+  }
+
   @override
   String toString() =>
       "Bitmap: $width x $height x $depth"
