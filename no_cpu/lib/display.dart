@@ -32,6 +32,9 @@ class Display implements CopperComponent {
   // Bitplane vertical scroll in rows.
   int oddVerticalScroll = 0, evenVerticalScroll = 0;
 
+  // Whether the playfield is flipped vertically (negative modulo).
+  bool oddFlip = false, evenFlip = false;
+
   // Bitplane alignment, corresponding to the fetch mode.
   int alignment = 3;
 
@@ -43,6 +46,8 @@ class Display implements CopperComponent {
       oddVerticalScroll = evenVerticalScroll = value;
   set spriteColorOffset(int value) =>
       oddSpriteColorOffset = evenSpriteColorOffset = value;
+  set flip(bool value) =>
+      oddFlip = evenFlip = value;
 
   int get byteAlignment => 1 << alignment;
   int get depth => bitplanes.length;
@@ -77,7 +82,9 @@ class Display implements CopperComponent {
       int horizontalScroll = i & 1 == 0
           ? evenHorizontalScroll
           : oddHorizontalScroll;
-      int verticalScroll = i & 1 == 0 ? evenVerticalScroll : oddVerticalScroll;
+      int verticalScroll =  i & 1 == 0 ?
+        (evenFlip ? bitmap.height - evenVerticalScroll : evenVerticalScroll) :
+        (oddFlip ? bitmap.height - oddVerticalScroll : oddVerticalScroll);
       return bitmap.bitplanes +
           plane * bitmap.planeStride +
           verticalScroll * bitmap.rowStride +
@@ -133,8 +140,8 @@ class Display implements CopperComponent {
     copper.move(BPLCON2, 0x0200 | evenPriority << 3 | oddPriority);
     // BPLCON3 is written in palette.
     copper.move(BPLCON4, evenSpriteColorOffset | oddSpriteColorOffset >> 4);
-    copper.move(BPL1MOD, oddStride - bytesPerRow - moduloAdjust);
-    copper.move(BPL2MOD, evenStride - bytesPerRow - moduloAdjust);
+    copper.move(BPL1MOD, evenStride - bytesPerRow - moduloAdjust - (evenFlip ? evenStride * 2 : 0));
+    copper.move(BPL2MOD, oddStride - bytesPerRow - moduloAdjust - (oddFlip ? oddStride * 2 : 0));
     copper.move(FMODE, 0x000C | 0x3 >> (3 - alignment));
     for (int i = 0; i < depth; i++) {
       assert(bitplanes[i].isAlignedTo(alignment));
