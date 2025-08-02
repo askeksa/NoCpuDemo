@@ -103,6 +103,7 @@ class MusicDemoBase extends DemoBase {
 
   MusicDemoBase(this.music)
     : super(music.frames.length, loopFrame: music.restart) {
+    music.optimize();
     for (int i = 0; i < frames.length; i++) {
       frames[i] >> music.frames[i];
     }

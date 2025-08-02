@@ -22,6 +22,49 @@ class Music {
     }
     return time;
   }
+
+  void optimize() {
+    int nchannels = frames[0].channels.length;
+
+    for (var channel = 0; channel < nchannels; channel++) {
+      int lastPeriod = 0;
+      int lastVolume = 0;
+      Instrument? lastInstrument;
+
+      for (var (i, frame) in frames.indexed) {
+        var frameChannel = frame.channels[channel];
+        var trigger = frameChannel.trigger;
+
+        if (trigger != null) {
+          lastInstrument = trigger.instrument;
+        }
+
+        if (frameChannel.volume != null && frameChannel.volume == 0) {
+          lastInstrument = null;
+        }
+
+        if (frameChannel.period != null) {
+          if (frameChannel.period != lastPeriod) {
+            lastPeriod = frameChannel.period!;
+          } else {
+            frameChannel.period = null; // Keep the current period.
+          }
+        }
+
+        if (frameChannel.volume != null) {
+          if (frameChannel.volume != lastVolume) {
+            lastVolume = frameChannel.volume!;
+          } else {
+            frameChannel.volume = null; // Keep the current volume.
+          }
+        }
+
+        if (lastInstrument != null) {
+          lastInstrument.data.useInFrame(i);
+        }
+      }
+    }
+  }
 }
 
 class Instrument {
