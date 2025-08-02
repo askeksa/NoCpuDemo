@@ -49,7 +49,7 @@ class CheckerboardFrame implements CopperComponent {
 
   @override
   void addToCopper(Copper copper) {
-    copper << display;
+    copper >> display;
     var polarities = FreeLabel.immutable("polarities");
 
     for (int l = 0; l < layers.length; l++) {

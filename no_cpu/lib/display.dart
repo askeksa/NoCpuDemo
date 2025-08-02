@@ -46,8 +46,7 @@ class Display implements CopperComponent {
       oddVerticalScroll = evenVerticalScroll = value;
   set spriteColorOffset(int value) =>
       oddSpriteColorOffset = evenSpriteColorOffset = value;
-  set flip(bool value) =>
-      oddFlip = evenFlip = value;
+  set flip(bool value) => oddFlip = evenFlip = value;
 
   int get byteAlignment => 1 << alignment;
   int get depth => bitplanes.length;
@@ -82,9 +81,9 @@ class Display implements CopperComponent {
       int horizontalScroll = i & 1 == 0
           ? evenHorizontalScroll
           : oddHorizontalScroll;
-      int verticalScroll =  i & 1 == 0 ?
-        (evenFlip ? bitmap.height - evenVerticalScroll : evenVerticalScroll) :
-        (oddFlip ? bitmap.height - oddVerticalScroll : oddVerticalScroll);
+      int verticalScroll = i & 1 == 0
+          ? (evenFlip ? bitmap.height - evenVerticalScroll : evenVerticalScroll)
+          : (oddFlip ? bitmap.height - oddVerticalScroll : oddVerticalScroll);
       return bitmap.bitplanes +
           plane * bitmap.planeStride +
           verticalScroll * bitmap.rowStride +
@@ -129,26 +128,51 @@ class Display implements CopperComponent {
     assert(oddSpriteColorOffset & ~0xF0 == 0);
     assert(evenSpriteColorOffset & ~0xF0 == 0);
 
-    copper.move(DDFSTRT, ddfStart);
-    copper.move(DDFSTOP, ddfStop);
-    copper.move(BPLCON0, 0x0201 | (depth & 0x7) << 12 | (depth & 0x8) << 1);
     copper.move(
       BPLCON1,
       _swizzleHorizontalScroll(evenHorizontalScroll) |
           (_swizzleHorizontalScroll(oddHorizontalScroll) << 4),
     );
-    copper.move(BPLCON2, 0x0200 | evenPriority << 3 | oddPriority);
-    // BPLCON3 is written in palette.
-    copper.move(BPLCON4, evenSpriteColorOffset | oddSpriteColorOffset >> 4);
-    copper.move(BPL1MOD, evenStride - bytesPerRow - moduloAdjust - (evenFlip ? evenStride * 2 : 0));
-    copper.move(BPL2MOD, oddStride - bytesPerRow - moduloAdjust - (oddFlip ? oddStride * 2 : 0));
-    copper.move(FMODE, 0x000C | 0x3 >> (3 - alignment));
-    for (int i = 0; i < depth; i++) {
-      assert(bitplanes[i].isAlignedTo(alignment));
-      copper.ptr(BPLxPT[i], bitplanes[i]);
-    }
 
-    copper << SpritePointers(sprites);
+    copper ^
+        (copper) {
+          for (int i = 0; i < depth; i++) {
+            assert(bitplanes[i].isAlignedTo(alignment));
+            copper.ptr(BPLxPT[i], bitplanes[i]);
+          }
+          copper ^
+              (copper) {
+                copper.move(DDFSTRT, ddfStart);
+                copper.move(DDFSTOP, ddfStop);
+                copper.move(
+                  BPLCON0,
+                  0x0201 | (depth & 0x7) << 12 | (depth & 0x8) << 1,
+                );
+                copper.move(BPLCON2, 0x0200 | evenPriority << 3 | oddPriority);
+                // BPLCON3 is written in palette.
+                copper.move(
+                  BPLCON4,
+                  evenSpriteColorOffset | oddSpriteColorOffset >> 4,
+                );
+                copper.move(
+                  BPL1MOD,
+                  evenStride -
+                      bytesPerRow -
+                      moduloAdjust -
+                      (evenFlip ? evenStride * 2 : 0),
+                );
+                copper.move(
+                  BPL2MOD,
+                  oddStride -
+                      bytesPerRow -
+                      moduloAdjust -
+                      (oddFlip ? oddStride * 2 : 0),
+                );
+                copper.move(FMODE, 0x000C | 0x3 >> (3 - alignment));
+
+                copper >> SpritePointers(sprites);
+              };
+        };
   }
 
   int _swizzleHorizontalScroll(int scroll) {
