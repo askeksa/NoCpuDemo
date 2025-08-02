@@ -153,8 +153,7 @@ class Display implements CopperComponent {
 
   int _swizzleHorizontalScroll(int scroll) {
     scroll &= _pixelScrollMask;
-
-    if (scroll != 0) scroll = _pixelScrollMask - scroll;
+    scroll = 1 + _pixelScrollMask - scroll;
 
     return ((scroll & 0xC0) << 4) |
         ((scroll & 0x3C) >> 2) |
