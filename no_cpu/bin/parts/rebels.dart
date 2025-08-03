@@ -9,9 +9,9 @@ import '../effects/transition.dart';
 
 mixin Rebels on NoCpuDemoBase {
   late IlbmImage alice = IlbmImage.fromFile(
-    "$assetsPath/!ALICE CYCLE Done3.iff",
+    "$assetsPath/!ALICE CYCLE Done4.iff",
   );
-  late IlbmImage lisa = IlbmImage.fromFile("$assetsPath/!LISA CYCLE DONE.iff");
+  late IlbmImage lisa = IlbmImage.fromFile("$assetsPath/!LISA CYCLE done2.iff");
   late IlbmImage paula = IlbmImage.fromFile(
     "$assetsPath/!PAULA CYCLE DONE.iff",
   );
@@ -23,7 +23,7 @@ mixin Rebels on NoCpuDemoBase {
     "$assetsPath/!LISA WORDCLOUDS Done.iff",
   );
   late IlbmImage paulaWordImage = IlbmImage.fromFile(
-    "$assetsPath/!PAULA WORDCLOUD DONE.iff",
+    "$assetsPath/!PAULA WORDCLOUD DONE2.iff",
   );
 
   late List<(int, int, SpriteGroup, Palette)> aliceWords = getWords(
@@ -86,7 +86,7 @@ mixin Rebels on NoCpuDemoBase {
         parent: parents[parity],
       );
       parents[parity] = sprite;
-      words.add((x, y, sprite, sprite.palette(pal)));
+      words.add((x, y, sprite, sprite.palette(pal, 224, 240)));
     }
 
     return words;
@@ -105,9 +105,19 @@ mixin Rebels on NoCpuDemoBase {
   void displayWords(
     Copper copper,
     List<(int, int, SpriteGroup, Palette)> words,
+    List<(int?, int)> offsets,
   ) {
+    for (var (i, word) in words.indexed) {
+      var (ox, oy) = offsets[i];
+      copper <<
+          word.$3.updatePosition(
+            v: 82 + word.$2 + oy,
+            h: ox != null ? 0x200 + (word.$1 + ox) * 4 : 0x700,
+          );
+    }
     for (var word in words) {
-      copper << word.$3.updatePosition(v: 82 + word.$2, h: 0x200 + word.$1 * 4);
+      copper.wait(v: 82 + word.$2 - 1);
+      copper << word.$4;
     }
   }
 
@@ -126,6 +136,8 @@ mixin Rebels on NoCpuDemoBase {
       Color bg,
       int dir,
       bool reverse,
+      int rate,
+      List<(int?, int)> Function(int) offsets,
     ) {
       // Slide girl in
       var padded = Bitmap.space(960, 180, 8, interleaved: true);
@@ -160,8 +172,8 @@ mixin Rebels on NoCpuDemoBase {
       for (var range in image.colorRanges) {
         F(p, 0) - (p + 2, 0, -61) ^
             (i, f) {
-              if (i % 3 == 0) {
-                int n = i ~/ 3;
+              if (i % rate == 0) {
+                int n = i ~/ rate;
                 var pal = range.step(n);
                 if (n < range.high - range.low + 1) {
                   pal = Palette.generateRange(
@@ -176,14 +188,15 @@ mixin Rebels on NoCpuDemoBase {
       }
 
       // Word cloud
-      F(p, 0) - (p + 1, 32, -1) >>
+      F(p, 0) - (p + 1, 32, -2) >>
               (Display()
                 ..setBitmap(image.bitmap)
                 ..sprites = wordsLabels(words)
                 ..evenSpriteColorOffset = 224
                 ..oddSpriteColorOffset = 240
                 ..priority = 4) ^
-          (i, f) => displayWords(f, words);
+          (i, f) => displayWords(f, words, offsets(i));
+      F(p + 1, 32, -1) >> (Display()..setBitmap(image.bitmap));
 
       // Wipe
       F(p + 1, 32) >> spritePal(bg);
@@ -201,9 +214,33 @@ mixin Rebels on NoCpuDemoBase {
           (i, f) => f << trans.run(reverse ? i : 128 - i, inverse: reverse);
     }
 
-    girl(P, alice, aliceWords, lisaBg, -1, false);
-    girl(P + 2, lisa, lisaWords, paulaBg, 1, true);
-    girl(P + 4, paula, paulaWords, finalBg, -1, false);
+    List<(int?, int)> aliceOffsets = List.filled(5, (null, 0));
+    List<(int?, int)> aliceOffsetsFun(int t) {
+      var l = aliceOffsets;
+      if (t == 0) l[1] = (0, 0);
+      if (t == 64 * 6) l[1] = (null, 0);
+      return l;
+    }
+
+    List<(int?, int)> lisaOffsets = List.filled(5, (null, 0));
+    List<(int?, int)> lisaOffsetsFun(int t) {
+      var l = lisaOffsets;
+      if (t == 0) l[2] = (0, 0);
+      if (t == 64 * 6) l[2] = (null, 0);
+      return l;
+    }
+
+    List<(int?, int)> paulaOffsets = List.filled(5, (null, 0));
+    List<(int?, int)> paulaOffsetsFun(int t) {
+      var l = paulaOffsets;
+      if (t == 0) l[1] = (0, 0);
+      if (t == 64 * 6) l[1] = (null, 0);
+      return l;
+    }
+
+    girl(P, alice, aliceWords, lisaBg, -1, false, 2, aliceOffsetsFun);
+    girl(P + 2, lisa, lisaWords, paulaBg, 1, true, 1, lisaOffsetsFun);
+    girl(P + 4, paula, paulaWords, finalBg, -1, false, 3, paulaOffsetsFun);
 
     F(P + 6, 0, -1) >> Display();
   }

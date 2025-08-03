@@ -6,8 +6,8 @@ import 'parts/bully.dart';
 import 'parts/rebels.dart';
 
 class NoCpuDemoBase extends MusicDemoBase {
-  NoCpuDemoBase() : super.withProtrackerFile("$assetsPath/keines cpu1.5.mod") {
-    startFrame = music.getTimestamp(8, 32);
+  NoCpuDemoBase() : super.withProtrackerFile("$assetsPath/keines cpu1.6.mod") {
+    startFrame = music.getTimestamp(0, 0);
   }
 }
 
