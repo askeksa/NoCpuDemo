@@ -35,6 +35,7 @@ class NoCpuDemo extends NoCpuDemoBase with Opening, Bully, Rebels {
   NoCpuDemo() : super() {
     ratingCard(0);
     bully(6, Color.rgb12(0x000));
+    F(8, 0) << Palette.fromMap({0: aliceBg});
     rebels(9);
   }
 }

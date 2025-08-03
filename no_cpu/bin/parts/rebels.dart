@@ -239,6 +239,6 @@ mixin Rebels on NoCpuDemoBase {
     girl(P + 2, lisa, lisaWords, paulaBg, 1, true, 1, lisaOffsetsFun);
     girl(P + 4, paula, paulaWords, finalBg, -1, false, 3, paulaOffsetsFun);
 
-    F(P + 6, 0, -1) >> Display();
+    F(P + 6, 0, -60) >> Display() << Palette.fromMap({0: finalBg});
   }
 }

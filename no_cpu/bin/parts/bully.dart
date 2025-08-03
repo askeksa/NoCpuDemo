@@ -28,6 +28,6 @@ mixin Bully on NoCpuDemoBase {
 
     transition(trans, (P, 0));
 
-    F(P + 1, 0, -1) >> Display();
+    F(P + 2, 0, -1) >> Display();
   }
 }
