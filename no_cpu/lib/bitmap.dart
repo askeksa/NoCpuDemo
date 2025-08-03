@@ -30,11 +30,12 @@ class ChunkyPixels {
     final file = File(filePath);
     final bytes = file.readAsBytesSync();
 
-    assert(bytes.length == width * height,
-        "Invalid file size for ChunkyPixels: ${bytes.length}, expected ${width * height}");
+    assert(
+      bytes.length == width * height,
+      "Invalid file size for ChunkyPixels: ${bytes.length}, expected ${width * height}",
+    );
 
-    return ChunkyPixels(width, height)
-      ..pixels.setAll(0, bytes);
+    return ChunkyPixels(width, height)..pixels.setAll(0, bytes);
   }
 
   int getPixel(int x, int y) => pixels[y * width + x];
@@ -282,6 +283,33 @@ class Bitmap {
           ? getPixel(px, py)
           : pad;
     });
+  }
+
+  (int, int, Bitmap) autocrop([
+    bool Function(int x, int y, int pixel)? included,
+  ]) {
+    included ??= (_, _, p) => p != 0;
+    int minx = height - 1;
+    int maxx = 0;
+    int miny = width - 1;
+    int maxy = 0;
+    for (int y = 0; y < height; y++) {
+      for (int x = 0; x < width; x++) {
+        if (included(x, y, getPixel(x, y))) {
+          if (x < minx) minx = x;
+          if (x > maxx) maxx = x;
+          if (y < miny) miny = y;
+          if (y > maxy) maxy = y;
+        }
+      }
+    }
+    Bitmap image = crop(
+      x: minx,
+      y: miny,
+      w: maxx - minx + 1,
+      h: maxy - miny + 1,
+    );
+    return (minx, miny, image);
   }
 
   @override
