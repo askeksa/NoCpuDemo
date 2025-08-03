@@ -22,14 +22,16 @@ mixin Bully on NoCpuDemoBase {
     F(P, 0) >> (image.palette | spritePalette);
     F(P, 0) >> spriteScreen.updatePosition(v: 82);
 
-    F(P, 0) - (P + 2, 0, -1) >>
+    F(P, 0) - (P + 2, 0, -2) >>
         (Display()
           ..setBitmap(image.bitmap)
           ..sprites = spriteScreen.labels
           ..priority = 4);
+
+    F(P, 0, -1) >> spriteScreen.blit(1);
     F(P, 0) - 127 >> spriteScreen.blit(0, aBitmap: trans.result);
     F(P, 0, -1) - 127 | (i, f) => f << trans.run(i);
 
-    F(P + 2, 0) >> Display();
+    F(P + 1, 0, -1) >> Display();
   }
 }
