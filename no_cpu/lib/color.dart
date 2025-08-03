@@ -61,7 +61,7 @@ extension type Color(int rgb) {
   }
 
   Color interpolate(Color other, double weight) {
-    assert(weight >= 0 && weight <= 1, "Weight must be between 0 and 1");
+    assert(weight >= 0 && weight <= 1, "Weight $weight must be between 0 and 1");
     return Color.clamped(
       (r + (other.r - r) * weight).round(),
       (g + (other.g - g) * weight).round(),
