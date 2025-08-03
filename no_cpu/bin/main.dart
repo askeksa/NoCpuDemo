@@ -1,13 +1,33 @@
 import 'package:no_cpu/no_cpu.dart';
 
 import 'base.dart';
+import 'effects/transition.dart';
 import 'parts/opening.dart';
 import 'parts/bully.dart';
 import 'parts/rebels.dart';
 
 class NoCpuDemoBase extends MusicDemoBase {
+  SpriteGroup spriteScreen = SpriteGroup.space(320, 180);
+
   NoCpuDemoBase() : super.withProtrackerFile("$assetsPath/keines cpu1.6.mod") {
     startFrame = music.getTimestamp(0, 0);
+  }
+
+  void transition(
+    Transition trans,
+    Object f, {
+    int start = 0,
+    int end = 128,
+    bool backward = false,
+    bool inverse = false,
+  }) {
+    int frame = musicFrame(f);
+    frames[frame - 1] >> spriteScreen.blit(1);
+    for (int i = 0; i <= end - start; i++) {
+      frames[frame + i] >> spriteScreen.blit(0, aBitmap: trans.result);
+      frames[frame + i - 1] <<
+          trans.run(backward ? end - i : start + i, inverse: inverse);
+    }
   }
 }
 

@@ -101,6 +101,14 @@ class MusicDemoBase extends DemoBase {
     return music.getTimestamp(position, row);
   }
 
+  int musicFrame(Object f) {
+    return switch (f) {
+      (int p, int r) => getTimestamp(p, r),
+      (int p, int r, int o) => getTimestamp(p, r) + o,
+      _ => throw Exception("Invalid frame specifier: $f"),
+    };
+  }
+
   MusicDemoBase(this.music)
     : super(music.frames.length, loopFrame: music.restart) {
     music.optimize();

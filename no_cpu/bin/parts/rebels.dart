@@ -208,10 +208,7 @@ mixin Rebels on NoCpuDemoBase {
             ..spriteColorOffset = 240
             ..priority = 4);
 
-      F(p + 1, 32, -1) >> spriteScreen.blit(1);
-      F(p + 1, 32) - 128 >> spriteScreen.blit(0, aBitmap: trans.result);
-      F(p + 1, 32, -1) - 128 |
-          (i, f) => f << trans.run(reverse ? i : 128 - i, inverse: reverse);
+      transition(trans, (p + 1, 32), backward: !reverse, inverse: reverse);
     }
 
     List<(int?, int)> aliceOffsets = List.filled(5, (null, 0));
