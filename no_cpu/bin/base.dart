@@ -69,7 +69,12 @@ class DemoBase {
   }
 
   void build() {
-    Memory m = Memory.fromRoots(0x20_0000, roots);
+    Memory m = Memory.fromRoots(
+      0x20_0000,
+      roots,
+      frameCount: frames.length,
+      loopFrame: loopFrame,
+    );
 
     void p(String title) {
       print(

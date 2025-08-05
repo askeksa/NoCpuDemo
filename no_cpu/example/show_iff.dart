@@ -17,6 +17,8 @@ main(List<String> args) {
   copper << image.palette;
 
   // Show first color range if present.
+  int? frameCount;
+  int? loopFrame;
   if (image.colorRanges.isNotEmpty) {
     ColorRange range = image.colorRanges[0];
     print(
@@ -26,11 +28,13 @@ main(List<String> args) {
     );
     int step = max(1, 50 / range.stepsPerSecond).round();
     int count = range.high - range.low + 1;
+    frameCount = step * count;
+    loopFrame = 0;
     List<Copper> frames = List.generate(
-      step * count,
+      frameCount,
       (i) => Copper(isPrimary: true, origin: i)..useInFrame(i),
     );
-    for (int i = 0; i < step * count; i++) {
+    for (int i = 0; i < frameCount; i++) {
       frames[i] << (Display()..setBitmap(image.bitmap));
       if (i % step == 0) {
         frames[i] << range.step(i ~/ step);
@@ -40,7 +44,12 @@ main(List<String> args) {
     copper.ptr(COP1LC, frames[0].label);
   }
 
-  Memory m = Memory.fromRoots(0x20_0000, [copper.data]);
+  Memory m = Memory.fromRoots(
+    0x20_0000,
+    [copper.data],
+    frameCount: frameCount,
+    loopFrame: loopFrame,
+  );
   File(outputFile).writeAsBytesSync(m.build());
 
   if (args.length > 1) {

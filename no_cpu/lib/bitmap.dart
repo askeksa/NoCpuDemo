@@ -106,8 +106,8 @@ class Bitmap {
       sizeInBytes,
       alignment: alignment,
       singlePage: singlePage,
-      origin: this,
       mutability: mutability,
+      origin: this,
     ).label;
   }
 
@@ -314,7 +314,7 @@ class Bitmap {
 
   @override
   String toString() =>
-      "Bitmap: $width x $height x $depth"
+      "Bitmap $width x $height x $depth"
       "${interleaved ? " interleaved" : ""}"
       "${bitplanes.block is Data ? " data" : ""}";
 }

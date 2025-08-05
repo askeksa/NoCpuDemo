@@ -20,7 +20,9 @@ class Checkerboard {
   late Display display = Display()
     ..setBitmap(screen)
     ..stride = 0;
-  late Data colors = Data.blank(4 << layerCount);
+  late Data colors = Data.blank(4 << layerCount, origin: "Checkerboard colors")
+    ..mutability = Mutability.mutable
+    ..alignment = 2;
 
   Checkerboard(this.width, this.height, this.layerCount, this.topline)
     : assert(layerCount >= 1 && layerCount <= 8);

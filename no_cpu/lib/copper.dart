@@ -25,8 +25,8 @@ class Copper {
   Copper({
     int alignment = 2,
     this.isPrimary = false,
-    this.origin,
     Mutability? mutability,
+    this.origin,
   }) : data = Data(
          alignment: alignment,
          singlePage: isPrimary,

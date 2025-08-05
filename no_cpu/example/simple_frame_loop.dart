@@ -90,7 +90,12 @@ main() {
   initialCopper.move(BPLCON3, 0x0000);
   initialCopper.ptr(COP1LC, frames[0].label);
 
-  Memory m = Memory.fromRoots(0x20_0000, [initialCopper.data]);
+  Memory m = Memory.fromRoots(
+    0x20_0000,
+    [initialCopper.data],
+    frameCount: frames.length,
+    loopFrame: 0,
+  );
   File(outputFile).writeAsBytesSync(m.build());
 }
 

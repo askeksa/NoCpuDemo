@@ -42,7 +42,7 @@ class Sprite {
       label = parent.label + (parent.height + 1) * 16;
       parentBlock.size += (height + 1) * 16;
     } else {
-      label = Space((height + 2) * 16, alignment: 3).label;
+      label = Space((height + 2) * 16, alignment: 3, origin: this).label;
     }
   }
 
@@ -71,6 +71,7 @@ class Sprite {
         (height + 2) * 16,
         alignment: 3,
         mutability: mutability,
+        origin: this,
       ).label;
     }
   }
@@ -146,7 +147,10 @@ class Sprite {
 
   Blit updatePosition({required int v, int h = 0x200}) {
     var (posReg, ctlReg) = spriteControlWords(v, h, height, attached);
-    Data data = Data.fromWords([posReg, ctlReg]);
+    Data data = Data.fromWords([
+      posReg,
+      ctlReg,
+    ], origin: "$this position update");
     return Blit()
       ..cPtr = data.label
       ..dPtr = label
@@ -183,6 +187,11 @@ class Sprite {
       blit.minterms = minterms;
     }
     return blit;
+  }
+
+  @override
+  String toString() {
+    return "Sprite $height${attached ? " attached" : ""}";
   }
 }
 

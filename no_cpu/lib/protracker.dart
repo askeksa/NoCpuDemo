@@ -154,10 +154,10 @@ class ProtrackerInstrument extends Instrument {
     int length,
   ) {
     if (length == 0) {
-      return Data.fromBytes([0, 0]);
+      return Data.fromBytes([0, 0], origin: "Empty sample");
     } else {
       file.setPositionSync(samplePosition);
-      return Data.fromBytes(file.readSync(length));
+      return Data.fromBytes(file.readSync(length), origin: "Sample data");
     }
   }
 }

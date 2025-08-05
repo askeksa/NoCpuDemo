@@ -54,7 +54,7 @@ class Transition {
       ..cSetBitplane(temp, 0)
       ..dSetBitplane(result, 0);
 
-    Copper copper = Copper(mutability: Mutability.local);
+    Copper copper = Copper(mutability: Mutability.local, origin: this);
     copper << setcon / {BLTDMOD: modulo};
     copper << pass1 / {BLTCON0: con1};
     copper << pass2 / {BLTCON0: con2};
@@ -72,6 +72,11 @@ class Transition {
   CopperComponent run(int threshold, {bool inverse = false}) {
     assert(threshold >= 0 && threshold <= 128);
     return TransitionRun(this, threshold, inverse);
+  }
+
+  @override
+  String toString() {
+    return "Transition ${pattern.width} x ${pattern.height}";
   }
 }
 
@@ -93,7 +98,7 @@ class TransitionRun implements CopperComponent {
       0x0F00 | minterms1,
       0x0F00 | minterms2,
       0x0F00 | minterms3,
-    ]);
+    ], origin: "Transition minterms");
 
     copper.waitBlit();
     copper.ptr(BLTCPT, data.label);

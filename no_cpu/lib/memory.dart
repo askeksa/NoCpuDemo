@@ -17,12 +17,19 @@ class Memory {
   Iterable<Block> get blocks => [...dataBlocks, ...spaceBlocks];
 
   final int size;
+  int? frameCount;
+  int? loopFrame;
 
   late final int dataSize;
 
-  Memory(this.size);
+  Memory(this.size, {this.frameCount, this.loopFrame});
 
-  factory Memory.fromRoots(int size, Iterable<Block> roots) {
+  factory Memory.fromRoots(
+    int size,
+    Iterable<Block> roots, {
+    int? frameCount,
+    int? loopFrame,
+  }) {
     Set<Block> blocks = {};
     List<Block> worklist = List.from(roots);
     while (worklist.isNotEmpty) {
@@ -32,11 +39,34 @@ class Memory {
       }
     }
 
-    Memory memory = Memory(size);
+    Memory memory = Memory(size, frameCount: frameCount, loopFrame: loopFrame);
     memory.dataBlocks.addAll(blocks.whereType<Data>());
     memory.spaceBlocks.addAll(blocks.whereType<Space>());
 
     return memory;
+  }
+
+  bool _memoryOverlap(Block a, Block b) {
+    if (a.address! >= b.end) return false;
+    if (a.end <= b.address!) return false;
+    return true;
+  }
+
+  bool _timeOverlap(Block a, Block b) {
+    var (aFirst, aLast) = _effectiveTimeRange(a);
+    var (bFirst, bLast) = _effectiveTimeRange(b);
+    if (aLast < bFirst || bLast < aFirst) return false;
+    return true;
+  }
+
+  (int, int) _effectiveTimeRange(Block block) {
+    var first = block.firstFrame!;
+    var last = block.lastFrame!;
+    if (block is Data) first = -1;
+    if (loopFrame != null && first < loopFrame! && last >= loopFrame!) {
+      last = frameCount!;
+    }
+    return (first, last);
   }
 
   void _inferLiveness() {
@@ -148,30 +178,48 @@ class Memory {
   }
 
   void _assignAddresses() {
-    // TODO: Compute time ranges via dependencies to overlap space blocks.
     final List<Block> fixed =
         [...dataBlocks, ...spaceBlocks].where((b) => b.isAllocated).toList()
           ..sort((b1, b2) => b2.address! - b1.address!);
+    List<Block> allocated = [...fixed];
 
+    // Allocate data blocks
+    dataBlocks.sortBy((b) => -b.lastFrame!);
     int nextAddress = 0;
-
-    void allocate(Block block) {
+    for (var block in dataBlocks) {
       if (!block.isAllocated) {
         block._allocateAfter(nextAddress);
         for (Block fixedBlock in fixed) {
-          if (block._overlaps(fixedBlock)) {
+          if (_memoryOverlap(block, fixedBlock)) {
             block._allocateAfter(fixedBlock.end);
           }
         }
         nextAddress = block.end;
+        allocated.add(block);
       }
       if (block.end > size) {
         throw Exception("Block '$block' does not fit in memory");
       }
     }
 
-    dataBlocks.forEach(allocate);
-    spaceBlocks.forEach(allocate);
+    // Allocate space blocks
+    spaceBlocks.sortBy((b) => b.firstFrame! - b.lastFrame!);
+    for (var block in spaceBlocks) {
+      if (!block.isAllocated) {
+        int nextAddress = size;
+        block._allocateBefore(nextAddress);
+        for (Block allocatedBlock in allocated) {
+          if (_memoryOverlap(block, allocatedBlock) &&
+              _timeOverlap(block, allocatedBlock)) {
+            block._allocateBefore(allocatedBlock.address!);
+          }
+        }
+        allocated.add(block);
+      }
+      if (block.address! < 0) {
+        throw Exception("Block '$block' does not fit in memory");
+      }
+    }
 
     dataSize = dataBlocks.map((b) => b.end).max;
   }
@@ -475,12 +523,6 @@ abstract base class Block {
       address = ((end & ~0xFFFF) - size) & ~((1 << alignment) - 1);
     }
   }
-
-  bool _overlaps(Block other) {
-    if (address! >= other.end) return false;
-    if (end <= other.address!) return false;
-    return true;
-  }
 }
 
 /// Memory block containing initialized data.
@@ -498,22 +540,22 @@ final class Data extends Block with DataContainer {
   Data({
     super.alignment,
     super.singlePage,
-    super.origin,
     this.mutability = Mutability.immutable,
+    super.origin,
   });
 
   factory Data.blank(
     int size, {
     int alignment = 1,
     bool singlePage = false,
-    Object? origin,
     Mutability mutability = Mutability.mutable,
+    Object? origin,
   }) {
     return Data(
       alignment: alignment,
       singlePage: singlePage,
-      origin: origin,
       mutability: mutability,
+      origin: origin,
     )..addSpace(size);
   }
 
@@ -521,14 +563,14 @@ final class Data extends Block with DataContainer {
     List<int> bytes, {
     int alignment = 1,
     bool singlePage = false,
-    Object? origin,
     Mutability mutability = Mutability.immutable,
+    Object? origin,
   }) {
     return Data(
       alignment: alignment,
       singlePage: singlePage,
-      origin: origin,
       mutability: mutability,
+      origin: origin,
     )..addBytes(bytes);
   }
 
@@ -536,14 +578,14 @@ final class Data extends Block with DataContainer {
     List<int> words, {
     int alignment = 1,
     bool singlePage = false,
-    Object? origin,
     Mutability mutability = Mutability.immutable,
+    Object? origin,
   }) {
     return Data(
       alignment: alignment,
       singlePage: singlePage,
-      origin: origin,
       mutability: mutability,
+      origin: origin,
     )..addWords(words);
   }
 
@@ -551,14 +593,14 @@ final class Data extends Block with DataContainer {
     List<int> longwords, {
     int alignment = 2,
     bool singlePage = false,
-    Object? origin,
     Mutability mutability = Mutability.immutable,
+    Object? origin,
   }) {
     return Data(
       alignment: alignment,
       singlePage: singlePage,
-      origin: origin,
       mutability: mutability,
+      origin: origin,
     )..addLongwords(longwords);
   }
 

@@ -196,6 +196,7 @@ class SpritePointers implements CopperComponent {
       16,
       alignment: 3,
       mutability: Mutability.immutable,
+      origin: "Empty sprite",
     ).label;
     for (int i = 0; i < 8; i++) {
       copper.ptr(
