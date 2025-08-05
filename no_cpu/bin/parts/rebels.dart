@@ -47,7 +47,6 @@ mixin Rebels on NoCpuDemoBase {
   late Color paulaBg = paula.palette[0];
   late Color finalBg = Color.rgb24(0x000000);
 
-  SpriteGroup spriteScreen = SpriteGroup.space(320, 180);
   Palette spritePal(Color color) =>
       spriteScreen.palette(Palette.fromMap({1: color}), 240);
 
