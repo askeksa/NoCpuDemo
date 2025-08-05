@@ -33,6 +33,12 @@ class InterferenceTest extends DemoBase {
     });
   }
 
+  static Palette _generatePaletteFromList(List<Color> palette) {
+    return _generatePalette((index, _) {
+      return palette[index];});
+  }
+
+
   final _blackPalette = Palette.generateRange(0, 256, (i) => Color.rgb24(0));
 
   final _paletteIndices = List<int>.generate(128, (i) => i).shuffled();
