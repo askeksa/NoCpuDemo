@@ -9,38 +9,69 @@ import 'package:sprintf/sprintf.dart';
 import '../base.dart' show outputFile, assetsPath;
 
 class Interference {
-  final ChunkyPixels _noise1 = ChunkyPixels.fromFile("$assetsPath/bluenoise3.raw", 128, 128);
-  final ChunkyPixels _noise2 = ChunkyPixels.fromFile("$assetsPath/bluenoise1.raw", 128, 128);
-  
-  late Bitmap _bitmap1 = _generateBitmap(4, 320, 180, (int x, int y) {
-      double distance = sqrt(x * x + y * y) + 950;
-      double color = (distance * distance / 165000) + 1000000;
-      return _bluenoiseDither4(_noise1, color - color.floor(), x, y);
-    });
+  final ChunkyPixels _noise1 = ChunkyPixels.fromFile(
+    "$assetsPath/bluenoise3.raw",
+    128,
+    128,
+  );
+  final ChunkyPixels _noise2 = ChunkyPixels.fromFile(
+    "$assetsPath/bluenoise1.raw",
+    128,
+    128,
+  );
 
-  late Bitmap _bitmap2 = _generateBitmap(3, 320, 180, (int x, int y) {
-      double distance = sqrt(x * x + y * y);
-      var color = 500.0 / (distance + 130.0);
-      return _bluenoiseDither3(_noise2, color - color.floor(), x, y);
-    });
+  late final Bitmap _bitmap1 = _generateBitmap(4, 320, 180, (int x, int y) {
+    double distance = sqrt(x * x + y * y) + 950;
+    double color = (distance * distance / 165000) + 1000000;
+    return _bluenoiseDither4(_noise1, color - color.floor(), x, y);
+  });
 
-  static int _bluenoiseDither3(ChunkyPixels noise, double colour, int x, int y) {
+  late final Bitmap _bitmap2 = _generateBitmap(3, 320, 180, (int x, int y) {
+    double distance = sqrt(x * x + y * y);
+    var color = 500.0 / (distance + 130.0);
+    return _bluenoiseDither3(_noise2, color - color.floor(), x, y);
+  });
+
+  static int _bluenoiseDither3(
+    ChunkyPixels noise,
+    double colour,
+    int x,
+    int y,
+  ) {
     int ncolour = (colour * 8 * 16).toInt();
     int n = ncolour >> 4;
     int frac = ncolour & 0xF;
 
-    return (frac >= noise.getPixel(x % noise.width, y % noise.height) & 0xF ? n + 1 : n).toInt() & 7;
+    return (frac >= noise.getPixel(x % noise.width, y % noise.height) & 0xF
+                ? n + 1
+                : n)
+            .toInt() &
+        7;
   }
 
-  static int _bluenoiseDither4(ChunkyPixels noise, double colour, int x, int y) {
+  static int _bluenoiseDither4(
+    ChunkyPixels noise,
+    double colour,
+    int x,
+    int y,
+  ) {
     int ncolour = (colour * 16 * 16).toInt();
     int n = ncolour >> 4;
     int frac = ncolour & 0xF;
 
-    return (frac >= noise.getPixel(x % noise.width, y % noise.height) & 0xF ? n + 1 : n).toInt() & 15;
+    return (frac >= noise.getPixel(x % noise.width, y % noise.height) & 0xF
+                ? n + 1
+                : n)
+            .toInt() &
+        15;
   }
 
-  static Bitmap _generateBitmap(int planes, int w, int h, int Function(int x, int y) generator) {
+  static Bitmap _generateBitmap(
+    int planes,
+    int w,
+    int h,
+    int Function(int x, int y) generator,
+  ) {
     return Bitmap.generate(
       w * 2,
       h * 2,
@@ -59,7 +90,6 @@ class Interference {
     return InterferenceFrame(this, frame);
   }
 }
-
 
 class InterferenceFrame implements CopperComponent {
   final Interference interference;
@@ -86,12 +116,13 @@ class InterferenceFrame implements CopperComponent {
       ..evenVerticalScroll = evenY
       ..evenFlip = flip;
   }
-  
+
   InterferenceFrame(this.interference, this.frame);
 
   @override
   void addToCopper(Copper copper) {
-    var display = _scrollDisplay(frame)..setBitmaps(interference._bitmap1, interference._bitmap2);
+    var display = _scrollDisplay(frame)
+      ..setBitmaps(interference._bitmap1, interference._bitmap2);
     copper >> display;
   }
 }
