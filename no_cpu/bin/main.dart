@@ -5,6 +5,7 @@ import 'effects/transition.dart';
 import 'parts/opening.dart';
 import 'parts/bully.dart';
 import 'parts/rebels.dart';
+import 'parts/check.dart';
 
 class NoCpuDemoBase extends MusicDemoBase {
   SpriteGroup spriteScreen = SpriteGroup.space(320, 180);
@@ -31,12 +32,13 @@ class NoCpuDemoBase extends MusicDemoBase {
   }
 }
 
-class NoCpuDemo extends NoCpuDemoBase with Opening, Bully, Rebels {
+class NoCpuDemo extends NoCpuDemoBase with Opening, Bully, Rebels, Check {
   NoCpuDemo() : super() {
     ratingCard(0);
     bully(6, Color.rgb12(0x000));
     F(8, 0) << Palette.fromMap({0: aliceBg});
     rebels(9);
+    check(15);
   }
 }
 
