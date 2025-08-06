@@ -1,12 +1,8 @@
-import 'dart:io';
 import 'dart:math';
-import 'dart:typed_data' show Uint8List;
 
-import 'package:collection/collection.dart';
 import 'package:no_cpu/no_cpu.dart';
-import 'package:sprintf/sprintf.dart';
 
-import '../base.dart' show outputFile, assetsPath;
+import '../base.dart' show assetsPath;
 
 class Interference {
   final ChunkyPixels _noise1 = ChunkyPixels.fromFile(
@@ -20,13 +16,13 @@ class Interference {
     128,
   );
 
-  late final Bitmap _bitmap1 = _generateBitmap(4, 320, 180, (int x, int y) {
+  late final Bitmap bitmap1 = _generateBitmap(4, 320, 180, (int x, int y) {
     double distance = sqrt(x * x + y * y) + 950;
     double color = (distance * distance / 165000) + 1000000;
     return _bluenoiseDither4(_noise1, color - color.floor(), x, y);
   });
 
-  late final Bitmap _bitmap2 = _generateBitmap(3, 320, 180, (int x, int y) {
+  late final Bitmap bitmap2 = _generateBitmap(3, 320, 180, (int x, int y) {
     double distance = sqrt(x * x + y * y);
     var color = 500.0 / (distance + 130.0);
     return _bluenoiseDither3(_noise2, color - color.floor(), x, y);
@@ -86,43 +82,41 @@ class Interference {
     );
   }
 
-  InterferenceFrame frame(int frame) {
-    return InterferenceFrame(this, frame);
+  InterferenceFrame frame(double evenX, double evenY, double oddX, double oddY, bool flip) {
+    return InterferenceFrame(this, evenX, evenY, oddX, oddY, flip);
   }
 }
 
 class InterferenceFrame implements CopperComponent {
   final Interference interference;
-  final int frame;
+  final double _evenXf;
+  final double _evenYf;
+  final double _oddXf;
+  final double _oddYf;
+  final bool _flip;
 
-  Display _scrollDisplay(int frame) {
-    var evenXf = (sin(frame / 102 + 4.5) + sin(frame / 133)) / 2;
-    var evenYf = (sin(frame / 160 + 0.3) + sin(frame / 131)) / 2;
-    var evenX = (evenXf * 160 * 4 + 160 * 4).toInt();
-    var evenY = (evenYf * 90 + 90).toInt();
+  Display _scrollDisplay() {
+    var evenX = (_evenXf * 160 * 4 + 160 * 4).toInt();
+    var evenY = (_evenYf * 90 + 90).toInt();
 
-    var oddXf = (sin(frame / 175 + 0.2) + sin(frame / 163)) / 2;
-    var oddYf = (sin(frame / 130 + 2.35) + sin(frame / 127)) / 2;
-    var oddX = (oddXf * 160 * 4 + 160 * 4).toInt();
-    var oddY = (oddYf * 90 + 90).toInt();
-
-    bool flip = frame & 1 == 0;
+    var oddX = (_oddXf * 160 * 4 + 160 * 4).toInt();
+    var oddY = (_oddYf * 90 + 90).toInt();
 
     return Display()
       ..oddHorizontalScroll = oddX
       ..oddVerticalScroll = oddY
-      ..oddFlip = flip
+      ..oddFlip = _flip
       ..evenHorizontalScroll = evenX
       ..evenVerticalScroll = evenY
-      ..evenFlip = flip;
+      ..evenFlip = _flip;
   }
 
-  InterferenceFrame(this.interference, this.frame);
+  InterferenceFrame(this.interference, this._evenXf, this._evenYf, this._oddXf, this._oddYf, this._flip);
 
   @override
   void addToCopper(Copper copper) {
-    var display = _scrollDisplay(frame)
-      ..setBitmaps(interference._bitmap1, interference._bitmap2);
+    var display = _scrollDisplay()
+      ..setBitmaps(interference.bitmap1, interference.bitmap2);
     copper >> display;
   }
 }

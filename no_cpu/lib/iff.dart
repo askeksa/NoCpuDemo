@@ -1,6 +1,8 @@
 import 'dart:io';
 import 'dart:typed_data';
 
+import 'package:no_cpu/memory.dart';
+
 import 'bitmap.dart';
 import 'color.dart';
 
@@ -61,10 +63,31 @@ class IlbmImage {
     return _readIlbm(filePath);
   }
 
+  factory IlbmImage.fromBitmap(Bitmap bitmap, Palette palette) {
+    return IlbmImage(
+      bitmap.width,
+      bitmap.height,
+      bitmap.depth,
+      imageData: (bitmap.bitplanes.block as Data).bytes,
+      colorMapData: _createCmapChunkFromPalette(palette),
+    );
+  }
+
   void save(String filePath) {
     _saveIlbm(this, filePath);
   }
+
+  static Uint8List _createCmapChunkFromPalette(Palette palette) {
+    final cmapData = BytesBuilder();
+    for (final color in palette.colors.values) {
+      cmapData.addByte(color.r);
+      cmapData.addByte(color.g);
+      cmapData.addByte(color.b);
+    }
+    return cmapData.toBytes();
+  }
 }
+
 
 IlbmImage _readIlbm(String filePath) {
   final file = File(filePath);
