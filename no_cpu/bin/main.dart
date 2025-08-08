@@ -11,7 +11,7 @@ import 'parts/life.dart';
 class NoCpuDemoBase extends MusicDemoBase {
   SpriteGroup spriteScreen = SpriteGroup.space(320, 180);
 
-  NoCpuDemoBase() : super.withProtrackerFile("$assetsPath/keines cpu1.6.mod") {
+  NoCpuDemoBase() : super.withProtrackerFile("$assetsPath/keines cpu1.9.mod") {
     startFrame = music.getTimestamp(0, 0);
   }
 
