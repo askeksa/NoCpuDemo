@@ -32,19 +32,7 @@ mixin Bully on NoCpuDemoBase {
     ];
     var spritePalette = spriteScreen.palette(Palette.fromMap({1: from}));
 
-    F(P, 0) >> (imagePalette | spritePalette);
-
-    F(P, 0) - (P, 0, 127) >>
-        (Display()
-          ..bitplanes = [
-            for (int i = 0; i < 6; i++)
-              bitmaps[i >> 1].bitplanes + (i & 1) * bitmap.bytesPerRow,
-          ]
-          ..stride = bitmap.bytesPerRow * 2
-          ..sprites = spriteScreen.labels
-          ..priority = 4);
-
-    Palette interferencePalette =
+    var interferencePalette =
         imagePalette |
         imagePalette.shift(64) |
         imagePalette.shift(128) |
@@ -54,9 +42,24 @@ mixin Bully on NoCpuDemoBase {
           (i) => (i * 64, imagePalette[0].interpolate(Color.white, i * 0.2)),
         );
 
-    F(P, 0, 128) >> interferencePalette;
+    F(P, 0) >> (imagePalette | spritePalette);
 
-    F(P, 0, 128) - (P + 2, 0, -2) |
+    F(P, 0) - (P, 0, 127 + 2) >>
+        (Display()
+          ..bitplanes = [
+            for (int i = 0; i < 6; i++)
+              bitmaps[i >> 1].bitplanes + (i & 1) * bitmap.bytesPerRow,
+          ]
+          ..stride = bitmap.bytesPerRow * 2
+          ..sprites = spriteScreen.labels
+          ..priority = 4);
+
+    F(P, 0, 128) >> (Blit()..dSetInterleaved(tornado.bitmap1));
+    F(P, 0, 128 + 1) >> (Blit()..dSetInterleaved(tornado.bitmap2));
+
+    F(P, 0, 128 + 2) >> interferencePalette;
+
+    F(P, 0, 128 + 2) - (P + 2, 0, -2) |
         (frame, copper) {
           var tornadoFrame = tornado.frame(frame, 1.0, 1.02);
           var display = (Display()
