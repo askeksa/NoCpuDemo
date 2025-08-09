@@ -95,7 +95,8 @@ mixin Opening on NoCpuDemoBase {
     );
 
     var trans = Transition.generate(320, 180, (x, y) {
-      return 10 + y * 0.5 + 5 * (sin(x * 0.3) + sin(y * 0.3));
+      double d = y * 0.1 + x * 0.01;
+      return (5 + d.floor() * 5 - d * 4) * 3;
     });
 
     F(P, 0) << oneBullyImage.palette;

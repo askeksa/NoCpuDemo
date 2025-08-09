@@ -67,8 +67,8 @@ class NoCpuDemoBase extends MusicDemoBase {
 
 class NoCpuDemo extends NoCpuDemoBase with Opening, Bully, Rebels, Check, Life {
   NoCpuDemo() : super() {
-    frames[0] << spriteScreen.blit(1);
-    frames[0] << spriteScreen.updatePosition(v: 82);
+    initialCopper << spriteScreen.blit(1);
+    initialCopper << spriteScreen.updatePosition(v: 82);
 
     ratingCard(0);
     showLogo(2);

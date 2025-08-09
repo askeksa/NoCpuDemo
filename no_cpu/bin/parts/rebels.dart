@@ -237,26 +237,49 @@ mixin Rebels on NoCpuDemoBase {
 
     List<(int?, int)> aliceOffsets = List.filled(5, (null, 0));
     List<(int?, int)> aliceOffsetsFun(int t) {
-      var l = aliceOffsets;
-      if (t == 0) l[1] = (0, 0);
-      if (t == 64 * 6) l[1] = (null, 0);
-      return l;
+      for (var (tt, i, x, y) in [
+        (24, 1, 0, 0),
+        (32, 0, 0, 0),
+        (33, 0, null, 0),
+        (33, 2, 0, 0),
+        (34, 2, null, 0),
+        (34, 3, 0, 0),
+        (35, 3, null, 0),
+        (35, 4, 0, 0),
+        (36, 4, null, 0),
+        (36, 3, 0, 0),
+        (37, 3, null, 0),
+        (37, 2, 0, 0),
+        (38, 2, null, 0),
+        (38, 0, 0, 0),
+        (40, 2, 0, 0),
+        (44, 3, 0, 0),
+        (48, 4, 0, 0),
+        (64, 0, null, 0),
+        (65, 2, null, 0),
+        (66, 3, null, 0),
+        (67, 4, null, 0),
+        (88, 1, null, 0),
+      ]) {
+        if (t == tt * 6) aliceOffsets[i] = (x, y);
+      }
+      return aliceOffsets;
     }
 
     List<(int?, int)> lisaOffsets = List.filled(5, (null, 0));
     List<(int?, int)> lisaOffsetsFun(int t) {
-      var l = lisaOffsets;
-      if (t == 0) l[2] = (0, 0);
-      if (t == 64 * 6) l[2] = (null, 0);
-      return l;
+      for (var (tt, i, x, y) in [(24, 2, 0, 0), (88, 2, null, 0)]) {
+        if (t == tt * 6) lisaOffsets[i] = (x, y);
+      }
+      return lisaOffsets;
     }
 
     List<(int?, int)> paulaOffsets = List.filled(5, (null, 0));
     List<(int?, int)> paulaOffsetsFun(int t) {
-      var l = paulaOffsets;
-      if (t == 0) l[1] = (0, 0);
-      if (t == 64 * 6) l[1] = (null, 0);
-      return l;
+      for (var (tt, i, x, y) in [(24, 1, 0, 0), (88, 1, null, 0)]) {
+        if (t == tt * 6) paulaOffsets[i] = (x, y);
+      }
+      return paulaOffsets;
     }
 
     girl(P, alice, aliceWords, lisaBg, -1, false, 2, aliceOffsetsFun);

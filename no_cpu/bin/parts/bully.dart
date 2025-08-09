@@ -16,7 +16,8 @@ mixin Bully on NoCpuDemoBase {
     var trans = Transition.generate(320, 180, (x, y) {
       double dx = x - 160;
       double dy = y - 100;
-      return sqrt(dx * dx + dy * dy) * 0.4;
+      double v = atan2(dx, dy);
+      return sqrt(dx * dx + dy * dy) * (0.3 + 0.1 * cos(v * 5));
     });
 
     var image = IlbmImage.fromFile("$assetsPath/EVIL CPU 5.iff");
