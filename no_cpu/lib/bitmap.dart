@@ -273,16 +273,32 @@ class Bitmap {
     );
   }
 
-  Bitmap crop({int x = 0, int y = 0, int? w, int? h, int pad = 0}) {
+  Bitmap crop({
+    int x = 0,
+    int y = 0,
+    int? w,
+    int? h,
+    int pad = 0,
+    int? depth,
+    bool? interleaved,
+  }) {
+    depth ??= this.depth;
+    interleaved ??= this.interleaved;
     w ??= width - x;
     h ??= height - y;
-    return Bitmap.generate(w, h, (px, py) {
-      px += x;
-      py += y;
-      return px >= 0 && px < width && py >= 0 && py < height
-          ? getPixel(px, py)
-          : pad;
-    });
+    return Bitmap.generate(
+      w,
+      h,
+      (px, py) {
+        px += x;
+        py += y;
+        return px >= 0 && px < width && py >= 0 && py < height
+            ? getPixel(px, py)
+            : pad;
+      },
+      depth: depth,
+      interleaved: interleaved,
+    );
   }
 
   (int, int, Bitmap) autocrop([

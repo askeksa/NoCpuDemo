@@ -138,12 +138,14 @@ mixin Rebels on NoCpuDemoBase {
       int rate,
       List<(int?, int)> Function(int) offsets,
     ) {
+      var imageBitmap = image.bitmap.crop(h: 180);
+
       // Slide girl in
       var padded = Bitmap.space(960, 180, 8, interleaved: true);
       F(p, 0, -64) << (Blit()..dSetInterleaved(padded));
       F(p, 0, -61) <<
           (Blit()
-            ..aSetInterleaved(image.bitmap, w: 320, h: 180)
+            ..aSetInterleaved(imageBitmap, w: 320, h: 180)
             ..dSetInterleaved(padded, x: 320, w: 320, h: 180));
 
       var pal = image.palette;
@@ -189,20 +191,20 @@ mixin Rebels on NoCpuDemoBase {
       // Word cloud
       F(p, 0) - (p + 1, 32, -2) >>
               (Display()
-                ..setBitmap(image.bitmap)
+                ..setBitmap(imageBitmap)
                 ..sprites = wordsLabels(words)
                 ..evenSpriteColorOffset = 224
                 ..oddSpriteColorOffset = 240
                 ..priority = 4) ^
           (i, f) => displayWords(f, words, offsets(i));
-      F(p + 1, 32, -1) >> (Display()..setBitmap(image.bitmap));
+      F(p + 1, 32, -1) >> (Display()..setBitmap(imageBitmap));
 
       // Wipe
       F(p + 1, 32) >> spritePal(bg);
       F(p + 1, 32) >> spriteScreen.updatePosition(v: 82);
       F(p + 1, 32) - (p + 2, 0, -61) >>
           (Display()
-            ..setBitmap(image.bitmap)
+            ..setBitmap(imageBitmap)
             ..sprites = spriteScreen.labels
             ..spriteColorOffset = 240
             ..priority = 4);

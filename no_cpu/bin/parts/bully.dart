@@ -14,7 +14,7 @@ mixin Bully on NoCpuDemoBase {
       return sqrt(dx * dx + dy * dy) * 0.4;
     });
 
-    var image = IlbmImage.fromFile("$assetsPath/Folcka_EVIL CPU.iff");
+    var image = IlbmImage.fromFile("$assetsPath/EVIL CPU 20.iff");
     var spritePalette = spriteScreen.palette(Palette.fromMap({1: from}));
 
     F(P, 0) >> (image.palette | spritePalette);
@@ -22,7 +22,7 @@ mixin Bully on NoCpuDemoBase {
 
     F(P, 0) - (P + 2, 0, -2) >>
         (Display()
-          ..setBitmap(image.bitmap)
+          ..setBitmap(image.bitmap.crop(h: 180, depth: 6))
           ..sprites = spriteScreen.labels
           ..priority = 4);
 
