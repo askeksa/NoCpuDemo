@@ -148,6 +148,10 @@ class BlitterTornadoFrame implements CopperComponent {
                 }
               }
 
+              if (srcY + height > front.height) {
+                height = front.height - srcY;
+              }
+
               var wordWidth = width ~/ 16;
               var destWord = destX ~/ 16 + destY * back.rowStride ~/ 2;
               var srcWord = srcX ~/ 16 + srcY * front.rowStride ~/ 2;
