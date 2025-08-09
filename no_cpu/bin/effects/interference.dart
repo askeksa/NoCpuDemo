@@ -28,40 +28,35 @@ class Interference {
     return _bluenoiseDither3(_noise2, color - color.floor(), x, y);
   });
 
+  static int _bluenoiseDither(
+    ChunkyPixels noise,
+    double fcolour,
+    int x,
+    int y,
+    int totalColors
+  ) {
+    int threshold = noise.getPixel(x % noise.width, y % noise.height) & 0xF;
+    int ncolour = (fcolour * totalColors * 16).toInt();
+    int n = ncolour >> 4;
+    int frac = ncolour & 0xF;
+
+    return (frac >= threshold ? n + 1 : n) % totalColors;
+  }
+
   static int _bluenoiseDither3(
     ChunkyPixels noise,
     double colour,
     int x,
     int y,
-  ) {
-    int ncolour = (colour * 8 * 16).toInt();
-    int n = ncolour >> 4;
-    int frac = ncolour & 0xF;
-
-    return (frac >= noise.getPixel(x % noise.width, y % noise.height) & 0xF
-                ? n + 1
-                : n)
-            .toInt() &
-        7;
-  }
+  ) => _bluenoiseDither(noise, colour, x, y, 8);
 
   static int _bluenoiseDither4(
     ChunkyPixels noise,
     double colour,
     int x,
     int y,
-  ) {
-    int ncolour = (colour * 16 * 16).toInt();
-    int n = ncolour >> 4;
-    int frac = ncolour & 0xF;
-
-    return (frac >= noise.getPixel(x % noise.width, y % noise.height) & 0xF
-                ? n + 1
-                : n)
-            .toInt() &
-        15;
-  }
-
+  ) => _bluenoiseDither(noise, colour, x, y, 16);
+  
   static Bitmap _generateBitmap(
     int planes,
     int w,

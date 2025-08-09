@@ -182,8 +182,8 @@ class InterferenceTest extends DemoBase {
     return newPalette;
   }
 
-  InterferenceTest() : super(500, loopFrame: 0) {
-    F(0, 0) - 499 |
+  InterferenceTest() : super(1500, loopFrame: 0) {
+    F(0, 0) - 1499 |
       (int frame, Copper f) {
         if (frame == 0) {
           f << _blackPalette;
