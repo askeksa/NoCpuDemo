@@ -16,6 +16,9 @@ mixin Check on NoCpuDemoBase {
     }
 
     Color col(int t) {
+      if (t > 1535) {
+        return Color.rgb12(0x000);
+      }
       var col1 = Color.rgb12(0xfa5);
       var col2 = Color.rgb12(0x78f);
       return col1.interpolate(col2, 0.5 + 0.5 * sin(121 * t * pi / 128));
@@ -24,14 +27,20 @@ mixin Check on NoCpuDemoBase {
     void frame(int i, Copper f) {
       List<(int, int, int, Color)> layers = [];
       var (ix, iy) = pos(i);
-      for (int t = (i + 127) & -16; t >= i; t -= 16) {
+      for (int l = 0; l < 8; l++) {
+        int t = max((i + 127) & -16, 256) - l * 16;
         var (x, y) = pos(t);
+        var color = col(t);
         int d = t - i;
+        if (d > 127) {
+          d = 127;
+          color = Color.rgb12(0x000);
+        }
         layers.add((
           ((x - ix) / (d + 5)).toInt(),
           ((y - iy) / (d + 5)).toInt(),
           d,
-          col(t) * ((128 - d) / 128),
+          color * ((128 - d) / 128),
         ));
       }
       f << checkerboard.frame(layers);
