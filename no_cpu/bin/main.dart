@@ -9,6 +9,10 @@ import 'parts/check.dart';
 import 'parts/life.dart';
 
 class NoCpuDemoBase extends MusicDemoBase {
+  late Color afterCardColor = Color.rgb24(0x000000);
+  late Color oneBullyTransColor = Color.rgb24(0x000000);
+  late Color bullyTransColor = Color.rgb24(0x000000);
+
   SpriteGroup spriteScreen = SpriteGroup.space(320, 180);
 
   late IlbmImage alice = IlbmImage.fromFile(
@@ -45,20 +49,29 @@ class NoCpuDemoBase extends MusicDemoBase {
     bool inverse = false,
   }) {
     int frame = musicFrame(f);
-    frames[frame - 1] >> spriteScreen.blit(1);
     for (int i = 0; i <= end - start; i++) {
       frames[frame + i] >> spriteScreen.blit(0, aBitmap: trans.result);
       frames[frame + i - 1] <<
           trans.run(backward ? end - i : start + i, inverse: inverse);
     }
   }
+
+  CopperComponent blankDisplay([Color? color]) {
+    color ??= Color.rgb24(0x000000);
+    return (Display()
+          ..setBitmap(Bitmap.blank(320, 1, 1))
+          ..stride = 0) +
+        Palette.fromMap({0: color, 1: color});
+  }
 }
 
 class NoCpuDemo extends NoCpuDemoBase with Opening, Bully, Rebels, Check, Life {
   NoCpuDemo() : super() {
+    frames[0] << spriteScreen.blit(1);
     ratingCard(0);
     showLogo(2);
-    bully(6, Color.rgb12(0x000));
+    oneBully(4);
+    bully(6, bullyTransColor);
     F(8, 0) << Palette.fromMap({0: aliceBg});
     rebels(9);
     check(17);

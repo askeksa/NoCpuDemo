@@ -164,24 +164,25 @@ class Sprite {
     Bitmap? bBitmap,
     Bitmap? cBitmap,
     int? minterms,
-    int fromPlane = 0,
+    int aFromPlane = 0,
+    int bFromPlane = 0,
+    int cFromPlane = 0,
     int x = 0,
     int y = 0,
   }) {
     assert(plane >= 0 && plane < 2);
-    assert(
-      fromPlane >= 0 &&
-          [?aBitmap, ?bBitmap, ?cBitmap].every((b) => fromPlane < b.depth),
-    );
+    assert(aBitmap == null || aFromPlane >= 0 && aFromPlane < aBitmap.depth);
+    assert(bBitmap == null || bFromPlane >= 0 && bFromPlane < bBitmap.depth);
+    assert(cBitmap == null || cFromPlane >= 0 && cFromPlane < cBitmap.depth);
     Blit blit = Blit()..dSetBitplane(bitmap, plane);
     if (aBitmap != null) {
-      blit.aSetBitplane(aBitmap, fromPlane, x: x, y: y, w: 64, h: height);
+      blit.aSetBitplane(aBitmap, aFromPlane, x: x, y: y, w: 64, h: height);
     }
     if (bBitmap != null) {
-      blit.bSetBitplane(bBitmap, fromPlane, x: x, y: y, w: 64, h: height);
+      blit.bSetBitplane(bBitmap, bFromPlane, x: x, y: y, w: 64, h: height);
     }
     if (cBitmap != null) {
-      blit.cSetBitplane(cBitmap, fromPlane, x: x, y: y, w: 64, h: height);
+      blit.cSetBitplane(cBitmap, cFromPlane, x: x, y: y, w: 64, h: height);
     }
     if (minterms != null) {
       blit.minterms = minterms;
@@ -428,7 +429,9 @@ class SpriteGroup {
     Bitmap? bBitmap,
     Bitmap? cBitmap,
     int? minterms,
-    int fromPlane = 0,
+    int aFromPlane = 0,
+    int bFromPlane = 0,
+    int cFromPlane = 0,
     int x = 0,
     int y = 0,
   }) {
@@ -441,7 +444,9 @@ class SpriteGroup {
             bBitmap: bBitmap,
             cBitmap: cBitmap,
             minterms: minterms,
-            fromPlane: fromPlane,
+            aFromPlane: aFromPlane,
+            bFromPlane: bFromPlane,
+            cFromPlane: cFromPlane,
             x: x + s.xOffset,
             y: y,
           ),
