@@ -57,6 +57,7 @@ class NoCpuDemoBase extends MusicDemoBase {
 class NoCpuDemo extends NoCpuDemoBase with Opening, Bully, Rebels, Check, Life {
   NoCpuDemo() : super() {
     ratingCard(0);
+    showLogo(2);
     bully(6, Color.rgb12(0x000));
     F(8, 0) << Palette.fromMap({0: aliceBg});
     rebels(9);

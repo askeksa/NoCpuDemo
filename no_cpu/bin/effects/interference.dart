@@ -33,7 +33,7 @@ class Interference {
     double fcolour,
     int x,
     int y,
-    int totalColors
+    int totalColors,
   ) {
     int threshold = noise.getPixel(x % noise.width, y % noise.height) & 0xF;
     int ncolour = (fcolour * totalColors * 16).toInt();
@@ -56,7 +56,7 @@ class Interference {
     int x,
     int y,
   ) => _bluenoiseDither(noise, colour, x, y, 16);
-  
+
   static Bitmap _generateBitmap(
     int planes,
     int w,
@@ -77,7 +77,13 @@ class Interference {
     );
   }
 
-  InterferenceFrame frame(double evenX, double evenY, double oddX, double oddY, bool flip) {
+  InterferenceFrame frame(
+    double evenX,
+    double evenY,
+    double oddX,
+    double oddY,
+    bool flip,
+  ) {
     return InterferenceFrame(this, evenX, evenY, oddX, oddY, flip);
   }
 }
@@ -89,6 +95,9 @@ class InterferenceFrame implements CopperComponent {
   final double _oddXf;
   final double _oddYf;
   final bool _flip;
+
+  late final display = _scrollDisplay()
+    ..setBitmaps(interference.bitmap1, interference.bitmap2);
 
   Display _scrollDisplay() {
     var evenX = (_evenXf * 160 * 4 + 160 * 4).toInt();
@@ -106,12 +115,17 @@ class InterferenceFrame implements CopperComponent {
       ..evenFlip = _flip;
   }
 
-  InterferenceFrame(this.interference, this._evenXf, this._evenYf, this._oddXf, this._oddYf, this._flip);
+  InterferenceFrame(
+    this.interference,
+    this._evenXf,
+    this._evenYf,
+    this._oddXf,
+    this._oddYf,
+    this._flip,
+  );
 
   @override
   void addToCopper(Copper copper) {
-    var display = _scrollDisplay()
-      ..setBitmaps(interference.bitmap1, interference.bitmap2);
     copper >> display;
   }
 }
