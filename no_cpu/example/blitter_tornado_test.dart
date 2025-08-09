@@ -1,6 +1,4 @@
-import 'dart:math';
 
-import 'package:collection/collection.dart';
 import 'package:no_cpu/no_cpu.dart';
 
 import '../bin/base.dart';
@@ -13,16 +11,30 @@ main() {
 class BlitterTornadoTest extends DemoBase {
   BlitterTornado tornado = BlitterTornado();
 
-  Palette palette = Palette.generate(2, (i) => (i, Color.rgb8(i * 255, i * 255, i * 255)));
+  Palette planeColors = Palette.generate(4, (i) {
+    double n = i / 4;
+    return (i, Color.hsl(0.3, 1-n, n));
+  });
 
-  BlitterTornadoTest() : super(500, loopFrame: 0) {
-    F(0, 0) - 499 |
+  BlitterTornadoTest() : super(500, loopFrame: 1) {
+    F(0, 0, 0) |
       (int frame, Copper copper) {
-        if (frame == 0) {
-          copper << palette;
-        }
+          copper << planeColors;
+      };
 
-        copper << tornado.frame(frame, 1.0, 1.02);
+    F(0, 0, 1) - (0, 0, 499) |
+      (int frame, Copper copper) {
+        var tornadoFrame = tornado.frame(frame, 1.0, 1.02);
+
+        var display = Display()
+          ..horizontalScroll = BlitterTornado.borderLeft * 4
+          ..verticalScroll = BlitterTornado.borderTop
+          ..bitplanes = tornadoFrame.frontPlanes
+          ..stride = tornadoFrame.front.rowStride;
+
+        copper >> display;
+
+        copper << tornadoFrame;
       };
   }
 }

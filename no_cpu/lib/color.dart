@@ -11,6 +11,9 @@ import 'memory.dart';
 bool borderBlank = true;
 
 extension type Color(int rgb) {
+  static final white = Color.rgb8(0xFF, 0xFF, 0xFF);
+  static final black = Color.rgb8(0, 0, 0);
+
   int get r => (rgb >> 16) & 0xFF;
   int get g => (rgb >> 8) & 0xFF;
   int get b => rgb & 0xFF;
@@ -20,6 +23,50 @@ extension type Color(int rgb) {
     assert(g >= 0 && g <= 255, "Green must be between 0 and 255");
     assert(b >= 0 && b <= 255, "Blue must be between 0 and 255");
     return Color((r << 16) | (g << 8) | b);
+  }
+
+  factory Color.hsl(double fhue, double fsaturation, double flightness) {
+    double hue = fhue - fhue.floorToDouble();
+    double saturation = fsaturation.clamp(0.0, 1.0);
+    double lightness = flightness.clamp(0.0, 1.0);
+
+    double c = ((1 - ((lightness * 2) - 1).abs()) * saturation);
+    double r, g, b;
+
+    if (hue >= 5/6) {
+      r = c;
+      g = 0;
+      b = (1 - hue) * c * 6;
+    } else if (hue >= 4/6) {
+      r = (hue - 4/6) * c * 6;
+      g = 0;
+      b = c;
+    } else if (hue >= 3/6) {
+      r = 0;
+      b = c;
+      g = (4/6 - hue) * c * 6;
+    } else if (hue >= 2/6) {
+      r = 0;
+      b = (hue - 2/6) * c * 6;
+      g = c;
+    } else if (hue >= 1/6) {
+      r = (1/6 - hue) * c * 6;
+      g = c;
+      b = 0;
+    } else /*if (hue >= 0)*/ {
+      r = c;
+      g = hue * c * 6;
+      b = 0;
+    }
+
+    double m = lightness - (c / 2);
+    r += m;
+    g += m;
+    b += m;
+
+    int toInt(double f) => (f * 256).toInt().clamp(0, 255);
+
+    return Color.rgb8(toInt(r), toInt(g), toInt(b));
   }
 
   factory Color.clamped(int r, int g, int b) {

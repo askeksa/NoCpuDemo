@@ -3,81 +3,71 @@ import 'dart:math';
 import 'package:no_cpu/no_cpu.dart';
 
 class BlitterTornado {
+  static final _depth = 2;
   static final _blockSize = 32;
-  static final _border = _blockSize;
-  final Bitmap bitmap1 = Bitmap.blank(320 + _border * 2, 192 + _border * 2, 1, mutability: Mutability.mutable);
-  final Bitmap bitmap2 = Bitmap.blank(320 + _border * 2, 192 + _border * 2, 1, mutability: Mutability.mutable);
-
-  static final List<Bitmap> _shapes = List.generate(16, (i) {
-      Random rng = Random(i);
-      return Bitmap.generate(64, 64, (x, y) => rng.nextInt(16) == 0 ? 1 : 0, depth: 1);
-    });
+  static final borderTop = 16;
+  static final borderLeft = 64;
+  static final _pattern = () {
+      Random rng = Random(1337);
+      return Bitmap.generate(80, 80, (x, y) => rng.nextInt(16) == 0 ? 1 : 0, depth: 1);
+    } ();
+ 
+  final Bitmap bitmap1 = Bitmap.blank(320 + borderLeft, 180 + borderTop, _depth, mutability: Mutability.mutable, interleaved: true);
+  final Bitmap bitmap2 = Bitmap.blank(320 + borderLeft, 180 + borderTop, _depth, mutability: Mutability.mutable, interleaved: true);
 
   BlitterTornadoFrame frame(int frame, double angle, double zoom) {
-    return BlitterTornadoFrame(this, frame, angle, zoom, Random(frame & 15));
+    return BlitterTornadoFrame(this, frame, angle, zoom);
   }
 }
 
 class BlitterTornadoFrame implements CopperComponent {
-  BlitterTornado blitterTornado;
-  int frame;
-  double angle;
-  double zoom;
-  Random random;
+  final BlitterTornado _blitterTornado;
+  final int _frame;
+  final double _angle;
+  final double _zoom;
 
-  BlitterTornadoFrame(this.blitterTornado, this.frame, this.angle, this.zoom, this.random);
+  late Bitmap back;
+  late Bitmap front;
+
+  BlitterTornadoFrame(this._blitterTornado, this._frame, this._angle, this._zoom) {
+    var flip = _frame & 1 != 0;
+
+    back = flip ? _blitterTornado.bitmap1 : _blitterTornado.bitmap2;
+    front = flip ? _blitterTornado.bitmap2 : _blitterTornado.bitmap1;
+  }
+
+  List<Label> get frontPlanes => [
+    for (int plane = 0; plane <= 1; ++plane)
+      front.bitplanes + BlitterTornado.borderLeft ~/ 8 + BlitterTornado.borderTop * front.rowStride + plane * front.bytesPerRow
+  ];
 
   @override
   void addToCopper(Copper copper) {
 
-    var flip = frame & 1 != 0;
+    var offsetX = (_frame & 1) * 16;
+    var offsetY = (_frame & 2) * 8;
 
-    var back = flip ? blitterTornado.bitmap1 : blitterTornado.bitmap2;
-    var front = flip ? blitterTornado.bitmap2 : blitterTornado.bitmap1;
-
-    var display = Display()
-      ..horizontalScroll = BlitterTornado._border * 4
-      ..verticalScroll = BlitterTornado._border
-      ..setBitmap(front);
-
-    copper >> display;
+    var centerX = -32;
+    var centerY = -16;
 
     copper ^ (copper) {
-      copper.move(COLOR00, 0x0);
-      copper.move(BPLCON3, 0);
-      /*
-      var screenCopy = Blit()
-        ..aPtr = front.bitplanes
-        ..aStride = front.rowStride
-        ..dPtr = back.bitplanes
-        ..dStride = back.rowStride
-        ..width = front.width >> 4
-        ..height = front.height;
+      var angle = _angle * (pi * 2 / 360);
 
-      copper << screenCopy;
-      */
-
-      var angle = this.angle * (pi * 2 / 360);
-
-      var dx = cos(angle) / zoom;
-      var dy = sin(angle) / zoom;
-
-      var offsetX = (frame & 1) * 16;
-      var offsetY = (frame & 2) * 8;
+      var dx = cos(angle) / _zoom;
+      var dy = sin(angle) / _zoom;
 
       for (int y = 0; y < back.height; y += BlitterTornado._blockSize) {
-        for (int x = back.width - BlitterTornado._blockSize; x >= 0; x -= BlitterTornado._blockSize) {
-          var center = -16;
+        for (int x = back.width - BlitterTornado._blockSize; x >= 16; x -= BlitterTornado._blockSize) {
 
-          var centerDestX = x + BlitterTornado._blockSize ~/ 2 - back.width ~/ 2 + offsetX + center;
-          var centerDestY = y + BlitterTornado._blockSize ~/ 2 - back.height ~/ 2 + offsetY + center;
+          var centerDestX = x + BlitterTornado._blockSize ~/ 2 - back.width ~/ 2 + offsetX + centerX;
+          var centerDestY = y + BlitterTornado._blockSize ~/ 2 - back.height ~/ 2 + offsetY + centerY;
           var centerSrcX = (centerDestX * dx + centerDestY * dy).round();
           var centerSrcY = (centerDestY * dx - centerDestX * dy).floor();
 
-          var destX = centerDestX - center - BlitterTornado._blockSize ~/ 2 + back.width ~/ 2;
-          var destY = centerDestY - center - BlitterTornado._blockSize ~/ 2 + back.height ~/ 2;
-          var srcX = centerSrcX - center - BlitterTornado._blockSize ~/ 2 + back.width ~/ 2;
-          var srcY = centerSrcY - center - BlitterTornado._blockSize ~/ 2 + back.height ~/ 2;
+          var destX = centerDestX - centerX - BlitterTornado._blockSize ~/ 2 + back.width ~/ 2;
+          var destY = centerDestY - centerY - BlitterTornado._blockSize ~/ 2 + back.height ~/ 2;
+          var srcX = centerSrcX - centerX - BlitterTornado._blockSize ~/ 2 + back.width ~/ 2;
+          var srcY = centerSrcY - centerY - BlitterTornado._blockSize ~/ 2 + back.height ~/ 2;
 
           var width = BlitterTornado._blockSize;
           var height = BlitterTornado._blockSize;
@@ -94,47 +84,17 @@ class BlitterTornadoFrame implements CopperComponent {
 
           if (destX + width > back.width) {
             width = back.width - destX;
+            if (width < 0) {
+              continue;
+            }
           }
 
           if (destY + height > back.height) {
             height = back.height - destY;
-          }
-
-          /*
-          var width = min(BlitterTornado._blockSize, back.width - destX);
-          var height = min(BlitterTornado._blockSize, back.height - destY);
-
-          int clip(int n) {
-            if (n < 0) {
-              width += n;
-              destX += n;
-              return 0;
-            } else {
-              return n;
+            if (height < 0) {
+              continue;
             }
           }
-
-          if (srcX < 0) {
-            width += srcX;
-            destX += srcX;
-            srcX = 0;
-          }
-
-          if (destX < 0) {
-            width += destX;
-            srcX += destX;
-            destX = 0;
-          }
-
-          if (srcY < 0) {
-            height += srcY;
-            destY += srcY;
-            srcY = 0;
-          }
-
-          if (destX >= back.width || destY >= back.height || destX <= -BlitterTornado._blockSize || destY <= -BlitterTornado._blockSize) continue;
-          */
-
 
           var wordWidth = width ~/ 16;
           var destWord = destX ~/ 16 + destY * back.rowStride ~/ 2;
@@ -156,26 +116,35 @@ class BlitterTornadoFrame implements CopperComponent {
               ..dPtr = back.bitplanes + destWord * 2
               ..dStride = back.bytesPerRow
               ..width = wordWidth
-              ..height = height;
+              ..height = height * BlitterTornado._depth;
           copper << blit;
         }
       }
+    };
 
-      var shape = BlitterTornado._shapes[frame & 15];
-      var destPtr = back.bitplanes + back.rowStride * ((back.height - shape.height) ~/ 2 - offsetX) + ((back.width - shape.width) ~/ 2 - offsetY) ~/ 8;
-      var shapeBlit = 
-        Blit()
-          ..aPtr = shape.bitplanes
-          ..aStride = shape.rowStride
-          ..cdPtr = destPtr
-          ..cdStride = back.rowStride
-          ..minterms = A ^ C
-          ..width = shape.width >> 4
-          ..height = shape.height;
+    copper ^ (copper) {
+      if (_frame % 4 == 0) {
+        for (int plane = 0; plane < BlitterTornado._depth; ++plane) {
+          var patternWidth = 64;
+          var patternHeight = 64;
+          var f = (_frame + plane) % 9;
+          var shiftX = (f >> 2 % 2) * 2;
+          var shiftY = (f >> 3 % 16);
+          var pattern = BlitterTornado._pattern;
+          var destPtr = back.bitplanes + back.bytesPerRow * plane + back.rowStride * ((back.height - patternHeight) ~/ 2 + offsetY) + ((back.width - patternWidth) ~/ 2 + offsetX - centerX) ~/ 16 * 2; 
+          var shapeBlit = 
+            Blit()
+              ..aPtr = pattern.bitplanes + shiftX + shiftY * pattern.rowStride
+              ..aStride = pattern.rowStride
+              ..cdPtr = destPtr
+              ..cdStride = back.rowStride
+              ..minterms = A ^ C
+              ..width = patternWidth >> 4
+              ..height = patternHeight;
 
-      copper << shapeBlit;
-
-      copper.move(COLOR00, 0x800);
+          copper << shapeBlit;
+        }
+      }
     };
   }
 }

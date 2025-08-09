@@ -1,0 +1,29 @@
+{
+    // Use IntelliSense to learn about possible attributes.
+    // Hover to view descriptions of existing attributes.
+    // For more information, visit: https://go.microsoft.com/fwlink/?linkid=830387
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "name": "Demo",
+            "type": "dart",
+            "request": "launch",
+            "program": "${workspaceFolder}/no_cpu/bin/main.dart",
+            "cwd": "${workspaceFolder}/no_cpu/",
+        },
+        {
+            "name": "Tornado",
+            "type": "dart",
+            "request": "launch",
+            "program": "${workspaceFolder}/no_cpu/example/blitter_tornado_test.dart",
+            "cwd": "${workspaceFolder}/no_cpu/example",
+        },
+        {
+            "name": "Checkerboard",
+            "type": "dart",
+            "request": "launch",
+            "program": "${workspaceFolder}/no_cpu/example/checkerboard_test.dart",
+            "cwd": "${workspaceFolder}/no_cpu/example",
+        }
+    ]
+}
