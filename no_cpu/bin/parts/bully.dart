@@ -33,7 +33,6 @@ mixin Bully on NoCpuDemoBase {
     var spritePalette = spriteScreen.palette(Palette.fromMap({1: from}));
 
     F(P, 0) >> (imagePalette | spritePalette);
-    F(P, 0) >> spriteScreen.updatePosition(v: 82);
 
     F(P, 0) - (P, 0, 127) >>
         (Display()
@@ -50,7 +49,10 @@ mixin Bully on NoCpuDemoBase {
         imagePalette.shift(64) |
         imagePalette.shift(128) |
         imagePalette.shift(192) |
-        Palette.generate(4, (i) => (i * 64, imagePalette[0].interpolate(Color.white, i * 0.2)));
+        Palette.generate(
+          4,
+          (i) => (i * 64, imagePalette[0].interpolate(Color.white, i * 0.2)),
+        );
 
     F(P, 0, 128) >> interferencePalette;
 

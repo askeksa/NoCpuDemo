@@ -134,7 +134,9 @@ mixin Rebels on NoCpuDemoBase {
 
       // Slide girl in
       var padded = Bitmap.space(960, 180, 8, interleaved: true);
-      F(p, 0, -64) << (Blit()..dSetInterleaved(padded));
+      F(p, 0, -63) - (p, 0, -61) << blankDisplay(image.palette[0]);
+      F(p, 0, -63) << (Blit()..dSetInterleaved(padded, x: 0, w: 320));
+      F(p, 0, -62) << (Blit()..dSetInterleaved(padded, x: 640, w: 320));
       F(p, 0, -61) <<
           (Blit()
             ..aSetInterleaved(imageBitmap, w: 320, h: 180)
@@ -162,23 +164,53 @@ mixin Rebels on NoCpuDemoBase {
           };
 
       // Color cycling
-      for (var range in image.colorRanges) {
-        F(p, 0) - (p + 2, 0, -61) ^
-            (i, f) {
-              if (i % rate == 0) {
-                int n = i ~/ rate;
-                var pal = range.step(n);
-                if (n < range.high - range.low + 1) {
-                  pal = Palette.generateRange(
-                    range.low,
-                    n,
-                    (c) => pal[range.low + c],
-                  );
-                }
-                f >> pal;
-              }
-            };
+      var range = image.colorRanges.single;
+      int rangeSize = range.high - range.low + 1;
+      var rangeData = Data();
+      for (int i = range.low; i <= range.high; i++) {
+        rangeData.addWord(image.palette[i].upper);
+        rangeData.addWord(image.palette[i].lower);
       }
+      var rangePal = Space(rangeData.size);
+
+      CopperComponent setColors(int start, int count) {
+        return count == 0
+            ? AdHocCopperComponent((_) {})
+            : (Blit()
+                ..aData = 0xFFFF
+                ..aFWM = image.palette[0].upper
+                ..aLWM = image.palette[0].lower
+                ..dPtr = rangePal.label + start * 4
+                ..minterms = A
+                ..width = 2
+                ..height = count);
+      }
+
+      CopperComponent copyColors(int from, int to, int count) {
+        return count == 0
+            ? AdHocCopperComponent((_) {})
+            : (Blit()
+                ..aPtr = rangeData.label + from * 4
+                ..dPtr = rangePal.label + to * 4
+                ..width = 2
+                ..height = count);
+      }
+
+      F(p, 0) - (p + 2, 0, -61) ^
+          (i, f) {
+            if (i % rate == 0) {
+              int n = i ~/ rate;
+              if (n < rangeSize) {
+                f << copyColors(rangeSize - n, 0, n);
+                f << setColors(n, rangeSize - n);
+              } else {
+                f << copyColors((rangeSize - n) % rangeSize, 0, n % rangeSize);
+                f << copyColors(0, n % rangeSize, rangeSize - n % rangeSize);
+              }
+            }
+          };
+      F(p, 0) - (p + 2, 0, -61) >>
+          DynamicPalette(rangePal.label, range.low, rangeSize);
 
       // Word cloud
       F(p, 0) - (p + 1, 32, -2) >>
@@ -193,8 +225,7 @@ mixin Rebels on NoCpuDemoBase {
 
       // Wipe
       F(p + 1, 32) >> spritePal(bg);
-      F(p + 1, 32) >> spriteScreen.updatePosition(v: 82);
-      F(p + 1, 32) - (p + 2, 0, -61) >>
+      F(p + 1, 32) - (p + 2, 0, -64) >>
           (Display()
             ..setBitmap(imageBitmap)
             ..sprites = spriteScreen.labels
@@ -232,6 +263,6 @@ mixin Rebels on NoCpuDemoBase {
     girl(P + 2, lisa, lisaWords, paulaBg, 1, true, 1, lisaOffsetsFun);
     girl(P + 4, paula, paulaWords, finalBg, -1, false, 3, paulaOffsetsFun);
 
-    F(P + 6, 0, -60) >> Display() << Palette.fromMap({0: finalBg});
+    F(P + 6, 0, -63) >> Display() << Palette.fromMap({0: finalBg});
   }
 }
