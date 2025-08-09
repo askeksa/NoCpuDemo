@@ -9,7 +9,9 @@ mixin Life on NoCpuDemoBase {
   GameOfLife gameOfLife = GameOfLife(320, 180, 2, 2);
 
   void life(int P) {
-    Random random = Random(DateTime.now().millisecondsSinceEpoch);
+    int seed = DateTime.now().millisecondsSinceEpoch;
+    print("Game of Life seed: $seed");
+    Random random = Random(seed);
     Bitmap center = Bitmap.generate(
       32,
       32,
