@@ -8,14 +8,6 @@ import '../main.dart';
 import '../effects/transition.dart';
 
 mixin Rebels on NoCpuDemoBase {
-  late IlbmImage alice = IlbmImage.fromFile(
-    "$assetsPath/!ALICE CYCLE Done4.iff",
-  );
-  late IlbmImage lisa = IlbmImage.fromFile("$assetsPath/!LISA CYCLE done2.iff");
-  late IlbmImage paula = IlbmImage.fromFile(
-    "$assetsPath/!PAULA CYCLE DONE.iff",
-  );
-
   late IlbmImage aliceWordImage = IlbmImage.fromFile(
     "$assetsPath/!ALICE WORDCLOUD_Done.iff",
   );
