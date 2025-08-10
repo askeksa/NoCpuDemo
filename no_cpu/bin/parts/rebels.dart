@@ -12,7 +12,7 @@ mixin Rebels on NoCpuDemoBase {
     "$assetsPath/!ALICE WORDCLOUD_Done.iff",
   );
   late IlbmImage lisaWordImage = IlbmImage.fromFile(
-    "$assetsPath/!LISA WORDCLOUDS Done.iff",
+    "$assetsPath/!LISA WORDCLOUDS Done3.iff",
   );
   late IlbmImage paulaWordImage = IlbmImage.fromFile(
     "$assetsPath/!PAULA WORDCLOUD DONE2.iff",

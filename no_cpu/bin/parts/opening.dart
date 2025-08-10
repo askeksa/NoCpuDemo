@@ -25,8 +25,12 @@ mixin Opening on NoCpuDemoBase {
 
   void showLogo(int P) {
     var (lx1, ly1, logo1) = logoImage.bitmap.crop(h: 77).autocrop();
-    var (lx2, ly2, logo2) = logoImage.bitmap.crop(y: 77, h: 77).autocrop();
+    var (lx2, ly2, logo2) = logoImage.bitmap
+        .crop(x: 77, y: 77, h: 77)
+        .autocrop();
+    lx2 += 77;
     ly2 += 77;
+
     var logoSprite1 = SpriteGroup.space(
       logo1.width,
       logo1.height,

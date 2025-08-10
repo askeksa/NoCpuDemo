@@ -36,7 +36,7 @@ class NoCpuDemoBase extends MusicDemoBase {
     depth: 1,
   );
 
-  NoCpuDemoBase() : super.withProtrackerFile("$assetsPath/keines cpu1.10.mod") {
+  NoCpuDemoBase() : super.withProtrackerFile("$assetsPath/keines cpu1.11.mod") {
     startFrame = music.getTimestamp(0, 0);
   }
 
@@ -76,8 +76,8 @@ class NoCpuDemo extends NoCpuDemoBase with Opening, Bully, Rebels, Check, Life {
     bully(6, bullyTransColor);
     F(8, 0) << Palette.fromMap({0: aliceBg});
     rebels(9);
-    check(17);
-    life(25);
+    check(18);
+    life(26);
   }
 }
 
