@@ -23,7 +23,7 @@ class NoCpuDemoBase extends MusicDemoBase {
   );
   late IlbmImage lisa = IlbmImage.fromFile("$assetsPath/!LISA CYCLE done2.iff");
   late IlbmImage paula = IlbmImage.fromFile(
-    "$assetsPath/!PAULA CYCLE DONE.iff",
+    "$assetsPath/!PAULA CYCLE DONE2.iff",
   );
 
   late Bitmap aliceMask = alice.bitmap
@@ -33,7 +33,7 @@ class NoCpuDemoBase extends MusicDemoBase {
       .transform((_, _, p) => p > 0 && p < 88 ? 1 : 0, depth: 1)
       .crop(h: 180);
   late Bitmap paulaMask = paula.bitmap
-      .transform((_, _, p) => p > 0 && p < 58 ? 1 : 0, depth: 1)
+      .transform((_, _, p) => p > 0 && p < 58 || p >= 97 ? 1 : 0, depth: 1)
       .crop(h: 180);
 
   NoCpuDemoBase() : super.withProtrackerFile("$assetsPath/keines cpu1.11.mod") {
