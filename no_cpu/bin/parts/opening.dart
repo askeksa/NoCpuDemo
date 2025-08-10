@@ -74,6 +74,7 @@ mixin Opening on NoCpuDemoBase {
     }
     F(P, 0, -1) << logoSprite1.updatePosition(h: 0x200 + lx1 * 4, v: 82 + ly1);
     F(P, 0, -1) << logoSprite2.updatePosition(h: 0x200 + lx2 * 4, v: 82 + ly2);
+    F(P, 0, -1) << logoSprite2.updateTerminator();
     F(P, 0) << pal;
     F(P, 0) - (P + 2, 0, -1) >>
         (Display()

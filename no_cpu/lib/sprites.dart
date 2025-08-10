@@ -158,6 +158,13 @@ class Sprite {
       ..height = 2;
   }
 
+  Blit updateTerminator() {
+    return Blit()
+      ..dPtr = label + (height + 1) * 16
+      ..dStride = 8
+      ..height = 2;
+  }
+
   Blit blit(
     int plane, {
     Bitmap? aBitmap,
@@ -421,6 +428,10 @@ class SpriteGroup {
       for (var s in sprites)
         s.sprite.updatePosition(v: v, h: h + s.xOffset * 4),
     ]);
+  }
+
+  BlitList updateTerminator() {
+    return BlitList([for (var s in sprites) s.sprite.updateTerminator()]);
   }
 
   BlitList blit(
