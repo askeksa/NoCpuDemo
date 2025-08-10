@@ -30,6 +30,9 @@ class BlitterTornado {
     interleaved: true,
   );
 
+  Bitmap frontForFrame(int frame) => frame & 1 != 0 ? bitmap2 : bitmap1;
+  Bitmap backForFrame(int frame) => frame & 1 != 0 ? bitmap1 : bitmap2;
+
   BlitterTornadoFrame frame(int frame, double angle, double zoom) {
     return BlitterTornadoFrame(this, frame, angle, zoom);
   }
@@ -50,10 +53,8 @@ class BlitterTornadoFrame implements CopperComponent {
     this._angle,
     this._zoom,
   ) {
-    var flip = _frame & 1 != 0;
-
-    back = flip ? _blitterTornado.bitmap1 : _blitterTornado.bitmap2;
-    front = flip ? _blitterTornado.bitmap2 : _blitterTornado.bitmap1;
+    back = _blitterTornado.backForFrame(_frame);
+    front = _blitterTornado.frontForFrame(_frame);
   }
 
   List<Label> get frontPlanes => [
