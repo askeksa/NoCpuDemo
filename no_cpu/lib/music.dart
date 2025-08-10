@@ -27,8 +27,8 @@ class Music {
     int nchannels = frames[0].channels.length;
 
     for (var channel = 0; channel < nchannels; channel++) {
-      int lastPeriod = 0;
-      int lastVolume = 0;
+      int? lastPeriod;
+      int? lastVolume;
       Instrument? lastInstrument;
 
       for (var (i, frame) in frames.indexed) {

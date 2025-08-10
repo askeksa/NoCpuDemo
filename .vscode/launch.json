@@ -19,6 +19,13 @@
             "cwd": "${workspaceFolder}/no_cpu/example",
         },
         {
+            "name": "Interference",
+            "type": "dart",
+            "request": "launch",
+            "program": "${workspaceFolder}/no_cpu/example/interference_test.dart",
+            "cwd": "${workspaceFolder}/no_cpu/example",
+        },
+        {
             "name": "Checkerboard",
             "type": "dart",
             "request": "launch",
