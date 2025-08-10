@@ -184,25 +184,25 @@ class InterferenceTest extends DemoBase {
 
   InterferenceTest() : super(1500, loopFrame: 0) {
     F(0, 0) - 1499 |
-      (int frame, Copper f) {
-        if (frame == 0) {
-          f << _blackPalette;
-        }
+        (int frame, Copper f) {
+          if (frame == 0) {
+            f << _blackPalette;
+          }
 
-        f <<
-            interference.frame(
-              (sin(frame / 102 + 4.5) + sin(frame / 133)) / 2, // even X
-              (sin(frame / 160 + 0.3) + sin(frame / 131)) / 2, // even Y
-              (sin(frame / 175 + 0.2) + sin(frame / 163)) / 2, // odd X
-              (sin(frame / 130 + 2.35) + sin(frame / 127)) / 2, // odd Y
-              frame & 1 != 0, // flip
-            );
-        var newPalette = _randomPartialFade(
-          frame,
-          _blackPalette,
-          _blueOrangePalette,
-        );
-        f << newPalette;
-      };
+          f <<
+              interference.frame(
+                (sin(frame / 102 + 4.5) + sin(frame / 133)) / 2, // even X
+                (sin(frame / 160 + 0.3) + sin(frame / 131)) / 2, // even Y
+                (sin(frame / 175 + 0.2) + sin(frame / 163)) / 2, // odd X
+                (sin(frame / 130 + 2.35) + sin(frame / 127)) / 2, // odd Y
+                frame & 1 != 0, // flip
+              );
+          var newPalette = _randomPartialFade(
+            frame,
+            _blackPalette,
+            _blueOrangePalette,
+          );
+          f << newPalette;
+        };
   }
 }

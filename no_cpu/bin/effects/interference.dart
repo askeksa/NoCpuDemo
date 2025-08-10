@@ -106,13 +106,16 @@ class InterferenceFrame implements CopperComponent {
     var oddX = (_oddXf * 160 * 4 + 160 * 4).toInt();
     var oddY = (_oddYf * 90 + 90).toInt();
 
-    return Display()
+    var display = Display()
+      ..alignment = 1
       ..oddHorizontalScroll = oddX
       ..oddVerticalScroll = oddY
       ..oddFlip = _flip
       ..evenHorizontalScroll = evenX
       ..evenVerticalScroll = evenY
       ..evenFlip = _flip;
+
+    return display;
   }
 
   InterferenceFrame(

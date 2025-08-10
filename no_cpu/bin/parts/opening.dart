@@ -1,10 +1,12 @@
 import 'dart:math';
 
+import 'package:collection/collection.dart';
 import 'package:no_cpu/no_cpu.dart';
 
 import '../base.dart';
 import '../main.dart';
 import '../effects/transition.dart';
+import '../effects/interference.dart';
 
 mixin Opening on NoCpuDemoBase {
   late IlbmImage logoImage = IlbmImage.fromFile(
@@ -14,6 +16,83 @@ mixin Opening on NoCpuDemoBase {
   late IlbmImage oneBullyImage = IlbmImage.fromFile(
     "$assetsPath/ONE BULLY2.iff",
   );
+
+  late final _interferencePalette = List.generate(16, (i) {
+    double f = i / 16;
+    double component(double f) => sin(f * 2 * pi) * 0.5 + 0.5;
+    return Color.hsl(
+      component(f) * 0.17 + 0.7,
+      component(f) * 0.2 + 0.3,
+      component(f * 2) * 0.15 + 0.1,
+    );
+  });
+
+  final _blackPalette = Palette.generateRange(0, 128, (i) => Color.black);
+
+  final _paletteIndices = List<int>.generate(128, (i) => i).shuffled();
+
+  Palette _randomPartialFade(
+    int frame,
+    Palette srcPalette,
+    Palette destPalette,
+  ) {
+    final fadeSteps = 39; // how many frames fading one color takes
+    final fadeSpeed = 3; //
+    assert(
+      fadeSteps % fadeSpeed == 0,
+      "fadeSteps must be a multiple of fadeSpeed",
+    );
+
+    var newPalette = Palette.empty();
+    var lastIndex = frame * fadeSpeed;
+    var firstIndex = lastIndex - fadeSteps;
+
+    for (int i = 0; i < fadeSpeed; i++) {
+      int index = firstIndex - fadeSpeed + i;
+      if (index > 0 && index < _paletteIndices.length) {
+        int paletteIndex = _paletteIndices[index];
+        newPalette[paletteIndex] = destPalette[paletteIndex];
+      }
+    }
+
+    // Fade [fadeSteps] colors before [lastIndex]
+    for (int step = 0; step <= fadeSteps; step++) {
+      var index = lastIndex - step;
+
+      if (index >= 0 && index < _paletteIndices.length) {
+        int paletteIndex = _paletteIndices[index];
+        var color = srcPalette[paletteIndex].interpolate(
+          destPalette[paletteIndex],
+          step / fadeSteps,
+        );
+        newPalette[paletteIndex] = color;
+      }
+    }
+
+    return newPalette;
+  }
+
+  // Generate a palette suitable for the interference effect.
+  // The generator function should return a Color object for each color index up to and including the maximum index
+  static Palette _generatePalette(
+    Color Function(int index, int maxIndex) generator,
+  ) {
+    var colors = List.generate(16, (i) => generator(i, 15));
+
+    return Palette.generateRange(0, 256, (i) {
+      int evenColor =
+          ((i & 0x40) >> 3) |
+          ((i & 0x10) >> 2) |
+          ((i & 0x04) >> 1) |
+          (i & 0x01);
+      int oddColor = ((i & 0x20) >> 3) | ((i & 0x08) >> 2) | ((i & 0x02) >> 1);
+
+      return colors[((oddColor << 1) + evenColor) & 15];
+    });
+  }
+
+  static Palette _generatePaletteFromList(List<Color> palette) =>
+      _generatePalette((index, _) => palette[index]);
 
   void ratingCard(int P) {
     var image = IlbmImage.fromFile("$assetsPath/Folcka_NO CPU WARNING.iff");
@@ -31,6 +110,7 @@ mixin Opening on NoCpuDemoBase {
     lx2 += 77;
     ly2 += 77;
 
+    logo2 = logo2.crop(w: 192);
     var logoSprite1 = SpriteGroup.space(
       logo1.width,
       logo1.height,
@@ -68,6 +148,13 @@ mixin Opening on NoCpuDemoBase {
       }
     }
 
+    var interference = Interference();
+    var interferencePalette = _generatePaletteFromList(_interferencePalette);
+    var fadePalettes = List.generate(
+      85,
+      (i) => _randomPartialFade(i, _blackPalette, interferencePalette),
+    );
+
     for (int p = 0; p < 4; p++) {
       F(P, 0, -1) << logoSprite1.blit(p);
       F(P, 0, -1) << logoSprite2.blit(p);
@@ -76,11 +163,40 @@ mixin Opening on NoCpuDemoBase {
     F(P, 0, -1) << logoSprite2.updatePosition(h: 0x200 + lx2 * 4, v: 82 + ly2);
     F(P, 0, -1) << logoSprite2.updateTerminator();
     F(P, 0) << pal;
-    F(P, 0) - (P + 2, 0, -1) >>
-        (Display()
-          ..setBitmap(Bitmap.blank(320, 180, 1)) // TODO: interference
-          ..sprites = logoSprite1.labels
-          ..spriteColorOffset = 240);
+    F(P, 0) - (P + 2, 0, -1) |
+        (frame, copper) {
+          copper <<
+              (interference
+                  .frame(
+                    (sin(frame / 102 + 4.5) + sin(frame / 133)) / 2, // even X
+                    (sin(frame / 160 + 0.3) + sin(frame / 131)) / 2, // even Y
+                    (sin(frame / 175 + 0.2) + sin(frame / 163)) / 2, // odd X
+                    (sin(frame / 130 + 2.35) + sin(frame / 127)) / 2, // odd Y
+                    frame & 1 != 0, // flip
+                  )
+                  .display
+                ..alignment = 1
+                ..priority = 4
+                ..sprites = logoSprite1.labels
+                ..spriteColorOffset = 240);
+        };
+
+    F(P, 0, 0) << _blackPalette.sub(0, 127);
+
+    F(P, 0, 1) - fadePalettes.length ^
+        (frame, copper) {
+          if (frame >= 0 && frame < fadePalettes.length) {
+            copper << fadePalettes[frame];
+          }
+        };
+
+    F(P + 2, 0, -fadePalettes.length - 1) - fadePalettes.length ^
+        (frame, copper) {
+          if (frame >= 0 && frame < fadePalettes.length) {
+            copper << fadePalettes[fadePalettes.length - 1 - frame];
+          }
+        };
+
     F(P, 32) - 128 ^ blitToSprite;
     F(P, 32, -1) - 128 | (i, copper) => copper << trans.run(i, inverse: true);
     F(P + 1, 32) - 128 ^ blitToSprite;
