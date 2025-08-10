@@ -36,7 +36,8 @@ class NoCpuDemoBase extends MusicDemoBase {
       .transform((_, _, p) => p > 0 && p < 58 || p >= 97 ? 1 : 0, depth: 1)
       .crop(h: 180);
 
-  NoCpuDemoBase() : super.withProtrackerFile("$assetsPath/keines cpu1.11.mod") {
+  NoCpuDemoBase()
+    : super.withProtrackerFile("$assetsPath/keines cpu1.12-ohne.mod") {
     startFrame = music.getTimestamp(startPattern, 0);
   }
 
