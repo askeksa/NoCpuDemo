@@ -6,6 +6,7 @@ import 'parts/opening.dart';
 import 'parts/bully.dart';
 import 'parts/rebels.dart';
 import 'parts/check.dart';
+import 'parts/credits.dart';
 import 'parts/life.dart';
 
 class NoCpuDemoBase extends MusicDemoBase {
@@ -25,18 +26,15 @@ class NoCpuDemoBase extends MusicDemoBase {
     "$assetsPath/!PAULA CYCLE DONE.iff",
   );
 
-  late Bitmap aliceMask = alice.bitmap.transform(
-    (x, y, p) => p == 0 ? 0 : 1,
-    depth: 1,
-  );
-  late Bitmap lisaMask = lisa.bitmap.transform(
-    (x, y, p) => p == 0 ? 0 : 1,
-    depth: 1,
-  );
-  late Bitmap paulaMask = paula.bitmap.transform(
-    (x, y, p) => p == 0 ? 0 : 1,
-    depth: 1,
-  );
+  late Bitmap aliceMask = alice.bitmap
+      .transform((_, _, p) => p > 0 && p < 88 ? 1 : 0, depth: 1)
+      .crop(h: 180);
+  late Bitmap lisaMask = lisa.bitmap
+      .transform((_, _, p) => p > 0 && p < 88 ? 1 : 0, depth: 1)
+      .crop(h: 180);
+  late Bitmap paulaMask = paula.bitmap
+      .transform((_, _, p) => p > 0 && p < 58 ? 1 : 0, depth: 1)
+      .crop(h: 180);
 
   NoCpuDemoBase() : super.withProtrackerFile("$assetsPath/keines cpu1.11.mod") {
     startFrame = music.getTimestamp(startPattern, 0);
@@ -67,7 +65,8 @@ class NoCpuDemoBase extends MusicDemoBase {
   }
 }
 
-class NoCpuDemo extends NoCpuDemoBase with Opening, Bully, Rebels, Check, Life {
+class NoCpuDemo extends NoCpuDemoBase
+    with Opening, Bully, Rebels, Check, Credits, Life {
   @override
   int get startPattern => 0;
 
@@ -82,6 +81,7 @@ class NoCpuDemo extends NoCpuDemoBase with Opening, Bully, Rebels, Check, Life {
     F(8, 0) << Palette.fromMap({0: aliceBg});
     rebels(9);
     check(18);
+    credits(22);
     life(26);
   }
 }
