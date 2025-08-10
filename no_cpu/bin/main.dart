@@ -9,6 +9,8 @@ import 'parts/check.dart';
 import 'parts/life.dart';
 
 class NoCpuDemoBase extends MusicDemoBase {
+  int get startPattern => 0;
+
   late Color afterCardColor = Color.rgb24(0x000000);
   late Color oneBullyTransColor = Color.rgb24(0x000000);
   late Color bullyTransColor = Color.rgb24(0x000000);
@@ -37,7 +39,7 @@ class NoCpuDemoBase extends MusicDemoBase {
   );
 
   NoCpuDemoBase() : super.withProtrackerFile("$assetsPath/keines cpu1.11.mod") {
-    startFrame = music.getTimestamp(0, 0);
+    startFrame = music.getTimestamp(startPattern, 0);
   }
 
   void transition(
@@ -66,6 +68,9 @@ class NoCpuDemoBase extends MusicDemoBase {
 }
 
 class NoCpuDemo extends NoCpuDemoBase with Opening, Bully, Rebels, Check, Life {
+  @override
+  int get startPattern => 0;
+
   NoCpuDemo() : super() {
     initialCopper << spriteScreen.blit(1);
     initialCopper << spriteScreen.updatePosition(v: 82);

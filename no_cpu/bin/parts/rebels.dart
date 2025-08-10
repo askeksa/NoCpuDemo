@@ -246,19 +246,13 @@ mixin Rebels on NoCpuDemoBase {
         (34, 3, 0, 0),
         (35, 3, null, 0),
         (35, 4, 0, 0),
-        (36, 4, null, 0),
         (36, 3, 0, 0),
-        (37, 3, null, 0),
         (37, 2, 0, 0),
-        (38, 2, null, 0),
         (38, 0, 0, 0),
-        (40, 2, 0, 0),
-        (44, 3, 0, 0),
-        (48, 4, 0, 0),
-        (64, 0, null, 0),
-        (65, 2, null, 0),
-        (66, 3, null, 0),
-        (67, 4, null, 0),
+        (84, 4, null, 0),
+        (85, 3, null, 0),
+        (86, 2, null, 0),
+        (87, 0, null, 0),
         (88, 1, null, 0),
       ]) {
         if (t == tt * 6) aliceOffsets[i] = (x, y);
@@ -268,7 +262,18 @@ mixin Rebels on NoCpuDemoBase {
 
     List<(int?, int)> lisaOffsets = List.filled(5, (null, 0));
     List<(int?, int)> lisaOffsetsFun(int t) {
-      for (var (tt, i, x, y) in [(24, 2, 0, 0), (88, 2, null, 0)]) {
+      for (var (tt, i, x, y) in [
+        (24, 2, 0, 0),
+        (32, 0, 0, 0),
+        (34, 4, 0, 0),
+        (36, 1, 0, 0),
+        (38, 3, 0, 0),
+        (80, 0, null, 0),
+        (82, 4, null, 0),
+        (84, 1, null, 0),
+        (86, 3, null, 0),
+        (88, 2, null, 0),
+      ]) {
         if (t == tt * 6) lisaOffsets[i] = (x, y);
       }
       return lisaOffsets;
@@ -276,7 +281,18 @@ mixin Rebels on NoCpuDemoBase {
 
     List<(int?, int)> paulaOffsets = List.filled(5, (null, 0));
     List<(int?, int)> paulaOffsetsFun(int t) {
-      for (var (tt, i, x, y) in [(24, 1, 0, 0), (88, 1, null, 0)]) {
+      for (var (tt, i, x, y) in [
+        (24, 1, 0, 0),
+        (32, 0, 0, 0),
+        (40, 2, 0, 0),
+        (48, 3, 0, 0),
+        (56, 4, 0, 0),
+        (85, 4, null, 0),
+        (86, 3, null, 0),
+        (87, 2, null, 0),
+        (88, 1, null, 0),
+        (89, 0, null, 0),
+      ]) {
         if (t == tt * 6) paulaOffsets[i] = (x, y);
       }
       return paulaOffsets;
