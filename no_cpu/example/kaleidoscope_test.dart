@@ -15,7 +15,7 @@ class KaleidoscopeTest extends DemoBase {
     return (i, Color.hsl(0.3, 0.5, n / 2));
   });
 
-  KaleidoscopeTest() : super(102, loopFrame: 2) {
+  KaleidoscopeTest() : super(32, loopFrame: 2) {
     F(0, 0, 0) << _palette;
 
     F(0, 0, 0) - 1 |
@@ -23,7 +23,7 @@ class KaleidoscopeTest extends DemoBase {
           copper << _kaleidoscope.init(frame);
         });
 
-    F(0, 0, 2) - 99 |
+    F(0, 0, 2) - 29 |
         ((frame, copper) {
           copper >>
               (Display()
