@@ -68,6 +68,8 @@ class Display implements CopperComponent {
           evenVerticalScroll * bitmap.rowStride +
           horizontalBitmapOffset(evenHorizontalScroll),
     );
+
+    assert(evenStride == null && oddStride == null);
     stride = bitmap.rowStride;
   }
 
@@ -89,6 +91,8 @@ class Display implements CopperComponent {
           verticalScroll * bitmap.rowStride +
           horizontalBitmapOffset(horizontalScroll);
     });
+
+    assert(evenStride == null && oddStride == null);
     evenStride = evenBitmap.rowStride;
     oddStride = oddBitmap.rowStride;
   }

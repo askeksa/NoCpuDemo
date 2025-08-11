@@ -51,6 +51,12 @@ class Blit implements CopperComponent {
   /// Descending mode. Pointers and modulos are automatically adjusted.
   bool descending = false;
 
+  /// Exclusive fill. Descending mode is automatically enabled.
+  bool exclusiveFill = false;
+
+  /// Inclusive fill. Descending mode is automatically enabled.
+  bool inclusiveFill = false;
+
   /// Width (in words) and height (in rows) of the blit operation.
   /// Both default to 1.
   int? width, height;
@@ -70,6 +76,15 @@ class Blit implements CopperComponent {
   ///
   /// Defaults to `true` if the height of the blit is greater than 1.
   bool? emitModulos;
+
+  /// Line start coordinate.
+  (int, int)? lineStart;
+
+  /// Line end coordinate.
+  (int, int)? lineEnd;
+
+  /// Line texture.
+  int lineTexture = 0xFFFF;
 
   // Shorthands for setting multiple pointers.
   set abPtr(Label value) => aPtr = bPtr = value;
@@ -125,14 +140,92 @@ class Blit implements CopperComponent {
     int defaultLogic = (aInput ? A : 0) ^ (bInput ? B : 0) ^ (cInput ? C : 0);
     int minterms = (this.minterms ?? defaultLogic) & 0xFF;
     bool dependsOnA = (minterms >> 4) != (minterms & 0x0F);
+    bool drawLine = lineStart != null || lineEnd != null;
 
+    if (drawLine) {
+      assert(
+        lineStart != null && lineEnd != null,
+        "Both lineStart and lineEnd must be specified",
+      );
+
+      var (startX, startY) = lineStart!;
+      var (endX, endY) = lineEnd!;
+
+      if (startY == endY) {
+        return;
+      } else if (startY > endY) {
+        (startY, endY) = (endY, startY);
+        (startX, endX) = (endX, startX);
+      }
+
+      var startWord = (startY * dStride! + startX ~/ 8) & ~1;
+
+      var dy = endY - startY;
+      var dx = endX - startX;
+
+      var octant = 0;
+
+      if (dx < 0) {
+        dx = -dx;
+        octant = 2;
+      }
+
+      if (dx >= 2 * dy) {
+        dy -= 1;
+      }
+
+      if (dy - dx <= 0) {
+        (dx, dy) = (dy, dx);
+        octant += 1;
+      }
+      octant <<= 1;
+
+      var twoDxMinusDy = 2 * dx - dy;
+      if (twoDxMinusDy < 0) {
+        octant += 1;
+      }
+
+      var octants = [0x03, 0x43, 0x13, 0x53, 0x0B, 0x4B, 0x17, 0x57];
+      var bltcon0 = ((startX & 0xF) << 12) | 0x0A4A;
+      var bltcon1 = octants[octant & 0xF];
+
+      var bltaptl = twoDxMinusDy;
+      var bltamod = 2 * (twoDxMinusDy - dy); // 2*dx-2*dy
+      var bltbmod = 4 * dx;
+      var bltsizv = dy;
+
+      copper.waitBlit();
+      copper.move(BLTCMOD, dStride!);
+      copper.move(BLTDMOD, dStride!);
+      copper.move(BLTADAT, 0x8000);
+      copper.move(BLTBDAT, lineTexture);
+      copper.move(BLTAFWM, aFWM);
+      copper.move(BLTALWM, aLWM);
+      copper.move(BLTAPTL, bltaptl);
+      copper.move(BLTCON0, bltcon0);
+      copper.move(BLTCON1, bltcon1);
+      copper.ptr(BLTCPT, dPtr! + startWord);
+      copper.ptr(BLTDPT, dPtr! + startWord);
+      copper.move(BLTBMOD, bltbmod);
+      copper.move(BLTAMOD, bltamod);
+
+      if (bltsizv < 1024) {
+        copper.move(BLTSIZE, (bltsizv << 6) | 2);
+      } else {
+        copper.move(BLTSIZV, bltsizv);
+        copper.move(BLTSIZH, 2);
+      }
+
+      return;
+    }
+    bool useDescending = exclusiveFill | inclusiveFill | descending;
     int width = this.width ?? 1;
     int height = this.height ?? 1;
 
-    int ptrOffset = descending ? width * 2 - 2 : 0;
+    int ptrOffset = useDescending ? width * 2 - 2 : 0;
     int stride2modulo(int? stride) {
       stride ??= width * 2;
-      return (descending ? -stride : stride) - width * 2;
+      return (useDescending ? -stride : stride) - width * 2;
     }
 
     bool emitMasks =
@@ -142,14 +235,18 @@ class Blit implements CopperComponent {
     bool emitModulos = this.emitModulos ?? height > 1;
 
     int bltcon0 = (aShift << 12) | (channelMask << 8) | minterms;
-    int bltcon1 = (bShift << 12) | (descending ? 0x0002 : 0);
+    int bltcon1 =
+        (bShift << 12) |
+        (exclusiveFill ? 0x0010 : 0) |
+        (inclusiveFill ? 0x0008 : 0) |
+        ((inclusiveFill | inclusiveFill | useDescending) ? 0x0002 : 0);
 
     copper.waitBlit();
     copper.move(BLTCON0, bltcon0);
     copper.move(BLTCON1, bltcon1);
     if (emitMasks) {
-      copper.move(BLTAFWM, descending ? aLWM : aFWM);
-      copper.move(BLTALWM, descending ? aFWM : aLWM);
+      copper.move(BLTAFWM, useDescending ? aLWM : aFWM);
+      copper.move(BLTALWM, useDescending ? aFWM : aLWM);
     }
     if (cPtr != null) copper.ptr(BLTCPT, cPtr! + ptrOffset);
     if (bPtr != null) copper.ptr(BLTBPT, bPtr! + ptrOffset);
