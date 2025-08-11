@@ -38,6 +38,8 @@ class Display implements CopperComponent {
   // Bitplane alignment, corresponding to the fetch mode.
   int alignment = 3;
 
+  int? _evenHeight, _oddHeight;
+
   set stride(int value) => oddStride = evenStride = value;
   set priority(int value) => oddPriority = evenPriority = value;
   set horizontalScroll(int value) =>
@@ -62,15 +64,13 @@ class Display implements CopperComponent {
     assert(evenVerticalScroll == oddVerticalScroll);
     bitplanes = List.generate(
       bitmap.depth,
-      (i) =>
-          bitmap.bitplanes +
-          i * bitmap.planeStride +
-          evenVerticalScroll * bitmap.rowStride +
-          horizontalBitmapOffset(evenHorizontalScroll),
+      (i) => bitmap.bitplanes + i * bitmap.planeStride,
     );
 
     assert(evenStride == null && oddStride == null);
     stride = bitmap.rowStride;
+
+    _evenHeight = _oddHeight = bitmap.height;
   }
 
   void setBitmaps(Bitmap evenBitmap, Bitmap oddBitmap) {
@@ -80,24 +80,18 @@ class Display implements CopperComponent {
     bitplanes = List.generate(evenBitmap.depth + oddBitmap.depth, (i) {
       int plane = i >> 1;
       Bitmap bitmap = i & 1 == 0 ? evenBitmap : oddBitmap;
-      int horizontalScroll = i & 1 == 0
-          ? evenHorizontalScroll
-          : oddHorizontalScroll;
-      int verticalScroll = i & 1 == 0
-          ? (evenFlip ? bitmap.height - evenVerticalScroll : evenVerticalScroll)
-          : (oddFlip ? bitmap.height - oddVerticalScroll : oddVerticalScroll);
-      return bitmap.bitplanes +
-          plane * bitmap.planeStride +
-          verticalScroll * bitmap.rowStride +
-          horizontalBitmapOffset(horizontalScroll);
+      return bitmap.bitplanes + plane * bitmap.planeStride;
     });
 
     assert(evenStride == null && oddStride == null);
     evenStride = evenBitmap.rowStride;
     oddStride = oddBitmap.rowStride;
+
+    _evenHeight = evenBitmap.height;
+    _oddHeight = oddBitmap.height;
   }
 
-  int horizontalBitmapOffset(int horizontalScroll) {
+  int _horizontalBitmapOffset(int horizontalScroll) {
     int pixelScroll = horizontalScroll & _pixelScrollMask;
     int wordScroll =
         (horizontalScroll & ~_pixelScrollMask) >> 6; // 64 shres pixels per word
@@ -116,6 +110,24 @@ class Display implements CopperComponent {
     int bytesPerRow = 40;
     int oddStride = this.oddStride ?? bytesPerRow;
     int evenStride = this.evenStride ?? bytesPerRow;
+
+    var bitplanes = List.generate(this.bitplanes.length, (i) {
+      bool even = i & 1 == 0;
+      var bitplane = this.bitplanes[i];
+
+      assert(!evenFlip || _evenHeight != null);
+      assert(!oddFlip || _oddHeight != null);
+
+      int horizontalScroll = even ? evenHorizontalScroll : oddHorizontalScroll;
+      int verticalScroll = even
+          ? (evenFlip ? _evenHeight! - evenVerticalScroll : evenVerticalScroll)
+          : (oddFlip ? _oddHeight! - oddVerticalScroll : oddVerticalScroll);
+      int stride = even ? evenStride : oddStride;
+      return bitplane +
+          verticalScroll * stride +
+          _horizontalBitmapOffset(horizontalScroll);
+    });
+
     int moduloAdjust = _hasPixelHScroll ? byteAlignment : 0;
 
     int ddfStart = _hasPixelHScroll ? 0x0038 - (8 << alignment - 1) : 0x0038;
