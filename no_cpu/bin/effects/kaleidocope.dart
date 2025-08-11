@@ -9,18 +9,6 @@ class Kaleidoscope {
   final Bitmap bitmap1 = Bitmap.space(320, 192, depth, interleaved: true);
   final Bitmap bitmap2 = Bitmap.space(320, 192, depth, interleaved: true);
 
-  final Bitmap _square1 = Bitmap.space(
-    Kaleidoscope.squareSize,
-    Kaleidoscope.squareSize,
-    1,
-  );
-
-  final Bitmap _square2 = Bitmap.space(
-    Kaleidoscope.squareSize,
-    Kaleidoscope.squareSize,
-    1,
-  );
-
   Bitmap frontForFrame(int frame) => frame & 1 != 0 ? bitmap2 : bitmap1;
   Bitmap backForFrame(int frame) => frame & 1 != 0 ? bitmap1 : bitmap2;
 
@@ -40,9 +28,6 @@ class KaleidoscopeFrame implements CopperComponent {
   Bitmap get _back => _kaleidoscope.backForFrame(_frame);
   Bitmap get _front => _kaleidoscope.frontForFrame(_frame);
 
-  Bitmap get _square1 => _kaleidoscope._square1;
-  Bitmap get _square2 => _kaleidoscope._square2;
-
   KaleidoscopeFrame(this._kaleidoscope, this._frame);
 
   @override
@@ -50,73 +35,60 @@ class KaleidoscopeFrame implements CopperComponent {
     copper ^
         (copper) {
           // Draw one square
-          void drawSquare(Bitmap bitmap, List<(int, int)> coords) {
-            copper << (Blit()..dSetBitplane(bitmap, 0));
-
+          void drawSquare(Bitmap bitmap, int x, List<(double, double)> coords) {
             for (int i = 0; i < coords.length; ++i) {
               copper <<
-                  (Blit()
-                    ..dPtr = bitmap.bitplanes
-                    ..dStride = bitmap.rowStride
-                    ..lineStart = coords[i]
-                    ..lineEnd = coords[(i + 1) % coords.length]);
+                  _drawLine(
+                    bitmap.bitplanes + x ~/ 8,
+                    coords[i],
+                    coords[(i + 1) % coords.length],
+                  );
             }
 
             copper <<
                 (Blit()
-                  ..aPtr = bitmap.bitplanes
-                  ..dPtr = bitmap.bitplanes
+                  ..aPtr = bitmap.bitplanes + x ~/ 8
+                  ..dPtr = bitmap.bitplanes + x ~/ 8
                   ..aStride = bitmap.rowStride
                   ..dStride = bitmap.rowStride
                   ..exclusiveFill = true
-                  ..width = bitmap.width >> 4
-                  ..height = bitmap.height);
+                  ..width = Kaleidoscope.squareSize >> 4
+                  ..height = Kaleidoscope.squareSize);
           }
 
-          //
+          // Clear the first two squares
+          copper <<
+              (Blit()
+                ..dPtr = _back.bitplanes
+                ..dStride = _back.rowStride
+                ..width = Kaleidoscope.squareSize * 2
+                ..height = Kaleidoscope.squareSize);
+
+          // Draw squares
           var center = Kaleidoscope.squareSize ~/ 2;
 
-          (int, int) coord(double angle) => (
-            (sin(angle) * (center - 1)).toInt() + center,
-            (cos(angle) * (center - 1)).toInt() + center,
+          (double, double) coord(double angle) => (
+            (sin(angle) * (center + 20)) + center,
+            (cos(angle) * (center + 20)) + center,
           );
 
           var angle = _frame / 90 * (2 * pi);
           var coords = List.generate(3, (i) => coord(angle + 2 * pi * i / 3));
 
-          drawSquare(_square1, coords);
+          drawSquare(_back, 0, coords);
           drawSquare(
-            _square2,
+            _back,
+            Kaleidoscope.squareSize,
             coords
-                .map<(int, int)>(
+                .map<(double, double)>(
                   (coord) => (Kaleidoscope.squareSize - coord.$1, coord.$2),
                 )
                 .toList(),
           );
 
-          // Copy to back buffer
+          // Fill back buffer with squares
           copper ^
               (copper) {
-                // Copy square1 to first column
-                copper <<
-                    (Blit()
-                      ..aPtr = _square1.bitplanes
-                      ..aStride = _square1.rowStride
-                      ..dPtr = _back.bitplanes
-                      ..dStride = _back.planeStride
-                      ..width = _square1.width >> 4
-                      ..height = _square1.height);
-
-                // Copy square2 to second column
-                copper <<
-                    (Blit()
-                      ..aPtr = _square2.bitplanes
-                      ..aStride = _square2.rowStride
-                      ..dPtr = _back.bitplanes + Kaleidoscope.squareSize ~/ 8
-                      ..dStride = _back.planeStride
-                      ..width = _square2.width >> 4
-                      ..height = _square2.height);
-
                 // Copy column 1 and 2 to 3, 4, and 5
                 copper <<
                     (Blit()
@@ -153,6 +125,77 @@ class KaleidoscopeFrame implements CopperComponent {
                       ..height = (Kaleidoscope.squareSize));
               };
         };
+  }
+
+  BlitList _drawLine(
+    Label bitplane,
+    (double, double) start,
+    (double, double) end,
+  ) {
+    var blits = BlitList([]);
+
+    // If outside right hand side, make it a vertical line
+    if (start.$1 >= Kaleidoscope.squareSize &&
+        end.$1 >= Kaleidoscope.squareSize) {
+      start = (Kaleidoscope.squareSize - 1, start.$2);
+      end = (Kaleidoscope.squareSize - 1, end.$2);
+    }
+    // Check if completely outside area (not the right hand side, as that requires a vertical line to be drawn in order to fill correctly)
+    if ((start.$2 < 0 && end.$2 < 0) ||
+        (start.$1 < 0 && end.$1 < 0) ||
+        (start.$2 >= Kaleidoscope.squareSize &&
+            end.$2 >= Kaleidoscope.squareSize)) {
+      return blits;
+    }
+    // Turn top to bottom
+    if (start.$2 > end.$2) {
+      (start, end) = (end, start);
+    }
+    double getXAtY(double atY) =>
+        (end.$1 - start.$1) * (atY - start.$2) / (end.$2 - start.$2) + start.$1;
+    if (start.$2 < 0) {
+      start = (getXAtY(0), 0);
+    }
+    if (end.$2 >= Kaleidoscope.squareSize) {
+      end = (
+        getXAtY(Kaleidoscope.squareSize.toDouble()),
+        Kaleidoscope.squareSize.toDouble(),
+      );
+    }
+    // Turn left to right
+    if (start.$1 > end.$1) {
+      (start, end) = (end, start);
+    }
+    double getYAtX(double atX) =>
+        (end.$2 - start.$2) * (atX - start.$1) / (end.$1 - start.$1) + start.$2;
+
+    if (start.$1 < 0) {
+      start = (0, getYAtX(0));
+    }
+    if (end.$1 >= Kaleidoscope.squareSize) {
+      var newEndY = getYAtX(Kaleidoscope.squareSize.toDouble());
+      blits = _drawLine(
+        bitplane,
+        (Kaleidoscope.squareSize.toDouble(), end.$2),
+        (Kaleidoscope.squareSize.toDouble(), newEndY),
+      );
+      end = (Kaleidoscope.squareSize.toDouble(), newEndY);
+    }
+
+    return blits +
+        [
+          Blit()
+            ..dPtr = bitplane
+            ..dStride = _back.rowStride
+            ..lineStart = (
+              start.$1.toInt().clamp(0, Kaleidoscope.squareSize - 1),
+              start.$2.toInt(),
+            )
+            ..lineEnd = (
+              end.$1.toInt().clamp(0, Kaleidoscope.squareSize - 1),
+              end.$2.toInt(),
+            ),
+        ];
   }
 }
 

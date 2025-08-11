@@ -27,8 +27,8 @@ class KaleidoscopeTest extends DemoBase {
         ((frame, copper) {
           copper >>
               (Display()
-                ..setBitmap(_kaleidoscope.frontForFrame(frame))
-                ..verticalScroll = 8);
+                ..verticalScroll = 6
+                ..setBitmap(_kaleidoscope.frontForFrame(frame)));
 
           copper << _kaleidoscope.frame(frame);
         });
