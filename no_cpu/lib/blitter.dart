@@ -190,7 +190,7 @@ class Blit implements CopperComponent {
       var bltcon1 = octants[octant & 0xF];
 
       var bltaptl = twoDxMinusDy;
-      var bltamod = 2 * (twoDxMinusDy - dy); // 2*dx-2*dy
+      var bltamod = 2 * (twoDxMinusDy - dy);
       var bltbmod = 4 * dx;
       var bltsizv = dy;
 
