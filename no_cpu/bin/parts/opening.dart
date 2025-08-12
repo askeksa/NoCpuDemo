@@ -205,7 +205,7 @@ mixin Opening on NoCpuDemoBase {
   }
 
   void oneBully(int P) {
-    var image = oneBullyImage.bitmap.crop(h: 180);
+    var image = oneBullyImage.bitmap.crop(h: 180, depth: 6);
     var spritePalette1 = spriteScreen.palette(
       Palette.fromMap({1: oneBullyTransColor}),
       240,
@@ -221,7 +221,7 @@ mixin Opening on NoCpuDemoBase {
     });
 
     F(P, 0) << oneBullyImage.palette;
-    F(P, 0) - (P + 2, 0, -1) <<
+    F(P, 0) - (P + 2, 0, -1) >>
         (Display()
           ..setBitmap(image)
           ..sprites = spriteScreen.labels

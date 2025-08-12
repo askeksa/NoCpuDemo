@@ -166,51 +166,34 @@ mixin Rebels on NoCpuDemoBase {
       // Color cycling
       var range = image.colorRanges.single;
       int rangeSize = range.high - range.low + 1;
-      var rangeData = Data();
+      var rangeData = Data(mutability: Mutability.mutable);
       for (int i = range.low; i <= range.high; i++) {
         rangeData.addWord(image.palette[i].upper);
         rangeData.addWord(image.palette[i].lower);
       }
-      var rangePal = Space(rangeData.size);
-
-      CopperComponent setColors(int start, int count) {
-        return count == 0
-            ? AdHocCopperComponent((_) {})
-            : (Blit()
-                ..aData = 0xFFFF
-                ..aFWM = image.palette[0].upper
-                ..aLWM = image.palette[0].lower
-                ..dPtr = rangePal.label + start * 4
-                ..minterms = A
-                ..width = 2
-                ..height = count);
-      }
-
-      CopperComponent copyColors(int from, int to, int count) {
-        return count == 0
-            ? AdHocCopperComponent((_) {})
-            : (Blit()
-                ..aPtr = rangeData.label + from * 4
-                ..dPtr = rangePal.label + to * 4
-                ..width = 2
-                ..height = count);
+      var rangeLabel = rangeData.addLabel();
+      for (int i = range.low; i <= range.high; i++) {
+        rangeData.addWord(image.palette[0].upper);
+        rangeData.addWord(image.palette[0].lower);
       }
 
       F(p, 0) - (p + 2, 0, -61) ^
           (i, f) {
             if (i % rate == 0) {
-              int n = i ~/ rate;
-              if (n < rangeSize) {
-                f << copyColors(rangeSize - n, 0, n);
-                f << setColors(n, rangeSize - n);
-              } else {
-                f << copyColors((rangeSize - n) % rangeSize, 0, n % rangeSize);
-                f << copyColors(0, n % rangeSize, rangeSize - n % rangeSize);
-              }
+              f <<
+                  (Blit()
+                    ..descending = true
+                    ..aPtr = rangeData.label
+                    ..dPtr = rangeData.label + 4
+                    ..width = (2 * rangeSize - 1) * 2);
+              f <<
+                  (Blit()
+                    ..aPtr = rangeLabel
+                    ..dPtr = rangeData.label
+                    ..width = 2);
+              f << DynamicPalette(rangeLabel, range.low, rangeSize);
             }
           };
-      F(p, 0) - (p + 2, 0, -61) >>
-          DynamicPalette(rangePal.label, range.low, rangeSize);
 
       // Word cloud
       F(p, 0) - (p + 1, 32, -2) >>
