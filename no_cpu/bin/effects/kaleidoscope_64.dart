@@ -47,6 +47,39 @@ class KaleidoscopeFrame implements CopperComponent {
 
   KaleidoscopeFrame(this._kaleidoscope, this._frame);
 
+  (double, double) rotate((double, double) coord, double angle) => (
+    coord.$1 * cos(angle) - coord.$2 * sin(angle),
+    coord.$1 * sin(angle) + coord.$2 * cos(angle),
+  );
+
+  (double, double) center((double, double) coord) => (
+    coord.$1 + Kaleidoscope.squareSize ~/ 2,
+    coord.$2 + Kaleidoscope.squareSize ~/ 2,
+  );
+
+  List<(double, double)> triangleCoords() {
+    var angle = -_frame / 128 * (2 * pi);
+    var center = Kaleidoscope.squareSize / 2;
+
+    (double, double) coord(double angle) => (
+      (sin(angle) * (center + 20)) + center,
+      (cos(angle) * (center + 20)) + center,
+    );
+
+    return List.generate(3, (i) => coord(angle + 2 * pi * i / 3));
+  }
+
+  List<(double, double)> barCoords() {
+    var angle = -_frame / 128 * (2 * pi);
+
+    var coords = [(-10.0, -50.0), (10.0, -50.0), (10.0, 50.0), (-10.0, 50.0)];
+
+    return coords
+        .map((e) => rotate((e.$1 - 20, e.$2), angle))
+        .map(center)
+        .toList();
+  }
+
   @override
   void addToCopper(Copper copper) {
     copper ^
@@ -61,24 +94,39 @@ class KaleidoscopeFrame implements CopperComponent {
           }
 
           // Calculate pattern
-          var center = Kaleidoscope.squareSize ~/ 2;
+          List<(double, double)> mirrorShape(List<(double, double)> shape) =>
+              shape
+                  .map<(double, double)>(
+                    (coord) => (Kaleidoscope.squareSize - coord.$1, coord.$2),
+                  )
+                  .toList();
 
-          (double, double) coord(double angle) => (
-            (sin(angle) * (center + 20)) + center,
-            (cos(angle) * (center + 20)) + center,
-          );
-
-          var angle = _frame / 90 * (2 * pi);
-          var coords = List.generate(3, (i) => coord(angle + 2 * pi * i / 3));
-          var mirroredCoords = coords
-              .map<(double, double)>(
-                (coord) => (Kaleidoscope.squareSize - coord.$1, coord.$2),
-              )
-              .toList();
+          var shapes = [triangleCoords(), barCoords()];
+          var mirroredShapes = shapes.map(mirrorShape).toList();
 
           // Draw shapes
-          drawSquare(copper, _back.column1.bitmap, coords);
-          drawSquare(copper, _back.column2.bitmap, mirroredCoords);
+          for (int s = 0; s <= 1; ++s) {
+            drawSquare(
+              copper,
+              _back.column1.bitmap.bitplanes + s * 8,
+              _back.column1.bitmap.rowStride,
+              shapes[s],
+            );
+            drawSquare(
+              copper,
+              _back.column2.bitmap.bitplanes + s * 8,
+              _back.column2.bitmap.rowStride,
+              mirroredShapes[s],
+            );
+            /*
+            drawSquare(
+              copper,
+              _back.column1.bitmap.bitplanes + 8,
+              _back.column1.bitmap.rowStride,
+              mirroredShapes[s],
+            );
+            */
+          }
 
           // Fill back buffer with squares
           copper ^
@@ -201,12 +249,17 @@ class KaleidoscopeFrame implements CopperComponent {
   }
 
   // Draw one square
-  void drawSquare(Copper copper, Bitmap bitmap, List<(double, double)> coords) {
+  void drawSquare(
+    Copper copper,
+    Label bitplanes,
+    int rowStride,
+    List<(double, double)> coords,
+  ) {
     for (int i = 0; i < coords.length; ++i) {
       copper <<
           _drawLine(
-            bitmap.bitplanes,
-            bitmap.rowStride,
+            bitplanes,
+            rowStride,
             coords[i],
             coords[(i + 1) % coords.length],
           );
@@ -214,10 +267,10 @@ class KaleidoscopeFrame implements CopperComponent {
 
     copper <<
         (Blit()
-          ..aPtr = bitmap.bitplanes
-          ..dPtr = bitmap.bitplanes
-          ..aStride = bitmap.rowStride
-          ..dStride = bitmap.rowStride
+          ..aPtr = bitplanes
+          ..dPtr = bitplanes
+          ..aStride = rowStride
+          ..dStride = rowStride
           ..exclusiveFill = true
           ..width = Kaleidoscope.squareSize >> 4
           ..height = Kaleidoscope.squareSize);
