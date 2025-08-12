@@ -145,8 +145,13 @@ class Sprite {
     (label + 8).setWord(ctlReg);
   }
 
-  Blit updatePosition({required int v, int h = 0x200}) {
-    var (posReg, ctlReg) = spriteControlWords(v, h, height, attached);
+  Blit updatePosition({required int v, int h = 0x200, int? height}) {
+    var (posReg, ctlReg) = spriteControlWords(
+      v,
+      h,
+      height ?? this.height,
+      attached,
+    );
     Data data = Data.fromWords([
       posReg,
       ctlReg,

@@ -2,15 +2,32 @@ import 'dart:math';
 
 import 'package:no_cpu/no_cpu.dart';
 
+class KaleidoscopeSpriteSet {
+  late final Sprite column1 = Sprite.space(3 * Kaleidoscope.squareSize);
+  late final Sprite column2 = Sprite.space(3 * Kaleidoscope.squareSize);
+  late final Sprite column3 = Sprite.space(1);
+  late final Sprite column4 = Sprite.space(1);
+  late final Sprite column5 = Sprite.space(1);
+
+  late final columns = [column1, column2, column3, column4, column5];
+}
+
 class Kaleidoscope {
-  static final int depth = 1;
+  static final int depth = 2;
   static final int squareSize = 64;
 
-  final Bitmap bitmap1 = Bitmap.space(320, 192, depth, interleaved: true);
-  final Bitmap bitmap2 = Bitmap.space(320, 192, depth, interleaved: true);
+  final sprites1 = KaleidoscopeSpriteSet();
+  final sprites2 = KaleidoscopeSpriteSet();
 
-  Bitmap frontForFrame(int frame) => frame & 1 != 0 ? bitmap2 : bitmap1;
-  Bitmap backForFrame(int frame) => frame & 1 != 0 ? bitmap1 : bitmap2;
+  Display displayForFrame(int frame) {
+    var front = frontForFrame(frame);
+    return Display()..sprites = front.columns.map((e) => e.label).toList();
+  }
+
+  KaleidoscopeSpriteSet frontForFrame(int frame) =>
+      frame & 1 != 0 ? sprites2 : sprites1;
+  KaleidoscopeSpriteSet backForFrame(int frame) =>
+      frame & 1 != 0 ? sprites1 : sprites2;
 
   KaleidoscopeFrame frame(int frame) {
     return KaleidoscopeFrame(this, frame);
@@ -25,8 +42,8 @@ class KaleidoscopeFrame implements CopperComponent {
   final Kaleidoscope _kaleidoscope;
   final int _frame;
 
-  Bitmap get _back => _kaleidoscope.backForFrame(_frame);
-  Bitmap get _front => _kaleidoscope.frontForFrame(_frame);
+  KaleidoscopeSpriteSet get _back => _kaleidoscope.backForFrame(_frame);
+  KaleidoscopeSpriteSet get _front => _kaleidoscope.frontForFrame(_frame);
 
   KaleidoscopeFrame(this._kaleidoscope, this._frame);
 
@@ -34,37 +51,16 @@ class KaleidoscopeFrame implements CopperComponent {
   void addToCopper(Copper copper) {
     copper ^
         (copper) {
-          // Draw one square
-          void drawSquare(Bitmap bitmap, int x, List<(double, double)> coords) {
-            for (int i = 0; i < coords.length; ++i) {
-              copper <<
-                  _drawLine(
-                    bitmap.bitplanes + x ~/ 8,
-                    coords[i],
-                    coords[(i + 1) % coords.length],
-                  );
-            }
-
+          // Clear the first two squares
+          for (int i = 0; i <= 1; ++i) {
             copper <<
-                (Blit()
-                  ..aPtr = bitmap.bitplanes + x ~/ 8
-                  ..dPtr = bitmap.bitplanes + x ~/ 8
-                  ..aStride = bitmap.rowStride
-                  ..dStride = bitmap.rowStride
-                  ..exclusiveFill = true
-                  ..width = Kaleidoscope.squareSize >> 4
-                  ..height = Kaleidoscope.squareSize);
+                (Blit()..dSetInterleaved(
+                  _back.columns[i].bitmap,
+                  h: Kaleidoscope.squareSize,
+                ));
           }
 
-          // Clear the first two squares
-          copper <<
-              (Blit()
-                ..dPtr = _back.bitplanes
-                ..dStride = _back.rowStride
-                ..width = Kaleidoscope.squareSize * 2
-                ..height = Kaleidoscope.squareSize);
-
-          // Draw squares
+          // Calculate pattern
           var center = Kaleidoscope.squareSize ~/ 2;
 
           (double, double) coord(double angle) => (
@@ -74,61 +70,60 @@ class KaleidoscopeFrame implements CopperComponent {
 
           var angle = _frame / 90 * (2 * pi);
           var coords = List.generate(3, (i) => coord(angle + 2 * pi * i / 3));
+          var mirroredCoords = coords
+              .map<(double, double)>(
+                (coord) => (Kaleidoscope.squareSize - coord.$1, coord.$2),
+              )
+              .toList();
 
-          drawSquare(_back, 0, coords);
-          drawSquare(
-            _back,
-            Kaleidoscope.squareSize,
-            coords
-                .map<(double, double)>(
-                  (coord) => (Kaleidoscope.squareSize - coord.$1, coord.$2),
-                )
-                .toList(),
-          );
+          // Draw shapes
+          drawSquare(copper, _back.column1.bitmap, coords);
+          drawSquare(copper, _back.column2.bitmap, mirroredCoords);
 
           // Fill back buffer with squares
           copper ^
               (copper) {
-                // Copy column 1 and 2 to 3, 4, and 5
-                copper <<
-                    (Blit()
-                      ..aPtr = _back.bitplanes
-                      ..aStride = _back.rowStride
-                      ..dPtr =
-                          _back.bitplanes + (Kaleidoscope.squareSize * 2) ~/ 8
-                      ..dStride = _back.planeStride
-                      ..width = (Kaleidoscope.squareSize * 3) >> 4
-                      ..height = (Kaleidoscope.squareSize));
-
-                // Copy mirrored row to second row
-                copper <<
-                    (Blit()
-                      ..aPtr = _back.bitplanes
-                      ..aStride = _back.rowStride
-                      ..dPtr =
-                          _back.bitplanes +
-                          ((Kaleidoscope.squareSize * 2 - 1) * _back.rowStride)
-                      ..dStride = -_back.planeStride
-                      ..width = (Kaleidoscope.squareSize * 5) >> 4
-                      ..height = (Kaleidoscope.squareSize));
-
-                // Copy row to third row
-                copper <<
-                    (Blit()
-                      ..aPtr = _back.bitplanes
-                      ..aStride = _back.rowStride
-                      ..dPtr =
-                          _back.bitplanes +
-                          ((Kaleidoscope.squareSize * 2) * _back.rowStride)
-                      ..dStride = _back.planeStride
-                      ..width = (Kaleidoscope.squareSize * 5) >> 4
-                      ..height = (Kaleidoscope.squareSize));
+                for (int i = 0; i <= 1; ++i) {
+                  fillSprite(i, copper);
+                }
+                copper.wait(v: 26);
+                copper.ptr(SPR2PT, _back.column1.bitmap.bitplanes);
+                copper.ptr(SPR3PT, _back.column2.bitmap.bitplanes);
+                copper.ptr(SPR4PT, _back.column1.bitmap.bitplanes);
               };
         };
   }
 
+  void fillSprite(int i, Copper copper) {
+    var bitmap = _back.columns[i].bitmap;
+
+    // Mirror first sprite square to next one down
+    copper <<
+        (Blit()
+          ..aPtr = bitmap.bitplanes
+          ..aStride = bitmap.rowStride
+          ..dPtr =
+              bitmap.bitplanes +
+              (Kaleidoscope.squareSize * 2 - 1) * bitmap.rowStride
+          ..dStride = -bitmap.rowStride
+          ..width = (bitmap.width * 2) >> 4
+          ..height = Kaleidoscope.squareSize);
+
+    // First sprite square to third row
+    copper <<
+        (Blit()
+          ..aPtr = bitmap.bitplanes
+          ..aStride = bitmap.bytesPerRow
+          ..dPtr =
+              bitmap.bitplanes + Kaleidoscope.squareSize * 2 * bitmap.rowStride
+          ..dStride = bitmap.bytesPerRow
+          ..width = bitmap.width >> 4
+          ..height = Kaleidoscope.squareSize * 2);
+  }
+
   BlitList _drawLine(
     Label bitplane,
+    int rowStride,
     (double, double) start,
     (double, double) end,
   ) {
@@ -140,6 +135,7 @@ class KaleidoscopeFrame implements CopperComponent {
       start = (Kaleidoscope.squareSize - 1, start.$2);
       end = (Kaleidoscope.squareSize - 1, end.$2);
     }
+
     // Check if completely outside area (not the right hand side, as that requires a vertical line to be drawn in order to fill correctly)
     if ((start.$2 < 0 && end.$2 < 0) ||
         (start.$1 < 0 && end.$1 < 0) ||
@@ -147,12 +143,15 @@ class KaleidoscopeFrame implements CopperComponent {
             end.$2 >= Kaleidoscope.squareSize)) {
       return blits;
     }
+
     // Turn top to bottom
     if (start.$2 > end.$2) {
       (start, end) = (end, start);
     }
+
     double getXAtY(double atY) =>
         (end.$1 - start.$1) * (atY - start.$2) / (end.$2 - start.$2) + start.$1;
+
     if (start.$2 < 0) {
       start = (getXAtY(0), 0);
     }
@@ -162,10 +161,12 @@ class KaleidoscopeFrame implements CopperComponent {
         Kaleidoscope.squareSize.toDouble(),
       );
     }
+
     // Turn left to right
     if (start.$1 > end.$1) {
       (start, end) = (end, start);
     }
+
     double getYAtX(double atX) =>
         (end.$2 - start.$2) * (atX - start.$1) / (end.$1 - start.$1) + start.$2;
 
@@ -176,6 +177,7 @@ class KaleidoscopeFrame implements CopperComponent {
       var newEndY = getYAtX(Kaleidoscope.squareSize.toDouble());
       blits = _drawLine(
         bitplane,
+        rowStride,
         (Kaleidoscope.squareSize.toDouble(), end.$2),
         (Kaleidoscope.squareSize.toDouble(), newEndY),
       );
@@ -186,7 +188,7 @@ class KaleidoscopeFrame implements CopperComponent {
         [
           Blit()
             ..dPtr = bitplane
-            ..dStride = _back.rowStride
+            ..dStride = rowStride
             ..lineStart = (
               start.$1.toInt().clamp(0, Kaleidoscope.squareSize - 1),
               start.$2.toInt(),
@@ -196,6 +198,29 @@ class KaleidoscopeFrame implements CopperComponent {
               end.$2.toInt(),
             ),
         ];
+  }
+
+  // Draw one square
+  void drawSquare(Copper copper, Bitmap bitmap, List<(double, double)> coords) {
+    for (int i = 0; i < coords.length; ++i) {
+      copper <<
+          _drawLine(
+            bitmap.bitplanes,
+            bitmap.rowStride,
+            coords[i],
+            coords[(i + 1) % coords.length],
+          );
+    }
+
+    copper <<
+        (Blit()
+          ..aPtr = bitmap.bitplanes
+          ..dPtr = bitmap.bitplanes
+          ..aStride = bitmap.rowStride
+          ..dStride = bitmap.rowStride
+          ..exclusiveFill = true
+          ..width = Kaleidoscope.squareSize >> 4
+          ..height = Kaleidoscope.squareSize);
   }
 }
 
@@ -209,15 +234,35 @@ class KaleidoscopeFrameInit implements CopperComponent {
   void addToCopper(Copper copper) {
     copper ^
         (copper) {
-          var bitmap = _frame == 0
-              ? _kaleidoscope.bitmap1
-              : _kaleidoscope.bitmap2;
-          copper <<
-              (Blit()
-                ..dPtr = bitmap.bitplanes
-                ..dStride = bitmap.planeStride
-                ..width = bitmap.width >> 4
-                ..height = bitmap.height);
+          void updateControlWords(Sprite sprite, int h, int height) {
+            copper <<
+                (sprite.updatePosition(
+                  h: 0x200 + h * 4,
+                  v: 82,
+                  height: height,
+                ));
+            copper << (sprite.updateTerminator());
+          }
+
+          void clearBitmapSprite(int h, Sprite sprite) {
+            copper <<
+                (Blit()
+                  ..dSetInterleaved(sprite.bitmap)
+                  ..aData = 0xFFFF);
+            updateControlWords(sprite, h, Kaleidoscope.squareSize * 3);
+          }
+
+          var back = _kaleidoscope.backForFrame(_frame);
+          for (int i = 0; i <= 1; ++i) {
+            clearBitmapSprite(Kaleidoscope.squareSize * i, back.columns[i]);
+          }
+          for (int i = 2; i <= 4; ++i) {
+            updateControlWords(
+              back.columns[i],
+              Kaleidoscope.squareSize * i,
+              Kaleidoscope.squareSize * 3,
+            );
+          }
         };
   }
 }

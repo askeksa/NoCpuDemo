@@ -9,11 +9,15 @@ main() {
 
 class KaleidoscopeTest extends DemoBase {
   final Kaleidoscope _kaleidoscope = Kaleidoscope();
+  final _blankBitmap = Bitmap.blank(320, 1, 1);
 
-  final Palette _palette = Palette.generate(1 << Kaleidoscope.depth, (i) {
-    double n = i / (1 << Kaleidoscope.depth);
-    return (i, Color.hsl(0.3, 0.5, n / 2));
-  });
+  final Palette _palette =
+      (Palette.generate(16, (i) {
+          double n = (i % 4) / 4;
+          return (i + 240, Color.hsl(0.3, 0.5, n / 2));
+        })
+        ..[0] = Color.black
+        ..[1] = Color.white);
 
   KaleidoscopeTest() : super(32, loopFrame: 2) {
     F(0, 0, 0) << _palette;
@@ -25,12 +29,20 @@ class KaleidoscopeTest extends DemoBase {
 
     F(0, 0, 2) - 29 |
         ((frame, copper) {
-          copper >>
-              (Display()
-                ..verticalScroll = 6
-                ..setBitmap(_kaleidoscope.frontForFrame(frame)));
+          //copper.move(BPLCON3, 0x000);
+          //copper.move(COLOR00, 0x000);
 
-          copper << _kaleidoscope.frame(frame);
+          var kaleidoscopeFrame = _kaleidoscope.frame(frame);
+
+          copper >>
+              (_kaleidoscope.displayForFrame(frame)
+                ..setBitmap(_blankBitmap)
+                ..spriteColorOffset = 240
+                ..evenStride = 0);
+
+          copper >> kaleidoscopeFrame;
+
+          //copper.move(COLOR00, 0xFFF);
         });
   }
 }
