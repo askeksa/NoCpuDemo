@@ -48,11 +48,12 @@ class NoCpuDemoBase extends MusicDemoBase {
     int end = 128,
     bool backward = false,
     bool inverse = false,
+    int rate = 1,
   }) {
     int frame = musicFrame(f);
     for (int i = 0; i <= end - start; i++) {
-      frames[frame + i] >> spriteScreen.blit(0, aBitmap: trans.result);
-      frames[frame + i - 1] <<
+      frames[frame + i * rate] >> spriteScreen.blit(0, aBitmap: trans.result);
+      frames[frame + i * rate - 1] <<
           trans.run(backward ? end - i : start + i, inverse: inverse);
     }
   }

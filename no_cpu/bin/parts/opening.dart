@@ -216,8 +216,8 @@ mixin Opening on NoCpuDemoBase {
     );
 
     var trans = Transition.generate(320, 180, (x, y) {
-      double d = y * 0.1 + x * 0.01;
-      return (5 + d.floor() * 5 - d * 4) * 3;
+      double d = atan2(42 + y, 257 - x) * 9;
+      return (5 + d.floor() * 5 - d * 4) * 5;
     });
 
     F(P, 0) << oneBullyImage.palette;
@@ -229,9 +229,9 @@ mixin Opening on NoCpuDemoBase {
           ..priority = 4);
 
     F(P, 0) << spritePalette1;
-    transition(trans, (P, 0));
+    transition(trans, (P, 0), rate: 2);
 
     F(P + 1, 32) << spritePalette2;
-    transition(trans, (P + 1, 32), backward: true);
+    transition(trans, (P + 1, 16), rate: 2, backward: true);
   }
 }
