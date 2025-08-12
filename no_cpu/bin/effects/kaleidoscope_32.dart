@@ -2,6 +2,41 @@ import 'dart:math';
 
 import 'package:no_cpu/no_cpu.dart';
 
+class PartialLineBlit implements CopperComponent {
+  final Label bitplane;
+  final int startWord; // BLTCPT, BLTDPT
+  final int bltaptl;
+  final int bltcon0;
+  final int bltcon1;
+  final int bltbmod;
+  final int bltamod;
+  final int bltsize;
+
+  PartialLineBlit(
+    this.bitplane,
+    this.startWord,
+    this.bltaptl,
+    this.bltcon0,
+    this.bltcon1,
+    this.bltbmod,
+    this.bltamod,
+    this.bltsize,
+  );
+
+  @override
+  void addToCopper(Copper copper) {
+    copper.waitBlit();
+    copper.low(BLTCPTL, bitplane + startWord);
+    copper.low(BLTDPTL, bitplane + startWord);
+    copper.move(BLTAPTL, bltaptl);
+    copper.move(BLTCON0, bltcon0);
+    copper.move(BLTCON1, bltcon1);
+    copper.move(BLTBMOD, bltbmod);
+    copper.move(BLTAMOD, bltamod);
+    copper.move(BLTSIZE, bltsize);
+  }
+}
+
 class KaleidoscopeSpriteSet {
   late final Sprite column1 = Sprite.space(6 * Kaleidoscope.squareSize);
   late final Sprite column2 = Sprite.space(1);
@@ -103,6 +138,17 @@ class KaleidoscopeFrame implements CopperComponent {
           var shapes = [triangleCoords(), barCoords()];
           var mirroredShapes = shapes.map(mirrorShape).toList();
 
+          // Prepare line draw
+          copper.waitBlit();
+          copper.move(BLTCMOD, _back.column1.bitmap.rowStride);
+          copper.move(BLTDMOD, _back.column1.bitmap.rowStride);
+          copper.move(BLTADAT, 0x8000);
+          copper.move(BLTBDAT, 0xFFFF);
+          copper.move(BLTAFWM, 0xFFFF);
+          copper.move(BLTALWM, 0xFFFF);
+          copper.high(BLTCPTH, _back.column1.bitmap.bitplanes);
+          copper.high(BLTDPTH, _back.column1.bitmap.bitplanes);
+
           // Draw shapes
           for (int s = 0; s < shapes.length; ++s) {
             drawSquare(
@@ -111,17 +157,53 @@ class KaleidoscopeFrame implements CopperComponent {
               _back.column1.bitmap.rowStride,
               shapes[s],
             );
+            /*
             drawSquare(
               copper,
               _back.column1.bitmap.bitplanes + s * 8 + 4,
               _back.column1.bitmap.rowStride,
               mirroredShapes[s],
             );
+            */
           }
 
           // Fill back buffer with squares
           copper ^
               (copper) {
+                // fill
+                for (int i = 0; i <= 0; ++i) {
+                  copper <<
+                      (Blit()
+                        ..aPtr = _back.column1.bitmap.bitplanes + i * 4
+                        ..dPtr = _back.column1.bitmap.bitplanes + i * 4
+                        ..aStride = _back.column1.bitmap.bytesPerRow
+                        ..dStride = _back.column1.bitmap.bytesPerRow
+                        ..exclusiveFill = true
+                        ..width = Kaleidoscope.squareSize >> 4
+                        ..height = Kaleidoscope.squareSize * 2);
+                }
+                // mirror square
+                for (int i = 0; i <= 31; ++i) {
+                  int srcByte = i ~/ 16 * 2;
+                  int destByte = srcByte + 2 - (i ~/ 8 * 2);
+                  int bit = i & 15;
+
+                  copper <<
+                      (Blit()
+                        ..aPtr = _back.column1.bitmap.bitplanes + srcByte
+                        ..aFWM = 0x8000 >> bit
+                        ..aLWM = 0
+                        ..aShift = 15 - 2 * bit
+                        ..cPtr = _back.column1.bitmap.bitplanes + 4 + destByte
+                        ..dPtr = _back.column1.bitmap.bitplanes + 4 + destByte
+                        ..aStride = _back.column1.bitmap.bytesPerRow
+                        ..cStride = _back.column1.bitmap.bytesPerRow
+                        ..dStride = _back.column1.bitmap.bytesPerRow
+                        ..width = 2
+                        ..minterms = A | C
+                        ..height = Kaleidoscope.squareSize * 2);
+                }
+                //
                 fillSprite(0, copper);
                 copper.wait(v: 26);
                 copper.ptr(SPR1PT, _back.column1.bitmap.bitplanes);
@@ -159,13 +241,13 @@ class KaleidoscopeFrame implements CopperComponent {
           ..height = bitmap.height - Kaleidoscope.squareSize * 2);
   }
 
-  BlitList _drawLine(
+  List<PartialLineBlit> _drawLine(
     Label bitplane,
     int rowStride,
     (double, double) start,
     (double, double) end,
   ) {
-    var blits = BlitList([]);
+    var blits = <PartialLineBlit>[];
 
     // Turn left to right
     if (start.$1 > end.$1) {
@@ -232,20 +314,21 @@ class KaleidoscopeFrame implements CopperComponent {
       );
     }
 
-    return blits +
-        [
-          Blit()
-            ..dPtr = bitplane
-            ..dStride = rowStride
-            ..lineStart = (
-              start.$1.toInt().clamp(0, Kaleidoscope.squareSize - 1),
-              start.$2.toInt(),
-            )
-            ..lineEnd = (
-              end.$1.toInt().clamp(0, Kaleidoscope.squareSize - 1),
-              end.$2.toInt(),
-            ),
-        ];
+    var blit = drawBlitterLine(
+      (
+        start.$1.toInt().clamp(0, Kaleidoscope.squareSize - 1),
+        start.$2.toInt(),
+      ),
+      (end.$1.toInt().clamp(0, Kaleidoscope.squareSize - 1), end.$2.toInt()),
+      rowStride,
+      bitplane,
+    );
+
+    if (blit != null) {
+      blits.add(blit);
+    }
+
+    return blits;
   }
 
   // Draw one square
@@ -256,24 +339,81 @@ class KaleidoscopeFrame implements CopperComponent {
     List<(double, double)> coords,
   ) {
     for (int i = 0; i < coords.length; ++i) {
-      copper <<
-          _drawLine(
-            bitplanes,
-            rowStride,
-            coords[i],
-            coords[(i + 1) % coords.length],
-          );
+      var components = _drawLine(
+        bitplanes,
+        rowStride,
+        coords[i],
+        coords[(i + 1) % coords.length],
+      );
+
+      for (var c in components) {
+        copper << c;
+      }
+    }
+  }
+
+  PartialLineBlit? drawBlitterLine(
+    (int, int) lineStart,
+    (int, int) lineEnd,
+    int dStride,
+    Label bitplane,
+  ) {
+    var (startX, startY) = lineStart;
+    var (endX, endY) = lineEnd;
+
+    if (startY == endY) {
+      return null;
+    } else if (startY > endY) {
+      (startY, endY) = (endY, startY);
+      (startX, endX) = (endX, startX);
     }
 
-    copper <<
-        (Blit()
-          ..aPtr = bitplanes
-          ..dPtr = bitplanes
-          ..aStride = rowStride
-          ..dStride = rowStride
-          ..exclusiveFill = true
-          ..width = Kaleidoscope.squareSize >> 4
-          ..height = Kaleidoscope.squareSize);
+    var startWord = (startY * dStride + startX ~/ 8) & ~1;
+
+    var dy = endY - startY;
+    var dx = endX - startX;
+
+    var octant = 0;
+
+    if (dx < 0) {
+      dx = -dx;
+      octant = 2;
+    }
+
+    if (dx >= 2 * dy) {
+      dy -= 1;
+    }
+
+    if (dy - dx <= 0) {
+      (dx, dy) = (dy, dx);
+      octant += 1;
+    }
+    octant <<= 1;
+
+    var twoDxMinusDy = 2 * dx - dy;
+    if (twoDxMinusDy < 0) {
+      octant += 1;
+    }
+
+    var octants = [0x03, 0x43, 0x13, 0x53, 0x0B, 0x4B, 0x17, 0x57];
+    var bltcon0 = ((startX & 0xF) << 12) | 0x0A4A;
+    var bltcon1 = octants[octant & 0xF];
+
+    var bltaptl = twoDxMinusDy;
+    var bltamod = 2 * (twoDxMinusDy - dy);
+    var bltbmod = 4 * dx;
+    var bltsizv = dy;
+
+    return PartialLineBlit(
+      bitplane,
+      startWord, // BLTCPT, BLTDPT
+      bltaptl,
+      bltcon0,
+      bltcon1,
+      bltbmod,
+      bltamod,
+      (bltsizv << 6) | 2,
+    );
   }
 }
 
