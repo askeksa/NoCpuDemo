@@ -3,7 +3,7 @@ import 'dart:math';
 import 'package:no_cpu/no_cpu.dart';
 
 class PartialLineBlit {
-  static final dataSize = 7 * 2;
+  static final dataSize = 6 * 2;
 
   final Label bitplane;
   final int startWord; // BLTCPT, BLTDPT
@@ -28,11 +28,10 @@ class PartialLineBlit {
   void addToData(Data data) {
     data.addLow(bitplane + startWord);
     data.addWord(bltaptl);
-    data.addWord(bltcon0);
-    data.addWord(bltcon1);
     data.addWord(bltbmod);
     data.addWord(bltamod);
     data.addWord(bltsize);
+    data.addWord((bltcon0 & 0xF000) | (bltcon1 & 0x007F));
   }
 
   static PartialLineBlit? draw(
@@ -147,10 +146,11 @@ class Kaleidoscope {
   final int frameSkip;
 
   late final _dummyLine = PartialLineBlit.draw(
-    (0, 32),
-    (0, 33),
+    (0, 0),
+    (0, 1),
     sprites.column1.bitmap.rowStride,
-    sprites.column1.bitmap.bitplanes,
+    sprites.column1.bitmap.bitplanes +
+        Kaleidoscope.squareSize * bitmap.rowStride,
   )!;
 
   Kaleidoscope(this.cycleLength, this.frameSkip);
@@ -375,6 +375,41 @@ class Kaleidoscope {
       ..width = 1
       ..height = Kaleidoscope.maxLinesPerSquare);
 
+    Blit blitCon0(int offset, Label ptr) => (Blit()
+      ..aPtr = temp.label + offset
+      ..aStride = PartialLineBlit.dataSize
+      ..aFWM = 0xF000
+      ..aLWM = 0xF000
+      ..cData = 0x0A4A
+      ..dPtr = ptr
+      ..dStride = lineDrawStart ^ lineDrawEnd
+      ..minterms = A | C
+      ..width = 1
+      ..height = Kaleidoscope.maxLinesPerSquare);
+
+    Blit blitCon1(int offset, Label ptr) => (Blit()
+      ..aPtr = temp.label + offset
+      ..aStride = PartialLineBlit.dataSize
+      ..aFWM = 0x007F
+      ..aLWM = 0x007F
+      ..dPtr = ptr
+      ..dStride = lineDrawStart ^ lineDrawEnd
+      ..width = 1
+      ..height = Kaleidoscope.maxLinesPerSquare);
+
+    Blit blitSize(int offset, Label ptr) => (Blit()
+      ..aPtr = temp.label + offset
+      ..aStride = PartialLineBlit.dataSize
+      ..aFWM = 0x0F80
+      ..aLWM = 0x0F80
+      ..aShift = 1
+      ..cData = 0x0002
+      ..dPtr = ptr
+      ..dStride = lineDrawStart ^ lineDrawEnd
+      ..minterms = A | C
+      ..width = 1
+      ..height = Kaleidoscope.maxLinesPerSquare);
+
     var blitCopper = Copper(mutability: Mutability.local);
     // Copy line data to temp
     blitCopper <<
@@ -390,11 +425,11 @@ class Kaleidoscope {
     blitCopper << blitWords(0, cptlPtr);
     blitCopper << blitWords(0, dptlPtr);
     blitCopper << blitWords(2, aptlPtr);
-    blitCopper << blitWords(4, con0Ptr);
-    blitCopper << blitWords(6, con1Ptr);
-    blitCopper << blitWords(8, bmodPtr);
-    blitCopper << blitWords(10, amodPtr);
-    blitCopper << blitWords(12, sizePtr);
+    blitCopper << blitWords(4, bmodPtr);
+    blitCopper << blitWords(6, amodPtr);
+    blitCopper << blitWords(8, sizePtr);
+    blitCopper << blitCon0(10, con0Ptr);
+    blitCopper << blitCon1(10, con1Ptr);
 
     blitCopper.call(effectCopper);
 
