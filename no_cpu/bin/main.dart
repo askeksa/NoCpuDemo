@@ -5,6 +5,7 @@ import 'effects/transition.dart';
 import 'parts/opening.dart';
 import 'parts/bully.dart';
 import 'parts/rebels.dart';
+import 'parts/together.dart';
 import 'parts/check.dart';
 import 'parts/credits.dart';
 import 'parts/life.dart';
@@ -15,6 +16,7 @@ class NoCpuDemoBase extends MusicDemoBase {
   late Color afterCardColor = Color.rgb24(0x000000);
   late Color oneBullyTransColor = Color.rgb24(0x000000);
   late Color bullyTransColor = Color.rgb24(0x000000);
+  late Color togetherColor = Color.rgb24(0x333333);
 
   SpriteGroup spriteScreen = SpriteGroup.space(320, 180);
 
@@ -60,15 +62,15 @@ class NoCpuDemoBase extends MusicDemoBase {
 
   CopperComponent blankDisplay([Color? color]) {
     color ??= Color.rgb24(0x000000);
-    return (Display()
+    return Palette.fromMap({0: color}) >>
+        (Display()
           ..setBitmap(Bitmap.blank(320, 1, 1))
-          ..stride = 0) +
-        Palette.fromMap({0: color, 1: color});
+          ..stride = 0);
   }
 }
 
 class NoCpuDemo extends NoCpuDemoBase
-    with Opening, Bully, Rebels, Check, Credits, Life {
+    with Opening, Bully, Rebels, Together, Check, Credits, Life {
   @override
   int get startPattern => 0;
 
@@ -82,6 +84,7 @@ class NoCpuDemo extends NoCpuDemoBase
     bully(6, bullyTransColor);
     F(8, 0) << Palette.fromMap({0: aliceBg});
     rebels(9);
+    together(15);
     check(18);
     credits(22);
     life(26);

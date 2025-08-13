@@ -37,7 +37,7 @@ mixin Rebels on NoCpuDemoBase {
   late Color aliceBg = alice.palette[0];
   late Color lisaBg = lisa.palette[0];
   late Color paulaBg = paula.palette[0];
-  late Color finalBg = Color.rgb24(0x000000);
+  late Color finalBg = togetherColor;
 
   Palette spritePal(Color color) =>
       spriteScreen.palette(Palette.fromMap({1: color}), 240);
@@ -285,6 +285,6 @@ mixin Rebels on NoCpuDemoBase {
     girl(P + 2, lisa, lisaWords, paulaBg, 1, true, 1, lisaOffsetsFun);
     girl(P + 4, paula, paulaWords, finalBg, -1, false, 3, paulaOffsetsFun);
 
-    F(P + 6, 0, -63) >> Display() << Palette.fromMap({0: finalBg});
+    F(P + 6, 0, -63) - (P + 6, 0, -49) << blankDisplay(finalBg);
   }
 }
