@@ -9,7 +9,17 @@ main() {
 
 class KaleidoscopeTest extends DemoBase {
   static final cycleLength = 128;
-  late final Kaleidoscope _kaleidoscope = Kaleidoscope(cycleLength, 2);
+  late final Kaleidoscope _kaleidoscope1 = Kaleidoscope(cycleLength, 2, 1, 0);
+  late final Kaleidoscope _kaleidoscope2 = Kaleidoscope(
+    cycleLength,
+    2,
+    2,
+    1,
+    reversePattern2: true,
+  );
+  late final Kaleidoscope _kaleidoscope3 = Kaleidoscope(cycleLength, 2, 0, 2);
+  late final _kaleidoscope = _kaleidoscope1;
+
   final _blankBitmap = Bitmap.blank(320, 1, 1);
 
   final _colors = [

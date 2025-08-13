@@ -12,7 +12,15 @@ mixin Credits on NoCpuDemoBase {
   static final Color flashColor = Color.rgb12(0xCCA);
   static final int flashDuration = 4;
 
-  late final Kaleidoscope kaleidoscope = Kaleidoscope(128, 2);
+  late final Kaleidoscope codeKaleidoscope = Kaleidoscope(128, 2, 1, 0);
+  late final Kaleidoscope graphicsKaleidoscope = Kaleidoscope(
+    128,
+    2,
+    2,
+    1,
+    reversePattern2: true,
+  );
+  late final Kaleidoscope musicKaleidoscope = Kaleidoscope(128, 2, 0, 2);
 
   static final IlbmImage codeImage = IlbmImage.fromFile(
     "$assetsPath/Credits code by.iff",
@@ -61,6 +69,7 @@ mixin Credits on NoCpuDemoBase {
   void credits(int P) {
     void girl(
       int p,
+      Kaleidoscope kaleidoscope,
       IlbmImage image,
       Bitmap mask,
       int dir,
@@ -230,12 +239,44 @@ mixin Credits on NoCpuDemoBase {
       return null;
     }
 
-    F(P, 0, -3) - 1 | (i, f) => f << kaleidoscope.init(i);
-    F(P, 0, -1) << kaleidoscope.frame(flashDuration);
+    F(P, 0, -3) - 1 | (i, f) => f << codeKaleidoscope.init(i);
+    F(P, 0, -1) << codeKaleidoscope.frame(flashDuration);
+    girl(
+      P,
+      codeKaleidoscope,
+      alice,
+      aliceMask,
+      -1,
+      codeImage,
+      codeWords,
+      codePlace,
+    );
 
-    girl(P, alice, aliceMask, -1, codeImage, codeWords, codePlace);
-    girl(P + 1, lisa, lisaMask, 1, graphicsImage, graphicsWords, graphicsPlace);
-    girl(P + 2, paula, paulaMask, -1, musicImage, musicWords, musicPlace);
+    F(P + 1, 0, -3) - 1 | (i, f) => f << graphicsKaleidoscope.init(i);
+    F(P + 1, 0, -1) << graphicsKaleidoscope.frame(flashDuration);
+    girl(
+      P + 1,
+      graphicsKaleidoscope,
+      lisa,
+      lisaMask,
+      1,
+      graphicsImage,
+      graphicsWords,
+      graphicsPlace,
+    );
+
+    F(P + 2, 0, -3) - 1 | (i, f) => f << musicKaleidoscope.init(i);
+    F(P + 2, 0, -1) << musicKaleidoscope.frame(flashDuration);
+    girl(
+      P + 2,
+      musicKaleidoscope,
+      paula,
+      paulaMask,
+      -1,
+      musicImage,
+      musicWords,
+      musicPlace,
+    );
 
     F(P + 3, 0, 0) - (flashDuration - 1) << blankDisplay(flashColor);
     F(P + 3, 0, flashDuration) - (P + 4, 0, -1) <<

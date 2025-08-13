@@ -129,7 +129,7 @@ class KaleidoscopeSpriteSet {
 class Kaleidoscope {
   static final depth = 2;
   static final squareSize = 32;
-  static final maxLinesPerSquare = 10;
+  static final maxLinesPerSquare = 11;
 
   late Space temp = Space(
     maxLinesPerSquare * PartialLineBlit.dataSize,
@@ -140,10 +140,14 @@ class Kaleidoscope {
 
   Bitmap get bitmap => sprites.column1.bitmap;
 
-  late final _effectCopper = _makeBlitCopper();
+  late final _effectCopper = _makeCopper();
 
   final int cycleLength;
   final int frameSkip;
+  final int pattern1;
+  final bool reversePattern1;
+  final int pattern2;
+  final bool reversePattern2;
 
   late final _dummyLine = PartialLineBlit.draw(
     (0, 0),
@@ -153,7 +157,14 @@ class Kaleidoscope {
         Kaleidoscope.squareSize * bitmap.rowStride,
   )!;
 
-  Kaleidoscope(this.cycleLength, this.frameSkip);
+  Kaleidoscope(
+    this.cycleLength,
+    this.frameSkip,
+    this.pattern1,
+    this.pattern2, {
+    this.reversePattern1 = false,
+    this.reversePattern2 = false,
+  });
 
   Display displayForFrame(int frame) {
     return Display()..sprites = sprites.columns.map((e) => e.label).toList();
@@ -164,14 +175,14 @@ class Kaleidoscope {
   }
 
   KaleidoscopeFrameInit init(int frame) {
-    return KaleidoscopeFrameInit(this, frame);
+    return KaleidoscopeFrameInit(this);
   }
 
   KaleidoscopeFrameFooter footer(int frame) {
     return KaleidoscopeFrameFooter(this);
   }
 
-  Copper _makeBlitCopper() {
+  Copper _makeCopper() {
     var effectCopper = Copper(mutability: Mutability.local);
 
     // Clear the first two squares
@@ -237,7 +248,7 @@ class Kaleidoscope {
     );
 
     void mirrorColumn(Label src, Label dest) {
-      // screen (src) 0000000011111111 to temp
+      // Screen (src) 0000000011111111 to temp
       effectCopper <<
           (Blit()
             ..aPtr = src
@@ -262,7 +273,7 @@ class Kaleidoscope {
             ..width = 1
             ..height = Kaleidoscope.squareSize * 2);
 
-      // temp 00001111 to screen (dest)
+      // Temp 0000111100001111 to screen (dest)
       effectCopper <<
           (Blit()
             ..aSetInterleaved(mirrorTemp)
@@ -288,7 +299,7 @@ class Kaleidoscope {
             ..width = 1
             ..height = Kaleidoscope.squareSize * 2);
 
-      // screen (dest) 0011 to temp
+      // Screen (dest) 0011001100110011 to temp
       effectCopper <<
           (Blit()
             ..aPtr = dest
@@ -313,7 +324,7 @@ class Kaleidoscope {
             ..width = 1
             ..height = Kaleidoscope.squareSize * 2);
 
-      // temp 0101 to screen
+      // Temp 0101010101010101 to screen
       effectCopper <<
           (Blit()
             ..aSetInterleaved(mirrorTemp)
@@ -366,7 +377,7 @@ class Kaleidoscope {
           ..width = (bitmap.width * 2) >> 4
           ..height = bitmap.height - Kaleidoscope.squareSize * 2);
 
-    // Blit copper
+    // Blit line drawing words into copperlist
     Blit blitWords(int offset, Label ptr) => (Blit()
       ..aPtr = temp.label + offset
       ..dPtr = ptr
@@ -394,19 +405,6 @@ class Kaleidoscope {
       ..aLWM = 0x007F
       ..dPtr = ptr
       ..dStride = lineDrawStart ^ lineDrawEnd
-      ..width = 1
-      ..height = Kaleidoscope.maxLinesPerSquare);
-
-    Blit blitSize(int offset, Label ptr) => (Blit()
-      ..aPtr = temp.label + offset
-      ..aStride = PartialLineBlit.dataSize
-      ..aFWM = 0x0F80
-      ..aLWM = 0x0F80
-      ..aShift = 1
-      ..cData = 0x0002
-      ..dPtr = ptr
-      ..dStride = lineDrawStart ^ lineDrawEnd
-      ..minterms = A | C
       ..width = 1
       ..height = Kaleidoscope.maxLinesPerSquare);
 
@@ -453,9 +451,24 @@ class KaleidoscopeFrame implements CopperComponent {
     coord.$2 + Kaleidoscope.squareSize ~/ 2,
   );
 
-  List<(double, double)> triangleCoords() {
-    var angle = -_frame / _kaleidoscope.cycleLength * (2 * pi);
+  List<(double, double)> diamondCoords(bool reverse) {
+    var angle = _frame / _kaleidoscope.cycleLength * (2 * pi) + 2;
+    if (reverse) {
+      angle = -angle;
+    }
+
+    var coords = [(-10.0, 0.0), (0.0, -20.0), (10.0, 0.0), (0.0, 20.0)];
+
+    return coords.map((e) => rotate((e.$1, e.$2), angle)).map(center).toList();
+  }
+
+  List<(double, double)> triangleCoords(bool reverse) {
+    var angle = _frame / _kaleidoscope.cycleLength * (2 * pi);
     var center = Kaleidoscope.squareSize / 2;
+
+    if (reverse) {
+      angle = -angle;
+    }
 
     (double, double) coord(double angle) => (
       (sin(angle) * (center * 1.5)) + center,
@@ -465,8 +478,11 @@ class KaleidoscopeFrame implements CopperComponent {
     return List.generate(3, (i) => coord(angle + 2 * pi * i / 3));
   }
 
-  List<(double, double)> barCoords() {
-    var angle = -_frame / _kaleidoscope.cycleLength * (2 * pi);
+  List<(double, double)> barCoords(bool reverse) {
+    var angle = _frame / _kaleidoscope.cycleLength * (2 * pi) + 1.0;
+    if (reverse) {
+      angle = -angle;
+    }
 
     var coords = [(-10.0, -50.0), (10.0, -50.0), (10.0, 50.0), (-10.0, 50.0)];
 
@@ -480,15 +496,19 @@ class KaleidoscopeFrame implements CopperComponent {
   void addToCopper(Copper copper) {
     // Draw shapes
     var blits = <PartialLineBlit>[];
-    var shapes = [triangleCoords(), barCoords()];
+    var shapes = [triangleCoords, barCoords, diamondCoords];
 
-    for (var (i, shape) in shapes.indexed) {
-      blits += drawSquare(
-        _kaleidoscope.bitmap.bitplanes + i * 8,
-        _kaleidoscope.bitmap.rowStride,
-        shape,
-      );
-    }
+    blits += drawSquare(
+      _kaleidoscope.bitmap.bitplanes + 0 * 8,
+      _kaleidoscope.bitmap.rowStride,
+      shapes[_kaleidoscope.pattern1](_kaleidoscope.reversePattern1),
+    );
+
+    blits += drawSquare(
+      _kaleidoscope.bitmap.bitplanes + 1 * 8,
+      _kaleidoscope.bitmap.rowStride,
+      shapes[_kaleidoscope.pattern2](_kaleidoscope.reversePattern2),
+    );
 
     for (int i = blits.length; i < Kaleidoscope.maxLinesPerSquare; ++i) {
       blits.add(_kaleidoscope._dummyLine);
@@ -619,9 +639,8 @@ class KaleidoscopeFrame implements CopperComponent {
 
 class KaleidoscopeFrameInit implements CopperComponent {
   final Kaleidoscope _kaleidoscope;
-  final int _frame;
 
-  KaleidoscopeFrameInit(this._kaleidoscope, this._frame);
+  KaleidoscopeFrameInit(this._kaleidoscope);
 
   @override
   void addToCopper(Copper copper) {

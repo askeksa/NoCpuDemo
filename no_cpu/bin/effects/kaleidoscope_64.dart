@@ -43,7 +43,6 @@ class KaleidoscopeFrame implements CopperComponent {
   final int _frame;
 
   KaleidoscopeSpriteSet get _back => _kaleidoscope.backForFrame(_frame);
-  KaleidoscopeSpriteSet get _front => _kaleidoscope.frontForFrame(_frame);
 
   KaleidoscopeFrame(this._kaleidoscope, this._frame);
 
