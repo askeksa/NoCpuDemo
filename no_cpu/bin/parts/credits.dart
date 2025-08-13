@@ -5,11 +5,14 @@ import 'package:no_cpu/no_cpu.dart';
 
 import '../base.dart';
 import '../main.dart';
+import '../effects/kaleidoscope_32.dart';
 import '../effects/transition.dart';
 
 mixin Credits on NoCpuDemoBase {
   static final Color flashColor = Color.rgb12(0xCCA);
   static final int flashDuration = 4;
+
+  late final Kaleidoscope kaleidoscope = Kaleidoscope(128, 2);
 
   static final IlbmImage codeImage = IlbmImage.fromFile(
     "$assetsPath/Credits code by.iff",
@@ -113,7 +116,14 @@ mixin Credits on NoCpuDemoBase {
         return placeWord(i, w);
       }
 
-      F(p, 0, flashDuration) << wordsImage.palette;
+      var pal = wordsImage.palette;
+      var bgPalette = Palette.generateRange(
+        241,
+        15,
+        (i) => pal[0] * (1.0 + ((i + 1) & 3) * 0.5),
+      );
+
+      F(p, 0, flashDuration) << (pal | bgPalette);
       F(p, 0, flashDuration) - (p + 1, 0, -1) |
           (i, f) {
             i += flashDuration;
@@ -121,7 +131,11 @@ mixin Credits on NoCpuDemoBase {
             f >>
                 (Display()
                   ..horizontalScroll = 320 * 4 + s * dir
-                  ..setBitmap(padded));
+                  ..setBitmap(padded)
+                  ..alignment = 2
+                  ..sprites = kaleidoscope.displayForFrame(i).sprites
+                  ..spriteColorOffset = 240
+                  ..priority = 0);
 
             var prev = [for (int w = 0; w < words.length; w++) place(i - 1, w)];
             var curr = [for (int w = 0; w < words.length; w++) place(i, w)];
@@ -150,9 +164,12 @@ mixin Credits on NoCpuDemoBase {
               }
             }
 
-            // TODO: Background effect here
+            f >> kaleidoscope.footer(i);
 
-            f.wait(v: 255);
+            f.wait(v: 82 + 32);
+            f << kaleidoscope.frame(i + 1);
+
+            f.wait(v: 222);
             for (int w = 0; w < words.length; w++) {
               if (curr[w] != null && curr[w] != next[w]) {
                 f >> blitWord(w, curr[w]!);
@@ -212,6 +229,9 @@ mixin Credits on NoCpuDemoBase {
       }
       return null;
     }
+
+    F(P, 0, -3) - 1 | (i, f) => f << kaleidoscope.init(i);
+    F(P, 0, -1) << kaleidoscope.frame(flashDuration);
 
     girl(P, alice, aliceMask, -1, codeImage, codeWords, codePlace);
     girl(P + 1, lisa, lisaMask, 1, graphicsImage, graphicsWords, graphicsPlace);

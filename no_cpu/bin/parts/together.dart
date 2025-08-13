@@ -79,7 +79,7 @@ mixin Together on NoCpuDemoBase {
     var spriteScreen = SpriteGroup.space(320, 180);
     var pal = lisa.palette | paula.palette.sub(97, 99);
     var tornadoPalette = spriteScreen.palette(
-      Palette.generateRange(1, 3, (i) => pal[0] * (1.0 + i * 0.7)),
+      Palette.generateRange(1, 3, (i) => pal[0] * (1.0 + (i + 1) * 0.5)),
       240,
     );
 

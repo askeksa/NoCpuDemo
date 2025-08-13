@@ -36,6 +36,7 @@ class KaleidoscopeTest extends DemoBase {
           //copper.move(COLOR00, 0x000);
 
           var kaleidoscopeFrame = _kaleidoscope.frame(frame);
+          var footer = _kaleidoscope.footer(frame);
 
           copper >>
               (_kaleidoscope.displayForFrame(frame)
@@ -44,6 +45,7 @@ class KaleidoscopeTest extends DemoBase {
                 ..evenStride = 0);
 
           copper >> kaleidoscopeFrame;
+          copper >> footer;
 
           //copper.move(COLOR00, 0xFFF);
         });

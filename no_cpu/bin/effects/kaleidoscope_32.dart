@@ -70,6 +70,10 @@ class Kaleidoscope {
     return KaleidoscopeFrame(this, frame - frame % frameSkip);
   }
 
+  KaleidoscopeFrameFooter footer(int frame) {
+    return KaleidoscopeFrameFooter(this, frame - frame % frameSkip);
+  }
+
   KaleidoscopeFrameInit init(int frame) {
     return KaleidoscopeFrameInit(this, frame);
   }
@@ -205,11 +209,6 @@ class KaleidoscopeFrame implements CopperComponent {
                 }
                 //
                 fillSprite(0, copper);
-                copper.wait(v: 26);
-                copper.ptr(SPR1PT, _back.column1.bitmap.bitplanes);
-                copper.ptr(SPR2PT, _back.column1.bitmap.bitplanes);
-                copper.ptr(SPR3PT, _back.column1.bitmap.bitplanes);
-                copper.ptr(SPR4PT, _back.column1.bitmap.bitplanes);
               };
         };
   }
@@ -455,5 +454,23 @@ class KaleidoscopeFrameInit implements CopperComponent {
             );
           }
         };
+  }
+}
+
+class KaleidoscopeFrameFooter implements CopperComponent {
+  final Kaleidoscope _kaleidoscope;
+  final int _frame;
+
+  KaleidoscopeSpriteSet get _back => _kaleidoscope.backForFrame(_frame);
+
+  KaleidoscopeFrameFooter(this._kaleidoscope, this._frame);
+
+  @override
+  void addToCopper(Copper copper) {
+    copper.wait(v: 26);
+    copper.ptr(SPR1PT, _back.column1.bitmap.bitplanes);
+    copper.ptr(SPR2PT, _back.column1.bitmap.bitplanes);
+    copper.ptr(SPR3PT, _back.column1.bitmap.bitplanes);
+    copper.ptr(SPR4PT, _back.column1.bitmap.bitplanes);
   }
 }
