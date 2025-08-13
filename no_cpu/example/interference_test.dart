@@ -44,7 +44,10 @@ class InterferenceTest extends DemoBase {
         }
       });
 
-  final _paletteIndices = List<int>.generate(128, (i) => i).shuffled();
+  final _paletteIndices = List<int>.generate(
+    128,
+    (i) => i,
+  ).shuffled(Random(1337));
 
   // ignore: unused_field
   final _palette1 = _generatePalette((i, maxIndex) {
