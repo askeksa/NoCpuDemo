@@ -68,15 +68,13 @@ mixin Credits on NoCpuDemoBase {
       var words = getWords(wordsImage, wordColors);
 
       F(p, 0, 0) - (flashDuration - 1) << blankDisplay(flashColor);
-      F(p, 0, flashDuration) - (10 - flashDuration - 1) <<
-          blankDisplay(image.palette[0]);
 
       var imageBitmap = image.bitmap.crop(h: 180);
       var padded = Bitmap.space(960, 180, 8, interleaved: true);
       F(p, 0, 0) << (Blit()..dSetInterleaved(padded, x: 0, w: 320));
       F(p, 0, 1) << (Blit()..dSetInterleaved(padded, x: 640, w: 320));
       for (int i = 0; i < 8; i++) {
-        F(p, 0, 2 + i) <<
+        F(p, 0, 2 + (i >> 2)) <<
             (Blit()
               ..aSetBitplane(mask, 0, w: 320, h: 180)
               ..bSetBitplane(imageBitmap, i, w: 320, h: 180)
@@ -106,7 +104,7 @@ mixin Credits on NoCpuDemoBase {
       }
 
       int scroll(int i) {
-        int t = max(0, max((8 * 6 - 10) - i, i - (56 * 6 - 10)));
+        int t = max(0, max(8 * 6 - i, i - 56 * 6));
         return min(t * t + t, 320 * 4);
       }
 
@@ -115,9 +113,10 @@ mixin Credits on NoCpuDemoBase {
         return placeWord(i, w);
       }
 
-      F(p, 0, 10) << wordsImage.palette;
-      F(p, 0, 10) - (p + 1, 0, -1) |
+      F(p, 0, flashDuration) << wordsImage.palette;
+      F(p, 0, flashDuration) - (p + 1, 0, -1) |
           (i, f) {
+            i += flashDuration;
             int s = scroll(i);
             f >>
                 (Display()
