@@ -309,6 +309,7 @@ class Bitmap {
     int maxx = 0;
     int miny = width - 1;
     int maxy = 0;
+    bool found = false;
     for (int y = 0; y < height; y++) {
       for (int x = 0; x < width; x++) {
         if (included(x, y, getPixel(x, y))) {
@@ -316,8 +317,12 @@ class Bitmap {
           if (x > maxx) maxx = x;
           if (y < miny) miny = y;
           if (y > maxy) maxy = y;
+          found = true;
         }
       }
+    }
+    if (!found) {
+      throw StateError("No pixels found in bitmap for autocrop");
     }
     Bitmap image = crop(
       x: minx,

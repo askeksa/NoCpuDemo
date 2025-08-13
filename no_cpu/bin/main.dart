@@ -16,14 +16,14 @@ class NoCpuDemoBase extends MusicDemoBase {
   late Color afterCardColor = Color.rgb24(0x000000);
   late Color oneBullyTransColor = Color.rgb24(0x000000);
   late Color bullyTransColor = Color.rgb24(0x000000);
-  late Color togetherColor = Color.rgb24(0x333333);
+  late Color togetherColor = Color.rgb24(0x444444);
 
   SpriteGroup spriteScreen = SpriteGroup.space(320, 180);
 
   late IlbmImage alice = IlbmImage.fromFile(
     "$assetsPath/!ALICE CYCLE Done4.iff",
   );
-  late IlbmImage lisa = IlbmImage.fromFile("$assetsPath/!LISA CYCLE done2.iff");
+  late IlbmImage lisa = IlbmImage.fromFile("$assetsPath/!LISA CYCLE done3.iff");
   late IlbmImage paula = IlbmImage.fromFile(
     "$assetsPath/!PAULA CYCLE DONE2.iff",
   );
