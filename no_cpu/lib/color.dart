@@ -33,24 +33,24 @@ extension type Color(int rgb) {
     double c = ((1 - ((lightness * 2) - 1).abs()) * saturation);
     double r, g, b;
 
-    if (hue >= 5/6) {
+    if (hue >= 5 / 6) {
       r = c;
       g = 0;
       b = (1 - hue) * c * 6;
-    } else if (hue >= 4/6) {
-      r = (hue - 4/6) * c * 6;
+    } else if (hue >= 4 / 6) {
+      r = (hue - 4 / 6) * c * 6;
       g = 0;
       b = c;
-    } else if (hue >= 3/6) {
+    } else if (hue >= 3 / 6) {
       r = 0;
       b = c;
-      g = (4/6 - hue) * c * 6;
-    } else if (hue >= 2/6) {
+      g = (4 / 6 - hue) * c * 6;
+    } else if (hue >= 2 / 6) {
       r = 0;
-      b = (hue - 2/6) * c * 6;
+      b = (hue - 2 / 6) * c * 6;
       g = c;
-    } else if (hue >= 1/6) {
-      r = (1/6 - hue) * c * 6;
+    } else if (hue >= 1 / 6) {
+      r = (1 / 6 - hue) * c * 6;
       g = c;
       b = 0;
     } else /*if (hue >= 0)*/ {
@@ -108,7 +108,10 @@ extension type Color(int rgb) {
   }
 
   Color interpolate(Color other, double weight) {
-    assert(weight >= 0 && weight <= 1, "Weight $weight must be between 0 and 1");
+    assert(
+      weight >= 0 && weight <= 1,
+      "Weight $weight must be between 0 and 1",
+    );
     return Color.clamped(
       (r + (other.r - r) * weight).round(),
       (g + (other.g - g) * weight).round(),
@@ -216,7 +219,7 @@ class Palette implements CopperComponent {
     colors[index] = color;
   }
 
-  Palette sub(int start, int end) {
+  Palette sub(int start, [int end = 255]) {
     if (start < 0 || start > 255) {
       throw RangeError.range(start, 0, 255, "start");
     }

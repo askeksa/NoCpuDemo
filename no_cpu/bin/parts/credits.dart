@@ -1,6 +1,5 @@
 import 'dart:math';
 
-import 'package:collection/collection.dart';
 import 'package:no_cpu/no_cpu.dart';
 
 import '../base.dart';

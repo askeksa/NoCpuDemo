@@ -14,7 +14,7 @@ mixin Opening on NoCpuDemoBase {
   );
 
   late IlbmImage oneBullyImage = IlbmImage.fromFile(
-    "$assetsPath/ONE BULLY2.iff",
+    "$assetsPath/ONE BULLY3_32.iff",
   );
 
   late final _interferencePalette = List.generate(16, (i) {
@@ -205,7 +205,7 @@ mixin Opening on NoCpuDemoBase {
   }
 
   void oneBully(int P) {
-    var image = oneBullyImage.bitmap.crop(h: 180, depth: 6);
+    var image = oneBullyImage.bitmap.crop(h: 180, depth: 5);
     var spritePalette1 = spriteScreen.palette(
       Palette.fromMap({1: oneBullyTransColor}),
       240,
@@ -220,7 +220,7 @@ mixin Opening on NoCpuDemoBase {
       return (5 + d.floor() * 5 - d * 4) * 5;
     });
 
-    F(P, 0) << oneBullyImage.palette;
+    F(P, 0) << oneBullyImage.palette.sub(0, 32);
     F(P, 0) - (P + 2, 0, -1) >>
         (Display()
           ..setBitmap(image)
