@@ -180,6 +180,7 @@ mixin Rebels on NoCpuDemoBase {
       F(p, 0) - (p + 2, 0, -61) ^
           (i, f) {
             if (i % rate == 0) {
+              f << DynamicPalette(rangeLabel, range.low, rangeSize);
               f <<
                   (Blit()
                     ..descending = true
@@ -191,7 +192,6 @@ mixin Rebels on NoCpuDemoBase {
                     ..aPtr = rangeLabel
                     ..dPtr = rangeData.label
                     ..width = 2);
-              f << DynamicPalette(rangeLabel, range.low, rangeSize);
             }
           };
 
