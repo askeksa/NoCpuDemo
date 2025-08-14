@@ -225,6 +225,8 @@ class SpriteGroup {
   final SpriteGroup? parent;
   SpriteGroup? child;
 
+  int get height => sprites.first.sprite.height;
+
   List<Label?> get labels {
     List<Label?> labels = [];
     for (SpriteGroup? group = this; group != null; group = group.child) {

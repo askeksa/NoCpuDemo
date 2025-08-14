@@ -2,8 +2,10 @@ import 'dart:math';
 
 import 'package:no_cpu/no_cpu.dart';
 
+import '../base.dart';
 import '../main.dart';
 import '../effects/game_of_life.dart';
+import '../effects/transition.dart';
 
 mixin Life on NoCpuDemoBase {
   GameOfLife gameOfLife = GameOfLife(320, 180, 2, 2);
@@ -19,18 +21,49 @@ mixin Life on NoCpuDemoBase {
       (x, y) => random.nextInt(2),
     );
     Bitmap bitmap = Bitmap.space(320, 180, 1);
-    Display display = Display()..setBitmap(bitmap);
     Palette palette = Palette.rgb12([0x025, 0x8af]);
 
-    F(P, 0, -1) << palette;
-    F(P, 0, -1) << (Blit()..dSetBitplane(bitmap, 0));
+    var trans = Transition.generate(320, 180, (x, y) {
+      double dx = x - 160;
+      double dy = y - 100;
+      double v = atan2(dx, dy);
+      return sqrt(dx * dx + dy * dy) * (0.3 + 0.1 * cos(v * 5));
+    });
+
+    IlbmImage qr = IlbmImage.fromFile("$assetsPath/QR CODE_IFF.iff");
+    SpriteGroup qrSprite = SpriteGroup.fromBitmap(
+      qr.bitmap.autocrop().$3,
+      baseIndex: 6,
+    );
+    qrSprite.setPosition(
+      v: 82 + 90 - qrSprite.height ~/ 2,
+      h: 0x200 + (160 - qrSprite.width ~/ 2) * 4,
+    );
+    var qrPalette = qrSprite.palette(qr.palette.sub(1, 3), 240);
+
+    Display transDisplay = Display()
+      ..setBitmap(trans.result)
+      ..sprites = qrSprite.labels
+      ..spriteColorOffset = 240
+      ..priority = 0;
+    Display lifeDisplay = Display()
+      ..setBitmap(bitmap)
+      ..sprites = qrSprite.labels
+      ..spriteColorOffset = 240
+      ..priority = 4;
+
+    F(P - 1, 48) << (palette | qrPalette);
+    F(P - 1, 48) - (P, 0, -2) >> transDisplay;
+
+    transition(trans, (P - 1, 48), end: 94);
 
     var blits = gameOfLife.step(bitmap);
     var noise = Blit()
       ..aSetBitplane(center, 0)
       ..cdSetBitplane(bitmap, 0, x: 160 - 16, y: 90 - 16, w: 32, h: 32);
 
-    F(P, 0) - (P + 1, 63, 5) >> display;
+    F(P, 0, -1) << (Blit()..dSetBitplane(bitmap, 0));
+    F(P, 0, -1) - (P + 1, 63, 5) >> lifeDisplay;
     F(P, 0) - (P + 1, 63, 5) ^
         (i, copper) {
           if (i % 6 == 0) {
