@@ -5,12 +5,12 @@ import 'package:no_cpu/no_cpu.dart';
 import '../base.dart' show assetsPath;
 
 class Interference {
-  final ChunkyPixels _noise1 = ChunkyPixels.fromFile(
+  static final ChunkyPixels _noise1 = ChunkyPixels.fromFile(
     "$assetsPath/bluenoise3.raw",
     128,
     128,
   );
-  final ChunkyPixels _noise2 = ChunkyPixels.fromFile(
+  static final ChunkyPixels _noise2 = ChunkyPixels.fromFile(
     "$assetsPath/bluenoise1.raw",
     128,
     128,
@@ -19,23 +19,27 @@ class Interference {
   static final int _bitmapWidth = 320 - 48;
   static final int _bitmapHeight = 180 - 32;
 
-  late final Bitmap bitmap1 = _generateBitmap(4, _bitmapWidth, _bitmapHeight, (
-    int x,
-    int y,
-  ) {
-    double distance = sqrt(x * x + y * y) + 950;
-    double color = (distance * distance / 165000) + 1000000;
-    return _bluenoiseDither4(_noise1, color - color.floor(), x, y);
-  });
+  static final Bitmap bitmap1 = _generateBitmap(
+    4,
+    _bitmapWidth,
+    _bitmapHeight,
+    (int x, int y) {
+      double distance = sqrt(x * x + y * y) + 950;
+      double color = (distance * distance / 165000) + 1000000;
+      return _bluenoiseDither4(_noise1, color - color.floor(), x, y);
+    },
+  );
 
-  late final Bitmap bitmap2 = _generateBitmap(3, _bitmapWidth, _bitmapHeight, (
-    int x,
-    int y,
-  ) {
-    double distance = sqrt(x * x + y * y);
-    var color = 500.0 / (distance + 130.0);
-    return _bluenoiseDither3(_noise2, color - color.floor(), x, y);
-  });
+  static final Bitmap bitmap2 = _generateBitmap(
+    3,
+    _bitmapWidth,
+    _bitmapHeight,
+    (int x, int y) {
+      double distance = sqrt(x * x + y * y);
+      var color = 500.0 / (distance + 130.0);
+      return _bluenoiseDither3(_noise2, color - color.floor(), x, y);
+    },
+  );
 
   static int _bluenoiseDither(
     ChunkyPixels noise,
@@ -91,9 +95,11 @@ class Interference {
     double evenY,
     double oddX,
     double oddY,
-    bool flip,
-  ) {
-    return InterferenceFrame(this, evenX, evenY, oddX, oddY, flip);
+    bool flip, {
+    int variant = 0,
+  }) {
+    assert(variant <= 1);
+    return InterferenceFrame(this, evenX, evenY, oddX, oddY, flip, variant);
   }
 }
 
@@ -104,16 +110,20 @@ class InterferenceFrame implements CopperComponent {
   final double _oddXf;
   final double _oddYf;
   final bool _flip;
+  final int _variant;
 
   late final display = _scrollDisplay()
-    ..setBitmaps(interference.bitmap1, interference.bitmap2);
+    ..setBitmaps(
+      _variant == 0 ? Interference.bitmap1 : Interference.bitmap2,
+      Interference.bitmap2,
+    );
 
   Display _scrollDisplay() {
-    var xRange = (interference.bitmap1.width - 320) ~/ 2;
-    var yRange = (interference.bitmap1.height - 180) ~/ 2;
+    var xRange = (Interference.bitmap1.width - 320) ~/ 2;
+    var yRange = (Interference.bitmap1.height - 180) ~/ 2;
 
-    var xOffset = xRange; //(interference.bitmap1.width ~/ 2 - 160) * 4;
-    var yOffset = yRange; //(interference.bitmap1.height ~/ 2 - 90);
+    var xOffset = xRange;
+    var yOffset = yRange;
 
     var evenX = (_evenXf * xRange * 4 + xOffset * 4).toInt();
     var evenY = (_evenYf * yRange + yOffset).toInt();
@@ -140,6 +150,7 @@ class InterferenceFrame implements CopperComponent {
     this._oddXf,
     this._oddYf,
     this._flip,
+    this._variant,
   );
 
   @override

@@ -13,9 +13,11 @@ main() {
 class InterferenceTest extends DemoBase {
   Interference interference = Interference();
 
-  // Generate a palette suitable for the interference effect.
+  static final int _variant = 1; // 0 or 1
+
+  // Generate a palette suitable for the interference effect, variant 0
   // The generator function should return a Color object for each color index up to and including the maximum index
-  static Palette _generatePalette(
+  static Palette _generatePalette0(
     Color Function(int index, int maxIndex) generator,
   ) {
     var colors = List.generate(16, (i) => generator(i, 15));
@@ -31,6 +33,25 @@ class InterferenceTest extends DemoBase {
       return colors[((oddColor << 1) + evenColor) & 15];
     });
   }
+
+  // Generate a palette suitable for the interference effect, variant 1
+  // The generator function should return a Color object for each color index up to and including the maximum index
+  static Palette _generatePalette1(
+    Color Function(int index, int maxIndex) generator,
+  ) {
+    var colors = List.generate(8, (i) => generator(i, 7));
+
+    return Palette.generateRange(0, 256, (i) {
+      int evenColor = ((i & 0x10) >> 2) | ((i & 0x04) >> 1) | (i & 0x01);
+      int oddColor = ((i & 0x20) >> 3) | ((i & 0x08) >> 2) | ((i & 0x02) >> 1);
+
+      return colors[(oddColor + evenColor) & 7];
+    });
+  }
+
+  static final _generatePalette = _variant == 0
+      ? _generatePalette0
+      : _generatePalette1;
 
   static Palette _generatePaletteFromList(List<Color> palette) =>
       _generatePalette((index, _) => palette[index]);
@@ -199,12 +220,9 @@ class InterferenceTest extends DemoBase {
                 (sin(frame / 175 + 0.2) + sin(frame / 163)) / 2, // odd X
                 (sin(frame / 130 + 2.35) + sin(frame / 127)) / 2, // odd Y
                 frame & 1 != 0, // flip
+                variant: _variant,
               );
-          var newPalette = _randomPartialFade(
-            frame,
-            _blackPalette,
-            _blueOrangePalette,
-          );
+          var newPalette = _randomPartialFade(frame, _blackPalette, _palette1);
           f << newPalette;
         };
   }
