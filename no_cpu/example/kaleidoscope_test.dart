@@ -18,7 +18,7 @@ class KaleidoscopeTest extends DemoBase {
     reversePattern2: true,
   );
   late final Kaleidoscope _kaleidoscope3 = Kaleidoscope(cycleLength, 2, 0, 2);
-  late final _kaleidoscope = _kaleidoscope1;
+  late final _kaleidoscope = _kaleidoscope2;
 
   final _blankBitmap = Bitmap.blank(320, 1, 1);
 

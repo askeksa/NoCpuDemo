@@ -129,7 +129,7 @@ class KaleidoscopeSpriteSet {
 class Kaleidoscope {
   static final depth = 2;
   static final squareSize = 32;
-  static final maxLinesPerSquare = 11;
+  static final maxLinesPerSquare = 12;
 
   late Space temp = Space(
     maxLinesPerSquare * PartialLineBlit.dataSize,
@@ -148,14 +148,6 @@ class Kaleidoscope {
   final bool reversePattern1;
   final int pattern2;
   final bool reversePattern2;
-
-  late final _dummyLine = PartialLineBlit.draw(
-    (0, 0),
-    (0, 1),
-    sprites.column1.bitmap.rowStride,
-    sprites.column1.bitmap.bitplanes +
-        Kaleidoscope.squareSize * bitmap.rowStride,
-  )!;
 
   Kaleidoscope(
     this.cycleLength,
@@ -409,6 +401,7 @@ class Kaleidoscope {
       ..height = Kaleidoscope.maxLinesPerSquare);
 
     var blitCopper = Copper(mutability: Mutability.local);
+
     // Copy line data to temp
     blitCopper <<
         (Blit()
@@ -420,14 +413,43 @@ class Kaleidoscope {
           ..height =
               Kaleidoscope.maxLinesPerSquare * PartialLineBlit.dataSize ~/ 2);
 
-    blitCopper << blitWords(0, cptlPtr);
-    blitCopper << blitWords(0, dptlPtr);
-    blitCopper << blitWords(2, aptlPtr);
-    blitCopper << blitWords(4, bmodPtr);
-    blitCopper << blitWords(6, amodPtr);
-    blitCopper << blitWords(8, sizePtr);
-    blitCopper << blitCon0(10, con0Ptr);
-    blitCopper << blitCon1(10, con1Ptr);
+    // Make line blits noops by setting BLTSIZE register to NOOP
+    blitCopper <<
+        (Blit()
+          ..aData = NOOP
+          ..dPtr = sizePtr - 2
+          ..dStride = lineDrawStart ^ lineDrawEnd
+          ..width = 1
+          ..height = Kaleidoscope.maxLinesPerSquare);
+
+    // Make the correct number of lineblits actual blits
+    var blitSizeBlitSizePtr = FreeLabel("blitSizeBlitSizePtr");
+    blitCopper <<
+        (Blit()
+          ..aPtr = temp.label
+          ..dPtr = blitSizeBlitSizePtr
+          ..width = 1
+          ..height = 1);
+
+    blitCopper <<
+        (Blit()
+              ..aData = BLTSIZE
+              ..dPtr = sizePtr - 2
+              ..dStride = lineDrawStart ^ lineDrawEnd
+              ..width = 1
+              ..height = Kaleidoscope.maxLinesPerSquare) /
+            {BLTSIZE: blitSizeBlitSizePtr};
+
+    var lineDataStart = 2;
+
+    blitCopper << blitWords(lineDataStart + 0, cptlPtr);
+    blitCopper << blitWords(lineDataStart + 0, dptlPtr);
+    blitCopper << blitWords(lineDataStart + 2, aptlPtr);
+    blitCopper << blitWords(lineDataStart + 4, bmodPtr);
+    blitCopper << blitWords(lineDataStart + 6, amodPtr);
+    blitCopper << blitWords(lineDataStart + 8, sizePtr);
+    blitCopper << blitCon0(lineDataStart + 10, con0Ptr);
+    blitCopper << blitCon1(lineDataStart + 10, con1Ptr);
 
     blitCopper.call(effectCopper);
 
@@ -510,12 +532,9 @@ class KaleidoscopeFrame implements CopperComponent {
       shapes[_kaleidoscope.pattern2](_kaleidoscope.reversePattern2),
     );
 
-    for (int i = blits.length; i < Kaleidoscope.maxLinesPerSquare; ++i) {
-      blits.add(_kaleidoscope._dummyLine);
-    }
-
     assert(blits.length <= Kaleidoscope.maxLinesPerSquare);
     Data data = Data(origin: this);
+    data.addWord((blits.length << 6) | 1); // number of lines
     for (var b in blits) {
       b.addToData(data);
     }

@@ -11,16 +11,27 @@ import '../effects/transition.dart';
 mixin Credits on NoCpuDemoBase {
   static final Color flashColor = Color.rgb12(0xCCA);
   static final int flashDuration = 4;
+  static final int kaleidoscopeFrameskip = 2;
 
-  late final Kaleidoscope codeKaleidoscope = Kaleidoscope(128, 2, 1, 0);
+  late final Kaleidoscope codeKaleidoscope = Kaleidoscope(
+    128,
+    kaleidoscopeFrameskip,
+    1,
+    0,
+  );
   late final Kaleidoscope graphicsKaleidoscope = Kaleidoscope(
     128,
+    kaleidoscopeFrameskip,
+    0,
     2,
+  );
+  late final Kaleidoscope musicKaleidoscope = Kaleidoscope(
+    128,
+    kaleidoscopeFrameskip,
     2,
     1,
     reversePattern2: true,
   );
-  late final Kaleidoscope musicKaleidoscope = Kaleidoscope(128, 2, 0, 2);
 
   static final IlbmImage codeImage = IlbmImage.fromFile(
     "$assetsPath/Credits code by.iff",
