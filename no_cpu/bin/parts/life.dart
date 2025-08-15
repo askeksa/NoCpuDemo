@@ -11,6 +11,7 @@ mixin Life on NoCpuDemoBase {
 
   void life(int P) {
     int seed = DateTime.now().millisecondsSinceEpoch;
+    seed = 1755202175528;
     print("Game of Life seed: $seed");
     Random random = Random(seed);
     Bitmap center = Bitmap.generate(
@@ -22,9 +23,9 @@ mixin Life on NoCpuDemoBase {
     Bitmap bitmap = Bitmap.space(320, 180, 1);
     Palette palette = Palette.rgb12([0x025, 0x8af]);
 
-    IlbmImage qr = IlbmImage.fromFile("$assetsPath/QR CODE_IFF.iff");
+    IlbmImage qr = IlbmImage.fromFile("$assetsPath/QR CODE_IFF2.iff");
     SpriteGroup qrSprite = SpriteGroup.fromBitmap(
-      qr.bitmap.autocrop().$3,
+      qr.bitmap.crop(x: 62, y: 73, w: 58, h: 68),
       baseIndex: 6,
     );
     qrSprite.setPosition(
