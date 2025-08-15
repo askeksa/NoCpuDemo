@@ -281,14 +281,29 @@ mixin Text on NoCpuDemoBase {
     ]);
 
     var interference = Interference(3);
-    final interferencePaletteJoin = interference.generatePalette((i, maxIndex) {
-      var colorF = i / (maxIndex + 1);
-      return Color.rgb8(
-        (sin(colorF * pi * 2 + 1.0) * 20 + 64).toInt(),
-        (sin(colorF * pi * 3 + pi / 3) * 10 + 34).toInt(),
-        (sin(colorF * pi * 2 + pi * 2.5 / 3 + 0.5) * 12 + 45).toInt(),
-      );
-    });
+    final interferencePaletteJoin = interference.generatePaletteFromList(
+      dimColors(
+        Interference.shuffleColorList([
+          Color.rgb8(101, 0, 0),
+          Color.rgb8(136, 14, 0),
+          Color.rgb8(110, 29, 0),
+          Color.rgb8(145, 50, 0),
+          Color.rgb8(183, 75, 0),
+          Color.rgb8(52, 12, 0),
+          Color.rgb8(255, 126, 0),
+          Color.rgb8(46, 0, 0),
+          Color.rgb8(255, 191, 0),
+          Color.rgb8(75, 23, 0),
+          Color.rgb8(255, 246, 130),
+          Color.rgb8(110, 6, 0),
+          Color.rgb8(255, 255, 241),
+          Color.rgb8(165, 0, 0),
+          Color.rgb8(237, 113, 0),
+          Color.rgb8(255, 67, 0),
+        ]),
+        0.5,
+      ),
+    );
 
     Display interferenceDisplay(int frame) {
       return interference
