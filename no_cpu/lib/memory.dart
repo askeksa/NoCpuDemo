@@ -1,3 +1,4 @@
+import 'dart:collection';
 import 'dart:math';
 import 'dart:typed_data';
 
@@ -181,7 +182,11 @@ class Memory {
     final List<Block> fixed =
         [...dataBlocks, ...spaceBlocks].where((b) => b.isAllocated).toList()
           ..sort((b1, b2) => b2.address! - b1.address!);
-    List<Block> allocated = [...fixed];
+    SplayTreeMap<int, List<Block>> allocated = SplayTreeMap.fromIterable(
+      fixed,
+      key: (b) => -b.address!,
+      value: (b) => [b],
+    );
 
     // Allocate data blocks
     dataBlocks.sortBy((b) => -b.lastFrame!);
@@ -195,7 +200,7 @@ class Memory {
           }
         }
         nextAddress = block.end;
-        allocated.add(block);
+        allocated.putIfAbsent(-block.address!, () => []).add(block);
       }
       if (block.end > size) {
         throw Exception("Block '$block' does not fit in memory");
@@ -208,13 +213,13 @@ class Memory {
       if (!block.isAllocated) {
         int nextAddress = size;
         block._allocateBefore(nextAddress);
-        for (Block allocatedBlock in allocated) {
+        for (Block allocatedBlock in allocated.values.flattened) {
           if (_memoryOverlap(block, allocatedBlock) &&
               _timeOverlap(block, allocatedBlock)) {
             block._allocateBefore(allocatedBlock.address!);
           }
         }
-        allocated.add(block);
+        allocated.putIfAbsent(-block.address!, () => []).add(block);
       }
       if (block.address! < 0) {
         throw Exception("Block '$block' does not fit in memory");
