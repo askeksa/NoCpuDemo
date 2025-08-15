@@ -289,7 +289,5 @@ mixin Credits on NoCpuDemoBase {
     );
 
     F(P + 3, 0, 0) - (flashDuration - 1) << blankDisplay(flashColor);
-    F(P + 3, 0, flashDuration) - (P + 3, 48, -1) <<
-        blankDisplay(Color.rgb12(0x000));
   }
 }

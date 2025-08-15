@@ -499,4 +499,9 @@ class SpriteGroup {
     }
     return Palette(colors);
   }
+
+  @override
+  String toString() {
+    return "SpriteGroup $width x $height${attached ? " attached" : ""}";
+  }
 }

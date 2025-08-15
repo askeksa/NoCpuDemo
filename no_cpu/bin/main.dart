@@ -16,6 +16,7 @@ class NoCpuDemoBase extends MusicDemoBase {
   late Color oneBullyTransColor = Color.rgb24(0x000000);
   late Color bullyTransColor = Color.rgb24(0x000000);
   late Color togetherColor = Color.rgb24(0x444444);
+  late Color lifeColor = Color.rgb12(0xEC8);
 
   SpriteGroup spriteScreen = SpriteGroup.space(320, 180);
 
@@ -39,7 +40,7 @@ class NoCpuDemoBase extends MusicDemoBase {
 
   NoCpuDemoBase()
     : super.withProtrackerFile(
-        "$assetsPath/nocpu1.15.mod",
+        "$assetsPath/nocpu1.17.mod",
         startFrame: NoCpuDemo.startPattern * 64 * 6,
       );
 
@@ -84,8 +85,10 @@ class NoCpuDemo extends NoCpuDemoBase
     rebelsText(8);
     rebels(9);
     together(15);
+    checkerboardText(17);
     check(18);
     credits(22);
+    joinText(25);
     life(26);
   }
 }

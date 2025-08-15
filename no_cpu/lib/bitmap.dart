@@ -305,9 +305,9 @@ class Bitmap {
     bool Function(int x, int y, int pixel)? included,
   ]) {
     included ??= (_, _, p) => p != 0;
-    int minx = height - 1;
+    int minx = width - 1;
     int maxx = 0;
-    int miny = width - 1;
+    int miny = height - 1;
     int maxy = 0;
     bool found = false;
     for (int y = 0; y < height; y++) {

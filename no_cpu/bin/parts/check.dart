@@ -46,8 +46,6 @@ mixin Check on NoCpuDemoBase {
       f << checkerboard.frame(layers);
     }
 
-    F(P - 1, 0, 0) - (P, 0, -1) << blankDisplay(Color.rgb12(0x000));
-
     F(P, 0) - (P + 4, 0, -2) | frame;
     F(P + 4, 0, -1) >> Display();
   }

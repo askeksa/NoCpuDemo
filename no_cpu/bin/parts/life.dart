@@ -52,7 +52,7 @@ mixin Life on NoCpuDemoBase {
       ..spriteColorOffset = 240
       ..priority = 4;
 
-    F(P - 1, 48) << (palette | qrPalette);
+    F(P - 1, 48) << (palette | Palette.fromMap({1: lifeColor}) | qrPalette);
     F(P - 1, 48) - (P, 0, -2) >> transDisplay;
 
     transition(trans, (P - 1, 48), end: 94);
@@ -64,6 +64,7 @@ mixin Life on NoCpuDemoBase {
 
     F(P, 0, -1) << (Blit()..dSetBitplane(bitmap, 0));
     F(P, 0, -1) - (P + 1, 63, 5) >> lifeDisplay;
+    F(P, 0, -1) << (palette | qrPalette);
     F(P, 0, -2) - 1 |
         (i, f) {
           f.wait(v: 0xFF, h: 0xDF);
