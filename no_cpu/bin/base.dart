@@ -26,6 +26,11 @@ class DemoBase {
     return (position * 64 + row) * 6;
   }
 
+  CopperComponent getMusicFrame(int f) {
+    // Dummy music frame for demos without music.
+    return AdHocCopperComponent((_) {});
+  }
+
   FrameScheduler F(int position, int row, [int offset = 0]) {
     return FrameScheduler(this, [frames[getTimestamp(position, row) + offset]]);
   }
@@ -37,22 +42,102 @@ class DemoBase {
     roots.add(initialCopper.data);
 
     frames = List.generate(frameCount, (i) {
-      return Copper(isPrimary: true, origin: i)..useInFrame(i);
+      return Copper(
+        isPrimary: true,
+        mutability: Mutability.immutable,
+        alignment: 5,
+        origin: i,
+      )..useInFrame(i);
     });
     roots.addAll(frames.map((f) => f.data));
 
-    endCopper = Copper(isPrimary: true, origin: "End");
-    if (loopFrame == null) {
-      roots.add(endCopper.data);
-    }
-    Copper finalCopper = loopFrame != null ? frames[loopFrame!] : endCopper;
+    List<Copper> musicFrames = List.generate(frameCount, (i) {
+      var musicFrame = getMusicFrame(i);
+      var copper = Copper(
+        mutability: Mutability.immutable,
+        alignment: 5,
+        origin: musicFrame,
+      )..useInFrame(i);
+      musicFrame.addToCopper(copper);
+      return copper;
+    });
+    roots.addAll(musicFrames.map((f) => f.data));
 
-    // Set up frame links in finalizers.
-    initialCopper.finalizer = (c) => c.ptr(COP1LC, frames[startFrame].label);
-    for (int i = 0; i < frames.length - 1; i++) {
-      frames[i].finalizer = (c) => c.ptr(COP1LC, frames[i + 1].label);
+    var frameData = Data(singlePage: true);
+    for (int f = 0; f < frameCount - 1; f++) {
+      frameData.addReference(musicFrames[f + 1].label, 5);
+      frameData.addReference(frames[f].label, 5);
+      frameData.addLow(frameData.label + frameData.size + 2);
     }
-    frames.last.finalizer = (c) => c.ptr(COP1LC, finalCopper.label);
+    // TODO: Support non-looping
+    frameData.addReference(musicFrames[loopFrame!].label, 5);
+    frameData.addReference(frames[frameCount - 1].label, 5);
+    frameData.addLow(frameData.label + loopFrame! * 6);
+
+    var ptrMask = Data.fromWords([0x001F, 0xFFE0]);
+
+    var dispatchCopper =
+        Copper(
+            isPrimary: true,
+            origin: "Dispatch",
+            mutability: Mutability.mutable,
+          )
+          ..useInFrame(-1)
+          ..useInFrame(frameCount);
+
+    var startLabel = dispatchCopper.data.addLabel();
+    var musicPtr = startLabel + 6;
+    var framePtr = FreeLabel("framePtr");
+    var dataPtr = FreeLabel("dataPtr");
+    dispatchCopper.call(musicFrames[0]);
+    dispatchCopper.waitBlit();
+    dispatchCopper.high(BLTBPTH, frameData.label);
+    dispatchCopper.low(BLTBPTL, frameData.label, label: dataPtr);
+    dispatchCopper <<
+        (Blit()
+          ..channelMask = enableB | enableC | enableD
+          ..bStride = 0
+          ..bShift = 11
+          ..cPtr = ptrMask.label
+          ..dPtr = musicPtr
+          ..dStride = 4
+          ..minterms = B & C
+          ..height = 2);
+    dispatchCopper <<
+        (Blit()
+          ..channelMask = enableB
+          ..bStride = 2
+          ..emitModulos = true);
+    dispatchCopper <<
+        (Blit()
+          ..channelMask = enableB | enableC | enableD
+          ..bStride = 0
+          ..bShift = 11
+          ..cPtr = ptrMask.label
+          ..dPtr = framePtr
+          ..dStride = 4
+          ..minterms = B & C
+          ..height = 2);
+    dispatchCopper <<
+        (Blit()
+          ..channelMask = enableB
+          ..bStride = 2
+          ..emitModulos = true);
+    dispatchCopper <<
+        (Blit()
+          ..channelMask = enableB | enableD
+          ..dPtr = dataPtr
+          ..minterms = B);
+    dispatchCopper.high(COP1LCH, frames[0].label, label: framePtr);
+    dispatchCopper.low(COP1LCL, frames[0].label);
+    dispatchCopper.move(COPJMP1, 0);
+
+    roots.add(dispatchCopper.data);
+
+    initialCopper.finalizer = (c) => c.ptr(COP1LC, dispatchCopper.label);
+    for (int i = 0; i < frames.length; i++) {
+      frames[i].finalizer = (c) => c.ptr(COP1LC, dispatchCopper.label);
+    }
 
     // Enable sprites, 320x180, borderblank
     initialCopper.move(DMACON, 0x8020);
@@ -61,11 +146,11 @@ class DemoBase {
     initialCopper.move(BPLCON3, 0x0020);
     initialCopper >> Display();
 
-    // Request demo exit by clearing Blitter Nasty.
-    // Also clear bitplane and sprite DMA to blank the screen.
-    endCopper.move(DMACON, 0x052F);
-    endCopper.move(BPLCON3, 0x0020);
-    endCopper.move(COLOR00, 0x000);
+    //// Request demo exit by clearing Blitter Nasty.
+    //// Also clear bitplane and sprite DMA to blank the screen.
+    //endCopper.move(DMACON, 0x052F);
+    //endCopper.move(BPLCON3, 0x0020);
+    //endCopper.move(COLOR00, 0x000);
   }
 
   void build() {
@@ -117,13 +202,16 @@ class MusicDemoBase extends DemoBase {
   MusicDemoBase(this.music)
     : super(music.frames.length, loopFrame: music.restart) {
     music.optimize();
-    for (int i = 0; i < frames.length; i++) {
-      frames[i] >> music.frames[i];
-    }
   }
 
   MusicDemoBase.withProtrackerFile(String filename)
     : this(ProtrackerPlayer(ProtrackerModule.readFromFile(filename)).toMusic());
+
+  @override
+  CopperComponent getMusicFrame(int f) {
+    // Dummy music frame for demos without music.
+    return music.frames[f];
+  }
 }
 
 extension FrameIndex on Copper {
