@@ -117,7 +117,10 @@ class PartialLineBlitComponent implements CopperComponent {
 }
 
 class KaleidoscopeSpriteSet {
-  late final Sprite column1 = Sprite.space(6 * Kaleidoscope.squareSize);
+  late final Sprite column1 = Sprite.space(
+    6 * Kaleidoscope._squareSize,
+    alignment: 4,
+  );
   late final Sprite column2 = Sprite.space(1);
   late final Sprite column3 = Sprite.space(1);
   late final Sprite column4 = Sprite.space(1);
@@ -126,371 +129,122 @@ class KaleidoscopeSpriteSet {
   late final columns = [column1, column2, column3, column4, column5];
 }
 
-class Kaleidoscope {
-  static final depth = 2;
-  static final squareSize = 32;
-  static final maxLinesPerSquare = 12;
-
-  late Space temp = Space(
-    maxLinesPerSquare * PartialLineBlit.dataSize,
-    origin: "Kaleidoscope temp",
+class CopperEffectBitplaneVariables {
+  late Space blitterTemp = Space(
+    Kaleidoscope._maxLinesPerSquare * PartialLineBlit.dataSize,
+    origin: this,
   );
 
-  final sprites = KaleidoscopeSpriteSet();
+  var cptlPtr = FreeLabel("BLTCPTL");
+  var dptlPtr = FreeLabel("BLTDPTL");
+  var aptlPtr = FreeLabel("BLTAPTL");
+  var con0Ptr = FreeLabel("BLTCON0");
+  var con1Ptr = FreeLabel("BLTCON1");
+  var bmodPtr = FreeLabel("BLTBMOD");
+  var amodPtr = FreeLabel("BLTAMOD");
+  var sizePtr = FreeLabel("BLTSIZE");
+}
 
-  Bitmap get bitmap => sprites.column1.bitmap;
+class Kaleidoscope {
+  // Effect parameters
+  int pattern1 = 1;
+  bool reversePattern1 = false;
+  int pattern2 = 0;
+  bool reversePattern2 = false;
+
+  // Tunables
+  static final cycleLength = 128;
+  static final frameSkip = 2;
+
+  static final _cycleFrameLength = cycleLength ~/ frameSkip;
+
+  // Constants
+  static final _squareSize = 32;
+  static final _maxLinesPerSquare = 7;
+
+  static final _sprites = KaleidoscopeSpriteSet();
+  static Bitmap get _backBuffer => _sprites.column1.bitmap;
+
+  static final _shapeLines = [
+    _makeShapeFrames(_triangleCoords),
+    _makeShapeFrames(_barCoords),
+    _makeShapeFrames(_diamondCoords),
+  ];
 
   late final _effectCopper = _makeCopper();
 
-  final int cycleLength;
-  final int frameSkip;
-  final int pattern1;
-  final bool reversePattern1;
-  final int pattern2;
-  final bool reversePattern2;
-
-  Kaleidoscope(
-    this.cycleLength,
-    this.frameSkip,
-    this.pattern1,
-    this.pattern2, {
-    this.reversePattern1 = false,
-    this.reversePattern2 = false,
-  });
-
-  Display displayForFrame(int frame) {
-    return Display()..sprites = sprites.columns.map((e) => e.label).toList();
-  }
-
   KaleidoscopeFrame frame(int frame) {
-    return KaleidoscopeFrame(this, frame - frame % frameSkip);
+    int frame1 = reversePattern1 ? cycleLength - frame : frame;
+    int frame2 = reversePattern2 ? cycleLength - frame : frame;
+    return KaleidoscopeFrame(
+      this,
+      frame1 % cycleLength ~/ frameSkip,
+      frame2 % cycleLength ~/ frameSkip,
+    );
   }
 
   KaleidoscopeFrameInit init(int frame) {
-    return KaleidoscopeFrameInit(this);
+    return KaleidoscopeFrameInit();
+  }
+
+  Display displayForFrame(int frame) {
+    return Display()..sprites = _sprites.columns.map((e) => e.label).toList();
   }
 
   KaleidoscopeFrameFooter footer(int frame) {
-    return KaleidoscopeFrameFooter(this);
+    return KaleidoscopeFrameFooter();
   }
 
-  Copper _makeCopper() {
-    var effectCopper = Copper(mutability: Mutability.local);
-
-    // Clear the first two squares
-    effectCopper <<
-        (Blit()..dSetInterleaved(bitmap, h: Kaleidoscope.squareSize));
-
-    // Prepare line draw
-    effectCopper.waitBlit();
-    effectCopper.move(BLTCMOD, bitmap.rowStride);
-    effectCopper.move(BLTDMOD, bitmap.rowStride);
-    effectCopper.move(BLTADAT, 0x8000);
-    effectCopper.move(BLTBDAT, 0xFFFF);
-    effectCopper.move(BLTAFWM, 0xFFFF);
-    effectCopper.move(BLTALWM, 0xFFFF);
-    effectCopper.high(BLTCPTH, bitmap.bitplanes);
-    effectCopper.high(BLTDPTH, bitmap.bitplanes);
-
-    // DRAW LINES
-    var lineDrawStart = effectCopper.data.addLabel();
-    var cptlPtr = FreeLabel("BLTCPTL");
-    var dptlPtr = FreeLabel("BLTDPTL");
-    var aptlPtr = FreeLabel("BLTAPTL");
-    var con0Ptr = FreeLabel("BLTCON0");
-    var con1Ptr = FreeLabel("BLTCON1");
-    var bmodPtr = FreeLabel("BLTBMOD");
-    var amodPtr = FreeLabel("BLTAMOD");
-    var sizePtr = FreeLabel("BLTSIZE");
-
-    effectCopper <<
-        PartialLineBlitComponent() /
-            {
-              BLTCPTL: cptlPtr,
-              BLTDPTL: dptlPtr,
-              BLTAPTL: aptlPtr,
-              BLTCON0: con0Ptr,
-              BLTCON1: con1Ptr,
-              BLTBMOD: bmodPtr,
-              BLTAMOD: amodPtr,
-              BLTSIZE: sizePtr,
-            };
-    var lineDrawEnd = effectCopper.data.addLabel();
-    for (int i = 1; i < Kaleidoscope.maxLinesPerSquare; ++i) {
-      effectCopper << PartialLineBlitComponent();
-    }
-
-    // fill
-    effectCopper <<
-        (Blit()
-          ..aPtr = bitmap.bitplanes
-          ..dPtr = bitmap.bitplanes
-          ..aStride = bitmap.bytesPerRow
-          ..dStride = bitmap.bytesPerRow
-          ..exclusiveFill = true
-          ..width = Kaleidoscope.squareSize >> 4
-          ..height = Kaleidoscope.squareSize * 2);
-
-    // mirroring temporary storage
-    Bitmap mirrorTemp = Bitmap.space(
-      16,
-      Kaleidoscope.squareSize,
-      2,
-      interleaved: true,
+  static Data _shapeFrame(
+    int frame,
+    List<(double, double)> Function(int) coords,
+  ) {
+    var blits = _drawSquare(
+      _backBuffer.bitplanes,
+      _backBuffer.rowStride,
+      coords(frame),
     );
 
-    void mirrorColumn(Label src, Label dest) {
-      // Screen (src) 0000000011111111 to temp
-      effectCopper <<
-          (Blit()
-            ..aPtr = src
-            ..aStride = bitmap.bytesPerRow
-            ..aFWM = 0xFF00
-            ..aLWM = 0xFF00
-            ..aShift = 8
-            ..dSetInterleaved(mirrorTemp)
-            ..width = 1
-            ..height = Kaleidoscope.squareSize * 2);
-      effectCopper <<
-          (Blit()
-            ..descending = true
-            ..aPtr = src
-            ..aStride = bitmap.bytesPerRow
-            ..aFWM = 0x00FF
-            ..aLWM = 0x00FF
-            ..aShift = 8
-            ..cSetInterleaved(mirrorTemp)
-            ..dSetInterleaved(mirrorTemp)
-            ..minterms = A | C
-            ..width = 1
-            ..height = Kaleidoscope.squareSize * 2);
-
-      // Temp 0000111100001111 to screen (dest)
-      effectCopper <<
-          (Blit()
-            ..aSetInterleaved(mirrorTemp)
-            ..aFWM = 0xF0F0
-            ..aLWM = 0xF0F0
-            ..aShift = 4
-            ..dPtr = dest
-            ..dStride = bitmap.bytesPerRow
-            ..width = 1
-            ..height = Kaleidoscope.squareSize * 2);
-      effectCopper <<
-          (Blit()
-            ..descending = true
-            ..aSetInterleaved(mirrorTemp)
-            ..aFWM = 0x0F0F
-            ..aLWM = 0x0F0F
-            ..aShift = 4
-            ..cPtr = dest
-            ..cStride = bitmap.bytesPerRow
-            ..dPtr = dest
-            ..dStride = bitmap.bytesPerRow
-            ..minterms = A | C
-            ..width = 1
-            ..height = Kaleidoscope.squareSize * 2);
-
-      // Screen (dest) 0011001100110011 to temp
-      effectCopper <<
-          (Blit()
-            ..aPtr = dest
-            ..aStride = bitmap.bytesPerRow
-            ..aFWM = 0xCCCC
-            ..aLWM = 0xCCCC
-            ..aShift = 2
-            ..dSetInterleaved(mirrorTemp)
-            ..width = 1
-            ..height = Kaleidoscope.squareSize * 2);
-      effectCopper <<
-          (Blit()
-            ..descending = true
-            ..aPtr = dest
-            ..aStride = bitmap.bytesPerRow
-            ..aFWM = 0x3333
-            ..aLWM = 0x3333
-            ..aShift = 2
-            ..cSetInterleaved(mirrorTemp)
-            ..dSetInterleaved(mirrorTemp)
-            ..minterms = A | C
-            ..width = 1
-            ..height = Kaleidoscope.squareSize * 2);
-
-      // Temp 0101010101010101 to screen
-      effectCopper <<
-          (Blit()
-            ..aSetInterleaved(mirrorTemp)
-            ..aFWM = 0xAAAA
-            ..aLWM = 0xAAAA
-            ..aShift = 1
-            ..dPtr = dest
-            ..dStride = bitmap.bytesPerRow
-            ..width = 1
-            ..height = Kaleidoscope.squareSize * 2);
-      effectCopper <<
-          (Blit()
-            ..descending = true
-            ..aSetInterleaved(mirrorTemp)
-            ..aFWM = 0x5555
-            ..aLWM = 0x5555
-            ..aShift = 1
-            ..cPtr = dest
-            ..cStride = bitmap.bytesPerRow
-            ..dPtr = dest
-            ..dStride = bitmap.bytesPerRow
-            ..minterms = A | C
-            ..width = 1
-            ..height = Kaleidoscope.squareSize * 2);
+    assert(blits.length <= Kaleidoscope._maxLinesPerSquare);
+    Data data = Data(origin: "Kaleidoscope");
+    data.addWord((blits.length << 6) | 1); // number of lines
+    for (var b in blits) {
+      b.addToData(data);
     }
 
-    mirrorColumn(bitmap.bitplanes, bitmap.bitplanes + 6);
-    mirrorColumn(bitmap.bitplanes + 2, bitmap.bitplanes + 4);
-
-    // Mirror first sprite square to next one down
-    effectCopper <<
-        (Blit()
-          ..aPtr = bitmap.bitplanes
-          ..aStride = bitmap.rowStride
-          ..dPtr =
-              bitmap.bitplanes +
-              (Kaleidoscope.squareSize * 2 - 1) * bitmap.rowStride
-          ..dStride = -bitmap.rowStride
-          ..width = (bitmap.width * 2) >> 4
-          ..height = Kaleidoscope.squareSize);
-
-    // First sprite square to rows below
-    effectCopper <<
-        (Blit()
-          ..aPtr = bitmap.bitplanes
-          ..aStride = bitmap.rowStride
-          ..dPtr =
-              bitmap.bitplanes + Kaleidoscope.squareSize * 2 * bitmap.rowStride
-          ..dStride = bitmap.rowStride
-          ..width = (bitmap.width * 2) >> 4
-          ..height = bitmap.height - Kaleidoscope.squareSize * 2);
-
-    // Blit line drawing words into copperlist
-    Blit blitWords(int offset, Label ptr) => (Blit()
-      ..aPtr = temp.label + offset
-      ..dPtr = ptr
-      ..aStride = PartialLineBlit.dataSize
-      ..dStride = lineDrawStart ^ lineDrawEnd
-      ..width = 1
-      ..height = Kaleidoscope.maxLinesPerSquare);
-
-    Blit blitCon0(int offset, Label ptr) => (Blit()
-      ..aPtr = temp.label + offset
-      ..aStride = PartialLineBlit.dataSize
-      ..aFWM = 0xF000
-      ..aLWM = 0xF000
-      ..cData = 0x0A4A
-      ..dPtr = ptr
-      ..dStride = lineDrawStart ^ lineDrawEnd
-      ..minterms = A | C
-      ..width = 1
-      ..height = Kaleidoscope.maxLinesPerSquare);
-
-    Blit blitCon1(int offset, Label ptr) => (Blit()
-      ..aPtr = temp.label + offset
-      ..aStride = PartialLineBlit.dataSize
-      ..aFWM = 0x007F
-      ..aLWM = 0x007F
-      ..dPtr = ptr
-      ..dStride = lineDrawStart ^ lineDrawEnd
-      ..width = 1
-      ..height = Kaleidoscope.maxLinesPerSquare);
-
-    var blitCopper = Copper(mutability: Mutability.local);
-
-    // Copy line data to temp
-    blitCopper <<
-        (Blit()
-          ..channelMask = enableA | enableD
-          ..dPtr = temp.label
-          ..aStride = 2
-          ..dStride = 2
-          ..width = 1
-          ..height =
-              Kaleidoscope.maxLinesPerSquare * PartialLineBlit.dataSize ~/ 2);
-
-    // Make line blits noops by setting BLTSIZE register to NOOP
-    blitCopper <<
-        (Blit()
-          ..aData = NOOP
-          ..dPtr = sizePtr - 2
-          ..dStride = lineDrawStart ^ lineDrawEnd
-          ..width = 1
-          ..height = Kaleidoscope.maxLinesPerSquare);
-
-    // Make the correct number of lineblits actual blits
-    var blitSizeBlitSizePtr = FreeLabel("blitSizeBlitSizePtr");
-    blitCopper <<
-        (Blit()
-          ..aPtr = temp.label
-          ..dPtr = blitSizeBlitSizePtr
-          ..width = 1
-          ..height = 1);
-
-    blitCopper <<
-        (Blit()
-              ..aData = BLTSIZE
-              ..dPtr = sizePtr - 2
-              ..dStride = lineDrawStart ^ lineDrawEnd
-              ..width = 1
-              ..height = Kaleidoscope.maxLinesPerSquare) /
-            {BLTSIZE: blitSizeBlitSizePtr};
-
-    var lineDataStart = 2;
-
-    blitCopper << blitWords(lineDataStart + 0, cptlPtr);
-    blitCopper << blitWords(lineDataStart + 0, dptlPtr);
-    blitCopper << blitWords(lineDataStart + 2, aptlPtr);
-    blitCopper << blitWords(lineDataStart + 4, bmodPtr);
-    blitCopper << blitWords(lineDataStart + 6, amodPtr);
-    blitCopper << blitWords(lineDataStart + 8, sizePtr);
-    blitCopper << blitCon0(lineDataStart + 10, con0Ptr);
-    blitCopper << blitCon1(lineDataStart + 10, con1Ptr);
-
-    blitCopper.call(effectCopper);
-
-    return blitCopper;
+    return data;
   }
-}
 
-class KaleidoscopeFrame implements CopperComponent {
-  final Kaleidoscope _kaleidoscope;
-  final int _frame;
+  static List<Data> _makeShapeFrames(
+    List<(double, double)> Function(int) coords,
+  ) => List.generate(
+    _cycleFrameLength,
+    (i) => _shapeFrame(i * frameSkip, coords),
+  );
 
-  KaleidoscopeFrame(this._kaleidoscope, this._frame);
-
-  (double, double) rotate((double, double) coord, double angle) => (
+  static (double, double) _rotate((double, double) coord, double angle) => (
     coord.$1 * cos(angle) - coord.$2 * sin(angle),
     coord.$1 * sin(angle) + coord.$2 * cos(angle),
   );
 
-  (double, double) center((double, double) coord) => (
-    coord.$1 + Kaleidoscope.squareSize ~/ 2,
-    coord.$2 + Kaleidoscope.squareSize ~/ 2,
+  static (double, double) _center((double, double) coord) => (
+    coord.$1 + Kaleidoscope._squareSize ~/ 2,
+    coord.$2 + Kaleidoscope._squareSize ~/ 2,
   );
 
-  List<(double, double)> diamondCoords(bool reverse) {
-    var angle = _frame / _kaleidoscope.cycleLength * (2 * pi) + 2;
-    if (reverse) {
-      angle = -angle;
-    }
-
+  static List<(double, double)> _diamondCoords(int frame) {
+    var angle = frame / cycleLength * (2 * pi) + 0;
     var coords = [(-10.0, 0.0), (0.0, -20.0), (10.0, 0.0), (0.0, 20.0)];
 
-    return coords.map((e) => rotate((e.$1, e.$2), angle)).map(center).toList();
+    return coords
+        .map((e) => _rotate((e.$1 - 5, e.$2), angle))
+        .map(_center)
+        .toList();
   }
 
-  List<(double, double)> triangleCoords(bool reverse) {
-    var angle = _frame / _kaleidoscope.cycleLength * (2 * pi);
-    var center = Kaleidoscope.squareSize / 2;
-
-    if (reverse) {
-      angle = -angle;
-    }
+  static List<(double, double)> _triangleCoords(int frame) {
+    var angle = frame / cycleLength * (2 * pi);
+    var center = Kaleidoscope._squareSize / 2;
 
     (double, double) coord(double angle) => (
       (sin(angle) * (center * 1.5)) + center,
@@ -500,52 +254,17 @@ class KaleidoscopeFrame implements CopperComponent {
     return List.generate(3, (i) => coord(angle + 2 * pi * i / 3));
   }
 
-  List<(double, double)> barCoords(bool reverse) {
-    var angle = _frame / _kaleidoscope.cycleLength * (2 * pi) + 1.0;
-    if (reverse) {
-      angle = -angle;
-    }
-
+  static List<(double, double)> _barCoords(int frame) {
+    var angle = frame / cycleLength * (2 * pi) + 1.0;
     var coords = [(-10.0, -50.0), (10.0, -50.0), (10.0, 50.0), (-10.0, 50.0)];
 
     return coords
-        .map((e) => rotate(((e.$1 - 10) * 0.5, e.$2 * 0.5), angle))
-        .map(center)
+        .map((e) => _rotate(((e.$1 - 10) * 0.5, e.$2 * 0.5), angle))
+        .map(_center)
         .toList();
   }
 
-  @override
-  void addToCopper(Copper copper) {
-    // Draw shapes
-    var blits = <PartialLineBlit>[];
-    var shapes = [triangleCoords, barCoords, diamondCoords];
-
-    blits += drawSquare(
-      _kaleidoscope.bitmap.bitplanes + 0 * 8,
-      _kaleidoscope.bitmap.rowStride,
-      shapes[_kaleidoscope.pattern1](_kaleidoscope.reversePattern1),
-    );
-
-    blits += drawSquare(
-      _kaleidoscope.bitmap.bitplanes + 1 * 8,
-      _kaleidoscope.bitmap.rowStride,
-      shapes[_kaleidoscope.pattern2](_kaleidoscope.reversePattern2),
-    );
-
-    assert(blits.length <= Kaleidoscope.maxLinesPerSquare);
-    Data data = Data(origin: this);
-    data.addWord((blits.length << 6) | 1); // number of lines
-    for (var b in blits) {
-      b.addToData(data);
-    }
-
-    copper.waitBlit();
-    copper.ptr(BLTAPT, data.label);
-
-    copper.call(_kaleidoscope._effectCopper);
-  }
-
-  List<PartialLineBlit> _drawLine(
+  static List<PartialLineBlit> _drawLine(
     Label bitplane,
     int rowStride,
     (double, double) start,
@@ -564,13 +283,13 @@ class KaleidoscopeFrame implements CopperComponent {
     }
 
     // If completely outside right hand side, make it a vertical line
-    if (start.$1 >= Kaleidoscope.squareSize - 1) {
-      start = (Kaleidoscope.squareSize - 1, start.$2 >= 0 ? start.$2 : 0);
+    if (start.$1 >= Kaleidoscope._squareSize - 1) {
+      start = (Kaleidoscope._squareSize - 1, start.$2 >= 0 ? start.$2 : 0);
       end = (
-        Kaleidoscope.squareSize - 1,
-        end.$2 <= Kaleidoscope.squareSize
+        Kaleidoscope._squareSize - 1,
+        end.$2 <= Kaleidoscope._squareSize
             ? end.$2
-            : (Kaleidoscope.squareSize).toDouble(),
+            : (Kaleidoscope._squareSize).toDouble(),
       );
     }
 
@@ -582,15 +301,15 @@ class KaleidoscopeFrame implements CopperComponent {
       start = (0, getYAtX(0));
     }
     // If end point is outside right hand side, clip it, and draw an additional vertical line
-    if (end.$1 >= Kaleidoscope.squareSize) {
-      var newEndY = getYAtX(Kaleidoscope.squareSize.toDouble() - 1);
+    if (end.$1 >= Kaleidoscope._squareSize) {
+      var newEndY = getYAtX(Kaleidoscope._squareSize.toDouble() - 1);
       blits = _drawLine(
         bitplane,
         rowStride,
-        (Kaleidoscope.squareSize.toDouble() - 1, end.$2),
-        (Kaleidoscope.squareSize.toDouble() - 1, newEndY),
+        (Kaleidoscope._squareSize.toDouble() - 1, end.$2),
+        (Kaleidoscope._squareSize.toDouble() - 1, newEndY),
       );
-      end = (Kaleidoscope.squareSize.toDouble() - 1, newEndY);
+      end = (Kaleidoscope._squareSize.toDouble() - 1, newEndY);
     }
 
     // Turn top to bottom
@@ -599,7 +318,7 @@ class KaleidoscopeFrame implements CopperComponent {
     }
 
     // If completely outside top or bottom, don't draw
-    if (start.$2 > Kaleidoscope.squareSize || end.$2 < 0) {
+    if (start.$2 > Kaleidoscope._squareSize || end.$2 < 0) {
       return blits;
     }
 
@@ -611,19 +330,19 @@ class KaleidoscopeFrame implements CopperComponent {
       start = (getXAtY(0), 0);
     }
     // If end point is outside bottom, clip it
-    if (end.$2 > Kaleidoscope.squareSize) {
+    if (end.$2 > Kaleidoscope._squareSize) {
       end = (
-        getXAtY(Kaleidoscope.squareSize.toDouble()),
-        Kaleidoscope.squareSize.toDouble(),
+        getXAtY(Kaleidoscope._squareSize.toDouble()),
+        Kaleidoscope._squareSize.toDouble(),
       );
     }
 
     var blit = PartialLineBlit.draw(
       (
-        start.$1.toInt().clamp(0, Kaleidoscope.squareSize - 1),
+        start.$1.toInt().clamp(0, Kaleidoscope._squareSize - 1),
         start.$2.toInt(),
       ),
-      (end.$1.toInt().clamp(0, Kaleidoscope.squareSize - 1), end.$2.toInt()),
+      (end.$1.toInt().clamp(0, Kaleidoscope._squareSize - 1), end.$2.toInt()),
       rowStride,
       bitplane,
     );
@@ -636,7 +355,7 @@ class KaleidoscopeFrame implements CopperComponent {
   }
 
   // Draw one square
-  List<PartialLineBlit> drawSquare(
+  static List<PartialLineBlit> _drawSquare(
     Label bitplanes,
     int rowStride,
     List<(double, double)> coords,
@@ -654,12 +373,369 @@ class KaleidoscopeFrame implements CopperComponent {
 
     return blits;
   }
+
+  Copper _makeCopper() {
+    var plane0 = CopperEffectBitplaneVariables();
+    var plane1 = CopperEffectBitplaneVariables();
+
+    var effectCopper = Copper(mutability: Mutability.local);
+
+    // Clear the first two squares
+    effectCopper <<
+        (Blit()..dSetInterleaved(_backBuffer, h: Kaleidoscope._squareSize));
+
+    // Prepare line draw
+    effectCopper.waitBlit();
+    effectCopper.move(BLTCMOD, _backBuffer.rowStride);
+    effectCopper.move(BLTDMOD, _backBuffer.rowStride);
+    effectCopper.move(BLTADAT, 0x8000);
+    effectCopper.move(BLTBDAT, 0xFFFF);
+    effectCopper.move(BLTAFWM, 0xFFFF);
+    effectCopper.move(BLTALWM, 0xFFFF);
+    effectCopper.high(BLTCPTH, _backBuffer.bitplanes);
+    effectCopper.high(BLTDPTH, _backBuffer.bitplanes);
+
+    // DRAW LINES, plane 0
+    var lineDrawStart1 = effectCopper.data.addLabel();
+
+    effectCopper <<
+        PartialLineBlitComponent() /
+            {
+              BLTCPTL: plane0.cptlPtr,
+              BLTDPTL: plane0.dptlPtr,
+              BLTAPTL: plane0.aptlPtr,
+              BLTCON0: plane0.con0Ptr,
+              BLTCON1: plane0.con1Ptr,
+              BLTBMOD: plane0.bmodPtr,
+              BLTAMOD: plane0.amodPtr,
+              BLTSIZE: plane0.sizePtr,
+            };
+    var lineDrawEnd1 = effectCopper.data.addLabel();
+    for (int i = 1; i < Kaleidoscope._maxLinesPerSquare; ++i) {
+      effectCopper << PartialLineBlitComponent();
+    }
+
+    // DRAW LINES, plane 1
+    //var lineDrawStart2 = effectCopper.data.addLabel();
+    effectCopper <<
+        PartialLineBlitComponent() /
+            {
+              BLTCPTL: plane1.cptlPtr,
+              BLTDPTL: plane1.dptlPtr,
+              BLTAPTL: plane1.aptlPtr,
+              BLTCON0: plane1.con0Ptr,
+              BLTCON1: plane1.con1Ptr,
+              BLTBMOD: plane1.bmodPtr,
+              BLTAMOD: plane1.amodPtr,
+              BLTSIZE: plane1.sizePtr,
+            };
+    for (int i = 1; i < Kaleidoscope._maxLinesPerSquare; ++i) {
+      effectCopper << PartialLineBlitComponent();
+    }
+
+    // fill
+    effectCopper <<
+        (Blit()
+          ..aPtr = _backBuffer.bitplanes
+          ..dPtr = _backBuffer.bitplanes
+          ..aStride = _backBuffer.bytesPerRow
+          ..dStride = _backBuffer.bytesPerRow
+          ..exclusiveFill = true
+          ..width = Kaleidoscope._squareSize >> 4
+          ..height = Kaleidoscope._squareSize * 2);
+
+    // mirroring temporary storage
+    Bitmap mirrorTemp = Bitmap.space(
+      16,
+      Kaleidoscope._squareSize,
+      2,
+      interleaved: true,
+    );
+
+    void mirrorColumn(Label src, Label dest) {
+      // Screen (src) 0000000011111111 to temp
+      effectCopper <<
+          (Blit()
+            ..aPtr = src
+            ..aStride = _backBuffer.bytesPerRow
+            ..aFWM = 0xFF00
+            ..aLWM = 0xFF00
+            ..aShift = 8
+            ..dSetInterleaved(mirrorTemp)
+            ..width = 1
+            ..height = Kaleidoscope._squareSize * 2);
+      effectCopper <<
+          (Blit()
+            ..descending = true
+            ..aPtr = src
+            ..aStride = _backBuffer.bytesPerRow
+            ..aFWM = 0x00FF
+            ..aLWM = 0x00FF
+            ..aShift = 8
+            ..cSetInterleaved(mirrorTemp)
+            ..dSetInterleaved(mirrorTemp)
+            ..minterms = A | C
+            ..width = 1
+            ..height = Kaleidoscope._squareSize * 2);
+
+      // Temp 0000111100001111 to screen (dest)
+      effectCopper <<
+          (Blit()
+            ..aSetInterleaved(mirrorTemp)
+            ..aFWM = 0xF0F0
+            ..aLWM = 0xF0F0
+            ..aShift = 4
+            ..dPtr = dest
+            ..dStride = _backBuffer.bytesPerRow
+            ..width = 1
+            ..height = Kaleidoscope._squareSize * 2);
+      effectCopper <<
+          (Blit()
+            ..descending = true
+            ..aSetInterleaved(mirrorTemp)
+            ..aFWM = 0x0F0F
+            ..aLWM = 0x0F0F
+            ..aShift = 4
+            ..cPtr = dest
+            ..cStride = _backBuffer.bytesPerRow
+            ..dPtr = dest
+            ..dStride = _backBuffer.bytesPerRow
+            ..minterms = A | C
+            ..width = 1
+            ..height = Kaleidoscope._squareSize * 2);
+
+      // Screen (dest) 0011001100110011 to temp
+      effectCopper <<
+          (Blit()
+            ..aPtr = dest
+            ..aStride = _backBuffer.bytesPerRow
+            ..aFWM = 0xCCCC
+            ..aLWM = 0xCCCC
+            ..aShift = 2
+            ..dSetInterleaved(mirrorTemp)
+            ..width = 1
+            ..height = Kaleidoscope._squareSize * 2);
+      effectCopper <<
+          (Blit()
+            ..descending = true
+            ..aPtr = dest
+            ..aStride = _backBuffer.bytesPerRow
+            ..aFWM = 0x3333
+            ..aLWM = 0x3333
+            ..aShift = 2
+            ..cSetInterleaved(mirrorTemp)
+            ..dSetInterleaved(mirrorTemp)
+            ..minterms = A | C
+            ..width = 1
+            ..height = Kaleidoscope._squareSize * 2);
+
+      // Temp 0101010101010101 to screen
+      effectCopper <<
+          (Blit()
+            ..aSetInterleaved(mirrorTemp)
+            ..aFWM = 0xAAAA
+            ..aLWM = 0xAAAA
+            ..aShift = 1
+            ..dPtr = dest
+            ..dStride = _backBuffer.bytesPerRow
+            ..width = 1
+            ..height = Kaleidoscope._squareSize * 2);
+      effectCopper <<
+          (Blit()
+            ..descending = true
+            ..aSetInterleaved(mirrorTemp)
+            ..aFWM = 0x5555
+            ..aLWM = 0x5555
+            ..aShift = 1
+            ..cPtr = dest
+            ..cStride = _backBuffer.bytesPerRow
+            ..dPtr = dest
+            ..dStride = _backBuffer.bytesPerRow
+            ..minterms = A | C
+            ..width = 1
+            ..height = Kaleidoscope._squareSize * 2);
+    }
+
+    mirrorColumn(_backBuffer.bitplanes, _backBuffer.bitplanes + 6);
+    mirrorColumn(_backBuffer.bitplanes + 2, _backBuffer.bitplanes + 4);
+
+    // Mirror first sprite square to next one down
+    effectCopper <<
+        (Blit()
+          ..aPtr = _backBuffer.bitplanes
+          ..aStride = _backBuffer.rowStride
+          ..dPtr =
+              _backBuffer.bitplanes +
+              (Kaleidoscope._squareSize * 2 - 1) * _backBuffer.rowStride
+          ..dStride = -_backBuffer.rowStride
+          ..width = (_backBuffer.width * 2) >> 4
+          ..height = Kaleidoscope._squareSize);
+
+    // First sprite square to rows below
+    effectCopper <<
+        (Blit()
+          ..aPtr = _backBuffer.bitplanes
+          ..aStride = _backBuffer.rowStride
+          ..dPtr =
+              _backBuffer.bitplanes +
+              Kaleidoscope._squareSize * 2 * _backBuffer.rowStride
+          ..dStride = _backBuffer.rowStride
+          ..width = (_backBuffer.width * 2) >> 4
+          ..height = _backBuffer.height - Kaleidoscope._squareSize * 2);
+
+    // Blit line drawing words into copperlist
+    Blit blitWords(Label src, Label dest, {int ptrAdjust = 0}) {
+      var blit = Blit()
+        ..aPtr = src
+        ..dPtr = dest
+        ..aStride = PartialLineBlit.dataSize
+        ..dStride = lineDrawStart1 ^ lineDrawEnd1
+        ..width = 1
+        ..height = Kaleidoscope._maxLinesPerSquare;
+
+      if (ptrAdjust != 0) {
+        blit.cData = ptrAdjust;
+        blit.minterms = A | C;
+      }
+
+      return blit;
+    }
+
+    Blit blitCon0(Label src, Label dest) => (Blit()
+      ..aPtr = src
+      ..aStride = PartialLineBlit.dataSize
+      ..aFWM = 0xF000
+      ..aLWM = 0xF000
+      ..cData = 0x0A4A
+      ..dPtr = dest
+      ..dStride = lineDrawStart1 ^ lineDrawEnd1
+      ..minterms = A | C
+      ..width = 1
+      ..height = Kaleidoscope._maxLinesPerSquare);
+
+    Blit blitCon1(Label src, Label dest) => (Blit()
+      ..aPtr = src
+      ..aStride = PartialLineBlit.dataSize
+      ..aFWM = 0x007F
+      ..aLWM = 0x007F
+      ..dPtr = dest
+      ..dStride = lineDrawStart1 ^ lineDrawEnd1
+      ..width = 1
+      ..height = Kaleidoscope._maxLinesPerSquare);
+
+    // The first copper, which sets up the blits for the second effect copper
+
+    var blitCopper = Copper(mutability: Mutability.local);
+
+    // Copy line data to temp
+    blitCopper <<
+        (Blit()
+          ..channelMask = enableA | enableD
+          ..dPtr = plane0.blitterTemp.label
+          ..aStride = 2
+          ..dStride = 2
+          ..width = 1
+          ..height =
+              Kaleidoscope._maxLinesPerSquare * PartialLineBlit.dataSize ~/ 2);
+
+    blitCopper <<
+        (Blit()
+          ..channelMask = enableB | enableD
+          ..dPtr = plane1.blitterTemp.label
+          ..aStride = 2
+          ..dStride = 2
+          ..width = 1
+          ..height =
+              Kaleidoscope._maxLinesPerSquare * PartialLineBlit.dataSize ~/ 2);
+
+    void copyLineBlitParameters(
+      CopperEffectBitplaneVariables plane, {
+      int ptrAdjust = 0,
+    }) {
+      final lineDataStart = 2;
+
+      // Make line blits noops by setting BLTSIZE register to NOOP
+      blitCopper <<
+          (Blit()
+            ..aData = NOOP
+            ..dPtr = plane.sizePtr - 2
+            ..dStride =
+                lineDrawStart1 ^
+                lineDrawEnd1 // same stride for both planes
+            ..width = 1
+            ..height = Kaleidoscope._maxLinesPerSquare);
+
+      // Make the correct number of lineblits actual blits
+      var blitSizeBlitSizePtr = FreeLabel("blitSizeBlitSizePtr");
+      blitCopper <<
+          (Blit()
+            ..aPtr = plane.blitterTemp.label
+            ..dPtr = blitSizeBlitSizePtr
+            ..width = 1
+            ..height = 1);
+
+      blitCopper <<
+          (Blit()
+                ..aData = BLTSIZE
+                ..dPtr = plane.sizePtr - 2
+                ..dStride =
+                    lineDrawStart1 ^
+                    lineDrawEnd1 // same stride for both planes
+                ..width = 1
+                ..height = Kaleidoscope._maxLinesPerSquare) /
+              {BLTSIZE: blitSizeBlitSizePtr};
+
+      Label src = plane.blitterTemp.label;
+      blitCopper <<
+          blitWords(
+            src + lineDataStart + 0,
+            plane.cptlPtr,
+            ptrAdjust: ptrAdjust,
+          );
+      blitCopper <<
+          blitWords(
+            src + lineDataStart + 0,
+            plane.dptlPtr,
+            ptrAdjust: ptrAdjust,
+          );
+      blitCopper << blitWords(src + lineDataStart + 2, plane.aptlPtr);
+      blitCopper << blitWords(src + lineDataStart + 4, plane.bmodPtr);
+      blitCopper << blitWords(src + lineDataStart + 6, plane.amodPtr);
+      blitCopper << blitWords(src + lineDataStart + 8, plane.sizePtr);
+      blitCopper << blitCon0(src + lineDataStart + 10, plane.con0Ptr);
+      blitCopper << blitCon1(src + lineDataStart + 10, plane.con1Ptr);
+    }
+
+    copyLineBlitParameters(plane0);
+    copyLineBlitParameters(plane1, ptrAdjust: 0x0008);
+
+    blitCopper.call(effectCopper);
+
+    return blitCopper;
+  }
+}
+
+class KaleidoscopeFrame implements CopperComponent {
+  final Kaleidoscope _kaleidoscope;
+  final int _frame1;
+  final int _frame2;
+
+  KaleidoscopeFrame(this._kaleidoscope, this._frame1, this._frame2);
+
+  @override
+  void addToCopper(Copper copper) {
+    Data data1 = Kaleidoscope._shapeLines[_kaleidoscope.pattern1][_frame1];
+    Data data2 = Kaleidoscope._shapeLines[_kaleidoscope.pattern2][_frame2];
+    copper.waitBlit();
+    copper.ptr(BLTAPT, data1.label);
+    copper.ptr(BLTBPT, data2.label);
+
+    copper.call(_kaleidoscope._effectCopper);
+  }
 }
 
 class KaleidoscopeFrameInit implements CopperComponent {
-  final Kaleidoscope _kaleidoscope;
-
-  KaleidoscopeFrameInit(this._kaleidoscope);
+  KaleidoscopeFrameInit();
 
   @override
   void addToCopper(Copper copper) {
@@ -680,15 +756,15 @@ class KaleidoscopeFrameInit implements CopperComponent {
                 (Blit()
                   ..dSetInterleaved(sprite.bitmap)
                   ..aData = 0xFFFF);
-            updateControlWords(sprite, h, Kaleidoscope.squareSize * 6);
+            updateControlWords(sprite, h, Kaleidoscope._squareSize * 6);
           }
 
-          clearBitmapSprite(0, _kaleidoscope.sprites.column1);
+          clearBitmapSprite(0, Kaleidoscope._sprites.column1);
           for (int i = 1; i <= 4; ++i) {
             updateControlWords(
-              _kaleidoscope.sprites.columns[i],
-              Kaleidoscope.squareSize * 2 * i,
-              Kaleidoscope.squareSize * 6,
+              Kaleidoscope._sprites.columns[i],
+              Kaleidoscope._squareSize * 2 * i,
+              Kaleidoscope._squareSize * 6,
             );
           }
         };
@@ -696,11 +772,9 @@ class KaleidoscopeFrameInit implements CopperComponent {
 }
 
 class KaleidoscopeFrameFooter implements CopperComponent {
-  final Kaleidoscope _kaleidoscope;
+  Bitmap get bitmap => Kaleidoscope._sprites.column1.bitmap;
 
-  Bitmap get bitmap => _kaleidoscope.sprites.column1.bitmap;
-
-  KaleidoscopeFrameFooter(this._kaleidoscope);
+  KaleidoscopeFrameFooter();
 
   @override
   void addToCopper(Copper copper) {

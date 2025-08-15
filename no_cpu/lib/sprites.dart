@@ -31,8 +31,14 @@ class Sprite {
 
   Sprite(this.label, this.height, {this.attached = false});
 
-  Sprite.space(this.height, {this.attached = false, Sprite? parent}) {
+  Sprite.space(
+    this.height, {
+    this.attached = false,
+    int? alignment,
+    Sprite? parent,
+  }) {
     if (parent != null) {
+      assert(alignment == null, "Alignment cannot be set with a parent");
       var parentBlock = parent.label.block;
       if (parentBlock is! Space) {
         throw ArgumentError(
@@ -42,7 +48,11 @@ class Sprite {
       label = parent.label + (parent.height + 1) * 16;
       parentBlock.size += (height + 1) * 16;
     } else {
-      label = Space((height + 2) * 16, alignment: 3, origin: this).label;
+      label = Space(
+        (height + 2) * 16,
+        alignment: alignment ?? 3,
+        origin: this,
+      ).label;
     }
   }
 

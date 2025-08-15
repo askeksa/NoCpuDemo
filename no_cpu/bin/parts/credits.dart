@@ -12,25 +12,7 @@ mixin Credits on NoCpuDemoBase {
   static final int flashDuration = 4;
   static final int kaleidoscopeFrameskip = 2;
 
-  late final Kaleidoscope codeKaleidoscope = Kaleidoscope(
-    128,
-    kaleidoscopeFrameskip,
-    1,
-    0,
-  );
-  late final Kaleidoscope graphicsKaleidoscope = Kaleidoscope(
-    128,
-    kaleidoscopeFrameskip,
-    0,
-    2,
-  );
-  late final Kaleidoscope musicKaleidoscope = Kaleidoscope(
-    128,
-    kaleidoscopeFrameskip,
-    2,
-    1,
-    reversePattern2: true,
-  );
+  late final Kaleidoscope kaleidoscope = Kaleidoscope();
 
   static final IlbmImage codeImage = IlbmImage.fromFile(
     "$assetsPath/Credits code by.iff",
@@ -249,7 +231,14 @@ mixin Credits on NoCpuDemoBase {
       return null;
     }
 
-    F(P, 0, -3) - 1 | (i, f) => f << codeKaleidoscope.init(i);
+    F(P, 0, -3) - 1 | (i, f) => f << kaleidoscope.init(i);
+
+    var codeKaleidoscope = kaleidoscope
+      ..pattern1 = 1
+      ..reversePattern1 = true
+      ..pattern2 = 0
+      ..reversePattern2 = true;
+
     F(P, 0, -1) << codeKaleidoscope.frame(flashDuration);
     girl(
       P,
@@ -262,11 +251,15 @@ mixin Credits on NoCpuDemoBase {
       codePlace,
     );
 
-    F(P + 1, 0, -3) - 1 | (i, f) => f << graphicsKaleidoscope.init(i);
-    F(P + 1, 0, -1) << graphicsKaleidoscope.frame(flashDuration);
+    kaleidoscope.pattern1 = 0;
+    kaleidoscope.reversePattern1 = false;
+    kaleidoscope.pattern2 = 2;
+    kaleidoscope.reversePattern2 = false;
+
+    F(P + 1, 0, -1) << kaleidoscope.frame(flashDuration);
     girl(
       P + 1,
-      graphicsKaleidoscope,
+      kaleidoscope,
       lisa,
       lisaMask,
       1,
@@ -275,11 +268,15 @@ mixin Credits on NoCpuDemoBase {
       graphicsPlace,
     );
 
-    F(P + 2, 0, -3) - 1 | (i, f) => f << musicKaleidoscope.init(i);
-    F(P + 2, 0, -1) << musicKaleidoscope.frame(flashDuration);
+    kaleidoscope.pattern1 = 2;
+    kaleidoscope.reversePattern1 = true;
+    kaleidoscope.pattern2 = 1;
+    kaleidoscope.reversePattern2 = false;
+
+    F(P + 2, 0, -1) << kaleidoscope.frame(flashDuration);
     girl(
       P + 2,
-      musicKaleidoscope,
+      kaleidoscope,
       paula,
       paulaMask,
       -1,
