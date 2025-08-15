@@ -20,7 +20,18 @@ class Interference {
   static final int _bitmapHeight = 180 - 32;
 
   late final int _variant;
-  int get totalColors => _variant == 0 ? 16 : 8;
+
+  final bitmapVariants = [
+    (Interference.bitmap1, Interference.bitmap2),
+    (Interference.bitmap2, Interference.bitmap2),
+    (Interference.bitmap2, Interference.bitmap3),
+    (Interference.bitmap1, Interference.bitmap3),
+  ];
+
+  Bitmap get effectBitmap1 => bitmapVariants[_variant].$1;
+  Bitmap get effectBitmap2 => bitmapVariants[_variant].$2;
+
+  int get totalColors => 1 << max(effectBitmap1.depth, effectBitmap2.depth);
 
   // Generate a palette suitable for the interference effect.
   // The generator function should return a Color object for each color index up to and including the maximum index
@@ -92,11 +103,11 @@ class Interference {
     _bitmapWidth,
     _bitmapHeight,
     (int x, int y) {
-      double distance1 = sqrt((x - 100) * (x - 100) + y * y) + 950;
+      double distance1 = sqrt((x - 80) * (x - 80) + y * y) + 950;
       double color1 = (distance1 * distance1 / 165000) + 1000000;
-      double distance2 = sqrt((x + 100) * (x + 100) + y * y);
+      double distance2 = sqrt((x + 80) * (x + 80) + y * y);
       double color2 = 500.0 / (distance2 + 130.0);
-      double color = color1 + color2;
+      double color = (color1 + color2) / 2;
       return _bluenoiseDither3(_noise2, color - color.floor(), x, y);
     },
   );
@@ -172,15 +183,8 @@ class InterferenceFrame implements CopperComponent {
   final bool _flip;
   final int _variant;
 
-  final bitmapVariants = [
-    (Interference.bitmap1, Interference.bitmap2),
-    (Interference.bitmap2, Interference.bitmap2),
-    (Interference.bitmap2, Interference.bitmap3),
-    (Interference.bitmap3, Interference.bitmap3),
-  ];
-
   late final display = _scrollDisplay()
-    ..setBitmaps(bitmapVariants[_variant].$1, bitmapVariants[_variant].$2);
+    ..setBitmaps(interference.effectBitmap1, interference.effectBitmap2);
 
   Display _scrollDisplay() {
     var xRange = (Interference.bitmap1.width - 320) ~/ 2;

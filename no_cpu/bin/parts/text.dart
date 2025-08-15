@@ -156,10 +156,10 @@ mixin Text on NoCpuDemoBase {
     Display interferenceDisplay(int frame) {
       return interference
           .frame(
-            (sin(frame / 102 + 1.4) + sin(frame / 133)) / 2, // even X
-            (sin(frame / 160 + 0.3) + sin(frame / 131)) / 2, // even Y
-            (sin(frame / 175 + 0.2) + sin(frame / 163)) / 2, // odd X
-            (sin(frame / 130 + 1.40) + sin(frame / 127)) / 2, // odd Y
+            (sin(frame / 102 + 1.4) + sin(frame / 113)) / 2, // even X
+            (sin(frame / 130 + 0.3) + sin(frame / 131)) / 2, // even Y
+            (sin(frame / 145 + 3.2) + sin(frame / 89)) / 2, // odd X
+            (sin(frame / 130 + 1.40) + sin(frame / 117)) / 2, // odd Y
             frame & 1 != 0, // flip
           )
           .display;
@@ -284,19 +284,19 @@ mixin Text on NoCpuDemoBase {
     final interferencePaletteJoin = interference.generatePalette((i, maxIndex) {
       var colorF = i / (maxIndex + 1);
       return Color.rgb8(
-        (sin(colorF * pi * 2 + 1.0) * 20 + 44).toInt(),
-        (sin(colorF * pi * 3 + pi / 3) * 10 + 24).toInt(),
-        (sin(colorF * pi * 2 + pi * 2.5 / 3 + 0.5) * 12 + 35).toInt(),
+        (sin(colorF * pi * 2 + 1.0) * 20 + 64).toInt(),
+        (sin(colorF * pi * 3 + pi / 3) * 10 + 34).toInt(),
+        (sin(colorF * pi * 2 + pi * 2.5 / 3 + 0.5) * 12 + 45).toInt(),
       );
     });
 
     Display interferenceDisplay(int frame) {
       return interference
           .frame(
-            (sin(frame / 102 + 4.5) + sin(frame / 133)) / 2, // even X
-            (sin(frame / 160 + 0.3) + sin(frame / 131)) / 2, // even Y
-            (sin(frame / 175 + 0.2) + sin(frame / 163)) / 2, // odd X
-            (sin(frame / 130 + 2.35) + sin(frame / 127)) / 2, // odd Y
+            (sin(frame / 80 + 1.5) + sin(frame / 120)) / 2, // even X
+            (sin(frame / 120 + 0.3) + sin(frame / 89)) / 2, // even Y
+            (sin(frame / 50 + 3.2) + sin(frame / 130)) / 2, // odd X
+            (sin(frame / 103 + 2.35) + sin(frame / 67)) / 2, // odd Y
             frame & 1 != 0, // flip
           )
           .display;
