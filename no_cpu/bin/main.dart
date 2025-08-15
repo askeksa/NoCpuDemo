@@ -4,6 +4,7 @@ import 'base.dart';
 import 'effects/transition.dart';
 import 'parts/opening.dart';
 import 'parts/bully.dart';
+import 'parts/text.dart';
 import 'parts/rebels.dart';
 import 'parts/together.dart';
 import 'parts/check.dart';
@@ -69,7 +70,7 @@ class NoCpuDemoBase extends MusicDemoBase {
 }
 
 class NoCpuDemo extends NoCpuDemoBase
-    with Opening, Bully, Rebels, Together, Check, Credits, Life {
+    with Opening, Bully, Text, Rebels, Together, Check, Credits, Life {
   @override
   int get startPattern => 0;
 
@@ -81,7 +82,7 @@ class NoCpuDemo extends NoCpuDemoBase
     showLogo(2);
     oneBully(4);
     bully(6, bullyTransColor);
-    F(8, 0) << Palette.fromMap({0: aliceBg});
+    rebelsText(8);
     rebels(9);
     together(15);
     check(18);

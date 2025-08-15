@@ -72,28 +72,6 @@ mixin Opening on NoCpuDemoBase {
     return newPalette;
   }
 
-  // Generate a palette suitable for the interference effect.
-  // The generator function should return a Color object for each color index up to and including the maximum index
-  static Palette _generatePalette(
-    Color Function(int index, int maxIndex) generator,
-  ) {
-    var colors = List.generate(16, (i) => generator(i, 15));
-
-    return Palette.generateRange(0, 256, (i) {
-      int evenColor =
-          ((i & 0x40) >> 3) |
-          ((i & 0x10) >> 2) |
-          ((i & 0x04) >> 1) |
-          (i & 0x01);
-      int oddColor = ((i & 0x20) >> 3) | ((i & 0x08) >> 2) | ((i & 0x02) >> 1);
-
-      return colors[((oddColor << 1) + evenColor) & 15];
-    });
-  }
-
-  static Palette _generatePaletteFromList(List<Color> palette) =>
-      _generatePalette((index, _) => palette[index]);
-
   void ratingCard(int P) {
     var image = IlbmImage.fromFile("$assetsPath/Folcka_NO CPU WARNING.iff");
     F(P, 0) >> image.palette;
@@ -149,7 +127,9 @@ mixin Opening on NoCpuDemoBase {
     }
 
     var interference = Interference();
-    var interferencePalette = _generatePaletteFromList(_interferencePalette);
+    var interferencePalette = Interference.generatePaletteFromList(
+      _interferencePalette,
+    );
     var fadePalettes = List.generate(
       85,
       (i) => _randomPartialFade(i, _blackPalette, interferencePalette),

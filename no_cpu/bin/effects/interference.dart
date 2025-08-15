@@ -19,6 +19,28 @@ class Interference {
   static final int _bitmapWidth = 320 - 48;
   static final int _bitmapHeight = 180 - 32;
 
+  // Generate a palette suitable for the interference effect.
+  // The generator function should return a Color object for each color index up to and including the maximum index
+  static Palette generatePalette(
+    Color Function(int index, int maxIndex) generator,
+  ) {
+    var colors = List.generate(16, (i) => generator(i, 15));
+
+    return Palette.generateRange(0, 256, (i) {
+      int evenColor =
+          ((i & 0x40) >> 3) |
+          ((i & 0x10) >> 2) |
+          ((i & 0x04) >> 1) |
+          (i & 0x01);
+      int oddColor = ((i & 0x20) >> 3) | ((i & 0x08) >> 2) | ((i & 0x02) >> 1);
+
+      return colors[((oddColor << 1) + evenColor) & 15];
+    });
+  }
+
+  static Palette generatePaletteFromList(List<Color> palette) =>
+      generatePalette((index, _) => palette[index]);
+
   static final Bitmap bitmap1 = _generateBitmap(
     4,
     _bitmapWidth,
