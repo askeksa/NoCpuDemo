@@ -19,12 +19,16 @@ class Interference {
   static final int _bitmapWidth = 320 - 48;
   static final int _bitmapHeight = 180 - 32;
 
+  late final int _variant;
+  int get totalColors => _variant == 0 ? 16 : 8;
+
   // Generate a palette suitable for the interference effect.
   // The generator function should return a Color object for each color index up to and including the maximum index
-  static Palette generatePalette(
-    Color Function(int index, int maxIndex) generator,
-  ) {
-    var colors = List.generate(16, (i) => generator(i, 15));
+  Palette generatePalette(Color Function(int index, int maxIndex) generator) {
+    var colors = List.generate(
+      totalColors,
+      (i) => generator(i, totalColors - 1),
+    );
 
     return Palette.generateRange(0, 256, (i) {
       int evenColor =
@@ -34,12 +38,32 @@ class Interference {
           (i & 0x01);
       int oddColor = ((i & 0x20) >> 3) | ((i & 0x08) >> 2) | ((i & 0x02) >> 1);
 
-      return colors[((oddColor << 1) + evenColor) & 15];
+      if (totalColors == 8) {
+        evenColor &= 7;
+      } else {
+        oddColor <<= 1;
+      }
+      return colors[(oddColor + evenColor) % totalColors];
     });
   }
 
-  static Palette generatePaletteFromList(List<Color> palette) =>
-      generatePalette((index, _) => palette[index]);
+  Palette generatePaletteFromList(List<Color> palette) {
+    assert(palette.length == 16);
+    return generatePalette(
+      (index, _) => palette[totalColors == 8 ? index * 2 : index],
+    );
+  }
+
+  static List<Color> shuffleColorList(List<Color> palette) {
+    assert(palette.length == 16);
+    return List.generate(16, (index) {
+      if (index <= 7) {
+        return palette[index << 1];
+      } else {
+        return palette[31 - (index << 1)];
+      }
+    });
+  }
 
   static final Bitmap bitmap1 = _generateBitmap(
     4,
@@ -59,6 +83,20 @@ class Interference {
     (int x, int y) {
       double distance = sqrt(x * x + y * y);
       var color = 500.0 / (distance + 130.0);
+      return _bluenoiseDither3(_noise2, color - color.floor(), x, y);
+    },
+  );
+
+  static final Bitmap bitmap3 = _generateBitmap(
+    3,
+    _bitmapWidth,
+    _bitmapHeight,
+    (int x, int y) {
+      double distance1 = sqrt((x - 100) * (x - 100) + y * y) + 950;
+      double color1 = (distance1 * distance1 / 165000) + 1000000;
+      double distance2 = sqrt((x + 100) * (x + 100) + y * y);
+      double color2 = 500.0 / (distance2 + 130.0);
+      double color = color1 + color2;
       return _bluenoiseDither3(_noise2, color - color.floor(), x, y);
     },
   );
@@ -117,12 +155,12 @@ class Interference {
     double evenY,
     double oddX,
     double oddY,
-    bool flip, {
-    int variant = 0,
-  }) {
-    assert(variant <= 1);
-    return InterferenceFrame(this, evenX, evenY, oddX, oddY, flip, variant);
+    bool flip,
+  ) {
+    return InterferenceFrame(this, evenX, evenY, oddX, oddY, flip, _variant);
   }
+
+  Interference(this._variant);
 }
 
 class InterferenceFrame implements CopperComponent {
@@ -134,11 +172,15 @@ class InterferenceFrame implements CopperComponent {
   final bool _flip;
   final int _variant;
 
+  final bitmapVariants = [
+    (Interference.bitmap1, Interference.bitmap2),
+    (Interference.bitmap2, Interference.bitmap2),
+    (Interference.bitmap2, Interference.bitmap3),
+    (Interference.bitmap3, Interference.bitmap3),
+  ];
+
   late final display = _scrollDisplay()
-    ..setBitmaps(
-      _variant == 0 ? Interference.bitmap1 : Interference.bitmap2,
-      Interference.bitmap2,
-    );
+    ..setBitmaps(bitmapVariants[_variant].$1, bitmapVariants[_variant].$2);
 
   Display _scrollDisplay() {
     var xRange = (Interference.bitmap1.width - 320) ~/ 2;

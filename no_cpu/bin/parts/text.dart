@@ -42,15 +42,27 @@ mixin Text on NoCpuDemoBase {
     return sqrt(dx * dx + dy * dy) * (0.3 + 0.1 * cos(v * 5));
   });
 
-  late final _interferencePaletteRebels = List.generate(16, (i) {
-    double f = i / 16;
-    double component(double f) => sin(f * 2 * pi) * 0.5 + 0.5;
-    return Color.hsl(
-      component(f) * 0.17 + 0.7,
-      component(f) * 0.2 + 0.3,
-      component(f * 2) * 0.15 + 0.1,
-    );
-  });
+  final _interferencePaletteRebels = Interference.shuffleColorList([
+    Color.rgb8(6, 7, 52),
+    Color.rgb8(6, 15, 65),
+    Color.rgb8(6, 27, 77),
+    Color.rgb8(5, 44, 90),
+    Color.rgb8(4, 63, 103),
+    Color.rgb8(52, 78, 128),
+    Color.rgb8(0, 113, 128),
+    Color.rgb8(110, 64, 75),
+    Color.rgb8(0, 155, 176),
+    Color.rgb8(159, 70, 0),
+    Color.rgb8(0, 213, 219),
+    Color.rgb8(191, 67, 0),
+    Color.rgb8(214, 200, 177),
+    Color.rgb8(255, 72, 0),
+    Color.rgb8(255, 142, 24),
+    Color.rgb8(214, 99, 0),
+  ]);
+
+  List<Color> dimColors(List<Color> colors, double lightness) =>
+      colors.map((c) => Color.black.interpolate(c, lightness)).toList();
 
   List<(int, int, SpriteGroup, Palette)> getWords(
     String filename,
@@ -144,18 +156,18 @@ mixin Text on NoCpuDemoBase {
       170,
     ]);
 
-    var interference = Interference();
-    var interferencePalette = Interference.generatePaletteFromList(
-      _interferencePaletteRebels,
+    var interference = Interference(1);
+    var interferencePalette = interference.generatePaletteFromList(
+      dimColors(_interferencePaletteRebels, 0.5),
     );
 
     Display interferenceDisplay(int frame) {
       return interference
           .frame(
-            (sin(frame / 102 + 4.5) + sin(frame / 133)) / 2, // even X
+            (sin(frame / 102 + 1.4) + sin(frame / 133)) / 2, // even X
             (sin(frame / 160 + 0.3) + sin(frame / 131)) / 2, // even Y
             (sin(frame / 175 + 0.2) + sin(frame / 163)) / 2, // odd X
-            (sin(frame / 130 + 2.35) + sin(frame / 127)) / 2, // odd Y
+            (sin(frame / 130 + 1.40) + sin(frame / 127)) / 2, // odd Y
             frame & 1 != 0, // flip
           )
           .display;
@@ -211,10 +223,15 @@ mixin Text on NoCpuDemoBase {
       150,
     ]);
 
-    var interference = Interference();
-    var interferencePalette = Interference.generatePaletteFromList(
-      _interferencePaletteRebels,
-    );
+    var interference = Interference(2);
+    final interferencePalette = interference.generatePalette((i, maxIndex) {
+      var colorF = i / (maxIndex + 1);
+      return Color.rgb8(
+        (sin(colorF * pi * 2 + pi / 3) * 20 + 74).toInt(),
+        (sin(colorF * pi * 2 + 1.0) * 20 + 34).toInt(),
+        (sin(colorF * pi * 2 + pi * 2 / 3 + 0.5) * 12 + 25).toInt(),
+      );
+    });
 
     Display interferenceDisplay(int frame) {
       return interference
@@ -271,10 +288,15 @@ mixin Text on NoCpuDemoBase {
       150,
     ]);
 
-    var interference = Interference();
-    var interferencePalette = Interference.generatePaletteFromList(
-      _interferencePaletteRebels,
-    );
+    var interference = Interference(3);
+    final interferencePaletteJoin = interference.generatePalette((i, maxIndex) {
+      var colorF = i / (maxIndex + 1);
+      return Color.rgb8(
+        (sin(colorF * pi * 2 + 1.0) * 20 + 44).toInt(),
+        (sin(colorF * pi * 3 + pi / 3) * 10 + 24).toInt(),
+        (sin(colorF * pi * 2 + pi * 2.5 / 3 + 0.5) * 12 + 35).toInt(),
+      );
+    });
 
     Display interferenceDisplay(int frame) {
       return interference
@@ -296,7 +318,7 @@ mixin Text on NoCpuDemoBase {
     F(P, 28, 0) << disableWord(words, 1);
     F(P, 30, 0) << disableWord(words, 0);
 
-    F(P, 0, flashDuration) >> interferencePalette;
+    F(P, 0, flashDuration) >> interferencePaletteJoin;
     F(P, 0, flashDuration) - (P, 32, -1) |
         (frame, copper) {
           copper <<

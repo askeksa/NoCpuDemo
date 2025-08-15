@@ -17,16 +17,6 @@ mixin Opening on NoCpuDemoBase {
     "$assetsPath/ONE BULLY3_32.iff",
   );
 
-  late final _interferencePalette = List.generate(16, (i) {
-    double f = i / 16;
-    double component(double f) => sin(f * 2 * pi) * 0.5 + 0.5;
-    return Color.hsl(
-      component(f) * 0.17 + 0.7,
-      component(f) * 0.2 + 0.3,
-      component(f * 2) * 0.15 + 0.1,
-    );
-  });
-
   final _blackPalette = Palette.generateRange(0, 128, (i) => Color.black);
 
   final _paletteIndices = List<int>.generate(128, (i) => i).shuffled();
@@ -126,10 +116,17 @@ mixin Opening on NoCpuDemoBase {
       }
     }
 
-    var interference = Interference();
-    var interferencePalette = Interference.generatePaletteFromList(
-      _interferencePalette,
-    );
+    var interference = Interference(0);
+    var interferencePalette = interference.generatePalette((i, max) {
+      double f = i / max;
+      double component(double f) => sin(f * 2 * pi) * 0.5 + 0.5;
+      return Color.hsl(
+        component(f) * 0.17 + 0.7,
+        component(f) * 0.2 + 0.3,
+        component(f * 2) * 0.15 + 0.1,
+      );
+    });
+
     var fadePalettes = List.generate(
       85,
       (i) => _randomPartialFade(i, _blackPalette, interferencePalette),

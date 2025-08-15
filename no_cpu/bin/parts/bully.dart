@@ -33,7 +33,7 @@ mixin Bully on NoCpuDemoBase {
     ];
     var spritePalette = spriteScreen.palette(Palette.fromMap({1: from}));
 
-    var interferencePalette =
+    var bullyPalette =
         imagePalette |
         imagePalette.shift(64) |
         imagePalette.shift(128) |
@@ -58,7 +58,7 @@ mixin Bully on NoCpuDemoBase {
     F(P, 0, 128) >> (Blit()..dSetInterleaved(tornado.bitmap1));
     F(P, 0, 128 + 1) >> (Blit()..dSetInterleaved(tornado.bitmap2));
 
-    F(P, 0, 128 + 2) >> interferencePalette;
+    F(P, 0, 128 + 2) >> bullyPalette;
 
     F(P, 0, 128 + 2) - (P + 2, 0, -2) |
         (frame, copper) {

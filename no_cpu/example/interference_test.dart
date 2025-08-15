@@ -11,59 +11,9 @@ main() {
 }
 
 class InterferenceTest extends DemoBase {
-  Interference interference = Interference();
-
   static final int _variant = 1; // 0 or 1
 
-  // Generate a palette suitable for the interference effect, variant 0
-  // The generator function should return a Color object for each color index up to and including the maximum index
-  static Palette _generatePalette0(
-    Color Function(int index, int maxIndex) generator,
-  ) {
-    var colors = List.generate(16, (i) => generator(i, 15));
-
-    return Palette.generateRange(0, 256, (i) {
-      int evenColor =
-          ((i & 0x40) >> 3) |
-          ((i & 0x10) >> 2) |
-          ((i & 0x04) >> 1) |
-          (i & 0x01);
-      int oddColor = ((i & 0x20) >> 3) | ((i & 0x08) >> 2) | ((i & 0x02) >> 1);
-
-      return colors[((oddColor << 1) + evenColor) & 15];
-    });
-  }
-
-  // Generate a palette suitable for the interference effect, variant 1
-  // The generator function should return a Color object for each color index up to and including the maximum index
-  static Palette _generatePalette1(
-    Color Function(int index, int maxIndex) generator,
-  ) {
-    var colors = List.generate(8, (i) => generator(i, 7));
-
-    return Palette.generateRange(0, 256, (i) {
-      int evenColor = ((i & 0x10) >> 2) | ((i & 0x04) >> 1) | (i & 0x01);
-      int oddColor = ((i & 0x20) >> 3) | ((i & 0x08) >> 2) | ((i & 0x02) >> 1);
-
-      return colors[(oddColor + evenColor) & 7];
-    });
-  }
-
-  static final _generatePalette = _variant == 0
-      ? _generatePalette0
-      : _generatePalette1;
-
-  static Palette _generatePaletteFromList(List<Color> palette) =>
-      _generatePalette((index, _) => palette[index]);
-
-  static List<Color> _shuffleColorList(List<Color> palette) =>
-      List.generate(16, (index) {
-        if (index <= 7) {
-          return palette[index << 1];
-        } else {
-          return palette[31 - (index << 1)];
-        }
-      });
+  static final Interference interference = Interference(_variant);
 
   final _paletteIndices = List<int>.generate(
     128,
@@ -71,7 +21,7 @@ class InterferenceTest extends DemoBase {
   ).shuffled(Random(1337));
 
   // ignore: unused_field
-  final _palette1 = _generatePalette((i, maxIndex) {
+  final _palette1 = interference.generatePalette((i, maxIndex) {
     var colorF = i / (maxIndex + 1);
     return Color.rgb8(
       (sin(colorF * pi * 2) * 45 + 64).toInt(),
@@ -81,7 +31,7 @@ class InterferenceTest extends DemoBase {
   });
 
   // ignore: unused_field
-  final _palette2 = _generatePalette((i, maxIndex) {
+  final _palette2 = interference.generatePalette((i, maxIndex) {
     var colorF = i / (maxIndex + 1);
     return Color.rgb8(
       (sin(colorF * pi * 2 + pi / 3) * 63 + 64).toInt(),
@@ -91,13 +41,47 @@ class InterferenceTest extends DemoBase {
   });
 
   // ignore: unused_field
-  final _grayscalePalette = _generatePalette(
-    (i, maxIndex) => Color.rgb8(i * 0x11, i * 0x11, i * 0x11),
+  final _palette3 = interference.generatePalette((i, maxIndex) {
+    var colorF = i / (maxIndex + 1);
+    return Color.rgb8(
+      (sin(colorF * pi * 2 + pi / 3) * 20 + 74).toInt(),
+      (sin(colorF * pi * 2 + 1.0) * 20 + 34).toInt(),
+      (sin(colorF * pi * 2 + pi * 2 / 3 + 0.5) * 12 + 25).toInt(),
+    );
+  });
+
+  // ignore: unused_field
+  final _palette4 = interference.generatePalette((i, maxIndex) {
+    var colorF = i / (maxIndex + 1);
+    return Color.rgb8(
+      (sin(colorF * pi * 2 + 1.0) * 20 + 44).toInt(),
+      (sin(colorF * pi * 3 + pi / 3) * 10 + 24).toInt(),
+      (sin(colorF * pi * 2 + pi * 2.5 / 3 + 0.5) * 12 + 35).toInt(),
+    );
+  });
+
+  late final _openingPalette = interference.generatePalette((i, max) {
+    double f = i / (max + 1);
+    double component(double f) => sin(f * 2 * pi) * 0.5 + 0.5;
+    return Color.hsl(
+      component(f) * 0.17 + 0.7,
+      component(f) * 0.2 + 0.3,
+      component(f * 2) * 0.15 + 0.1,
+    );
+  });
+
+  // ignore: unused_field
+  final _grayscalePalette = interference.generatePalette(
+    (i, maxIndex) => Color.rgb8(
+      i * 0xFF ~/ maxIndex,
+      i * 0xFF ~/ maxIndex,
+      i * 0xFF ~/ maxIndex,
+    ),
   );
 
   final _blackPalette = Palette.generateRange(0, 256, (i) => Color.rgb24(0));
 
-  final _fireColorList = _shuffleColorList([
+  static final _fireColorList = Interference.shuffleColorList([
     Color.rgb8(101, 0, 0),
     Color.rgb8(136, 14, 0),
     Color.rgb8(110, 29, 0),
@@ -116,7 +100,7 @@ class InterferenceTest extends DemoBase {
     Color.rgb8(255, 67, 0),
   ]);
 
-  final _blueOrangeColorList = _shuffleColorList([
+  final _blueOrangeColorList = Interference.shuffleColorList([
     Color.rgb8(6, 7, 52),
     Color.rgb8(6, 15, 65),
     Color.rgb8(6, 27, 77),
@@ -135,7 +119,7 @@ class InterferenceTest extends DemoBase {
     Color.rgb8(214, 99, 0),
   ]);
 
-  final _blueColorList = _shuffleColorList([
+  final _blueColorList = Interference.shuffleColorList([
     Color.rgb8(0, 17, 41),
     Color.rgb8(29, 22, 52),
     Color.rgb8(27, 16, 52),
@@ -154,16 +138,23 @@ class InterferenceTest extends DemoBase {
     Color.rgb8(40, 60, 113),
   ]);
 
-  // ignore: unused_field
-  late final _firePalette = _generatePaletteFromList(_fireColorList);
+  List<Color> dimColors(List<Color> colors, double lightness) =>
+      colors.map((c) => Color.black.interpolate(c, lightness)).toList();
 
   // ignore: unused_field
-  late final _blueOrangePalette = _generatePaletteFromList(
-    _blueOrangeColorList,
+  late final _firePalette = interference.generatePaletteFromList(
+    dimColors(_fireColorList, 0.5),
   );
 
   // ignore: unused_field
-  late final _bluePalette = _generatePaletteFromList(_blueColorList);
+  late final _blueOrangePalette = interference.generatePaletteFromList(
+    dimColors(_blueOrangeColorList, 0.5),
+  );
+
+  // ignore: unused_field
+  late final _bluePalette = interference.generatePaletteFromList(
+    _blueColorList,
+  );
 
   Palette _randomPartialFade(
     int frame,
@@ -215,14 +206,13 @@ class InterferenceTest extends DemoBase {
 
           f <<
               interference.frame(
-                (sin(frame / 102 + 4.5) + sin(frame / 133)) / 2, // even X
+                (sin(frame / 102 + 1.4) + sin(frame / 133)) / 2, // even X
                 (sin(frame / 160 + 0.3) + sin(frame / 131)) / 2, // even Y
                 (sin(frame / 175 + 0.2) + sin(frame / 163)) / 2, // odd X
-                (sin(frame / 130 + 2.35) + sin(frame / 127)) / 2, // odd Y
+                (sin(frame / 130 + 1.40) + sin(frame / 127)) / 2, // odd Y
                 frame & 1 != 0, // flip
-                variant: _variant,
               );
-          var newPalette = _randomPartialFade(frame, _blackPalette, _palette1);
+          var newPalette = _randomPartialFade(frame, _blackPalette, _palette4);
           f << newPalette;
         };
   }
