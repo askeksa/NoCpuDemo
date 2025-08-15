@@ -154,7 +154,7 @@ class Kaleidoscope {
 
   // Tunables
   static final cycleLength = 128;
-  static final frameSkip = 2;
+  static final frameSkip = 1;
 
   static final _cycleFrameLength = cycleLength ~/ frameSkip;
 

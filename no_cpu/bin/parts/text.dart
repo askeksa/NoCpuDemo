@@ -156,10 +156,10 @@ mixin Text on NoCpuDemoBase {
     Display interferenceDisplay(int frame) {
       return interference
           .frame(
-            (sin(frame / 102 + 1.4) + sin(frame / 113)) / 2, // even X
-            (sin(frame / 130 + 0.3) + sin(frame / 131)) / 2, // even Y
-            (sin(frame / 145 + 3.2) + sin(frame / 89)) / 2, // odd X
-            (sin(frame / 130 + 1.40) + sin(frame / 117)) / 2, // odd Y
+            (sin(frame / 102 + 1.4) + sin(frame / 83 + 1)) / 2, // even X
+            (sin(frame / 95 + 0.3) + sin(frame / 76 + 1.0)) / 2, // even Y
+            (sin(frame / 115 + 3.2) + sin(frame / 89 + 1.5)) / 2, // odd X
+            (sin(frame / 85 + 1.40) + sin(frame / 117 + 2.0)) / 2, // odd Y
             frame & 1 != 0, // flip
           )
           .display;
@@ -228,10 +228,10 @@ mixin Text on NoCpuDemoBase {
     Display interferenceDisplay(int frame) {
       return interference
           .frame(
-            (sin(frame / 102 + 4.5) + sin(frame / 133)) / 2, // even X
-            (sin(frame / 160 + 0.3) + sin(frame / 131)) / 2, // even Y
-            (sin(frame / 175 + 0.2) + sin(frame / 163)) / 2, // odd X
-            (sin(frame / 130 + 2.35) + sin(frame / 127)) / 2, // odd Y
+            (sin(frame / 102 + 2.5) + sin(frame / 73 + 1.5)) / 2, // even X
+            (sin(frame / 90 + 1.3) + sin(frame / 120 + 2)) / 2, // even Y
+            (sin(frame / 75 + 0.5) + sin(frame / 90)) / 2, // odd X
+            (sin(frame / 65 + 2.35) + sin(frame / 89 + 1)) / 2, // odd Y
             frame & 1 != 0, // flip
           )
           .display;
