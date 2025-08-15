@@ -15,7 +15,7 @@ class Display implements CopperComponent {
   List<Label> bitplanes = [];
 
   // Sprite pointers.
-  List<Label?> sprites = [];
+  List<Label?>? sprites = [];
 
   // Distance in bytes from the beginning of one row to the next.
   int? oddStride, evenStride;
@@ -135,7 +135,7 @@ class Display implements CopperComponent {
     int maxSprites = min(8, (ddfStart - 0x14) >> 2);
 
     assert(depth <= 8);
-    assert(sprites.length <= maxSprites);
+    assert(sprites == null || sprites!.length <= maxSprites);
     assert(alignment >= 1 && alignment <= 3);
     assert(oddStride.isAlignedTo(alignment));
     assert(evenStride.isAlignedTo(alignment));
@@ -186,7 +186,9 @@ class Display implements CopperComponent {
                 );
                 copper.move(FMODE, 0x000C | 0x3 >> (3 - alignment));
 
-                copper >> SpritePointers(sprites);
+                if (sprites != null) {
+                  copper >> SpritePointers(sprites!);
+                }
               };
         };
   }

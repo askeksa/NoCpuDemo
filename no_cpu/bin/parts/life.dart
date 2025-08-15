@@ -48,7 +48,7 @@ mixin Life on NoCpuDemoBase {
       ..priority = 0;
     Display lifeDisplay = Display()
       ..setBitmap(bitmap)
-      ..sprites = qrSprite.labels
+      ..sprites = null
       ..spriteColorOffset = 240
       ..priority = 4;
 
@@ -64,6 +64,12 @@ mixin Life on NoCpuDemoBase {
 
     F(P, 0, -1) << (Blit()..dSetBitplane(bitmap, 0));
     F(P, 0, -1) - (P + 1, 63, 5) >> lifeDisplay;
+    F(P, 0, -2) - 1 |
+        (i, f) {
+          f.wait(v: 0xFF, h: 0xDF);
+          f.wait(v: 0x30);
+          f >> SpritePointers(qrSprite.labels);
+        };
     F(P, 0) - (P + 1, 63, 5) ^
         (i, copper) {
           if (i % 6 == 0) {
@@ -75,6 +81,9 @@ mixin Life on NoCpuDemoBase {
           } else {
             copper << blits.sublist(9, 13);
           }
+
+          // HACK: Set sprite pointers at the end of the frame
+          copper >> SpritePointers(qrSprite.labels);
         };
   }
 }
