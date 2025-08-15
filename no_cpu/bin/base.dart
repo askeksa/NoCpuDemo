@@ -16,7 +16,6 @@ class DemoBase {
   List<Copper> frames = [];
   late final Copper endCopper;
 
-  int startFrame = 0;
   int? loopFrame;
 
   List<Block> roots = [];
@@ -35,7 +34,7 @@ class DemoBase {
     return FrameScheduler(this, [frames[getTimestamp(position, row) + offset]]);
   }
 
-  DemoBase(int frameCount, {this.loopFrame}) {
+  DemoBase(int frameCount, {this.loopFrame, int startFrame = 0}) {
     initialCopper = Copper(isPrimary: true, origin: "Initial")
       ..data.address = 0x00_0000
       ..useInFrame(-1);
@@ -67,7 +66,7 @@ class DemoBase {
     for (int f = 0; f < frameCount - 1; f++) {
       frameData.addReference(musicFrames[f + 1].label, 5);
       frameData.addReference(frames[f].label, 5);
-      frameData.addLow(frameData.label + frameData.size + 2);
+      frameData.addLow(frameData.label + (f + 1) * 6);
     }
     // TODO: Support non-looping
     frameData.addReference(musicFrames[loopFrame!].label, 5);
@@ -89,10 +88,11 @@ class DemoBase {
     var musicPtr = startLabel + 6;
     var framePtr = FreeLabel("framePtr");
     var dataPtr = FreeLabel("dataPtr");
-    dispatchCopper.call(musicFrames[0]);
+    var dataStart = frameData.label + startFrame * 6;
+    dispatchCopper.call(musicFrames[startFrame]);
     dispatchCopper.waitBlit();
-    dispatchCopper.high(BLTBPTH, frameData.label);
-    dispatchCopper.low(BLTBPTL, frameData.label, label: dataPtr);
+    dispatchCopper.high(BLTBPTH, dataStart);
+    dispatchCopper.low(BLTBPTL, dataStart, label: dataPtr);
     dispatchCopper <<
         (Blit()
           ..channelMask = enableB | enableC | enableD
@@ -128,8 +128,8 @@ class DemoBase {
           ..channelMask = enableB | enableD
           ..dPtr = dataPtr
           ..minterms = B);
-    dispatchCopper.high(COP1LCH, frames[0].label, label: framePtr);
-    dispatchCopper.low(COP1LCL, frames[0].label);
+    dispatchCopper.high(COP1LCH, frames[startFrame].label, label: framePtr);
+    dispatchCopper.low(COP1LCL, frames[startFrame].label);
     dispatchCopper.move(COPJMP1, 0);
 
     roots.add(dispatchCopper.data);
@@ -199,13 +199,16 @@ class MusicDemoBase extends DemoBase {
     };
   }
 
-  MusicDemoBase(this.music)
+  MusicDemoBase(this.music, {super.startFrame = 0})
     : super(music.frames.length, loopFrame: music.restart) {
     music.optimize();
   }
 
-  MusicDemoBase.withProtrackerFile(String filename)
-    : this(ProtrackerPlayer(ProtrackerModule.readFromFile(filename)).toMusic());
+  MusicDemoBase.withProtrackerFile(String filename, {int startFrame = 0})
+    : this(
+        ProtrackerPlayer(ProtrackerModule.readFromFile(filename)).toMusic(),
+        startFrame: startFrame,
+      );
 
   @override
   CopperComponent getMusicFrame(int f) {

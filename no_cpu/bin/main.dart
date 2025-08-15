@@ -12,8 +12,6 @@ import 'parts/credits.dart';
 import 'parts/life.dart';
 
 class NoCpuDemoBase extends MusicDemoBase {
-  int get startPattern => 0;
-
   late Color afterCardColor = Color.rgb24(0x000000);
   late Color oneBullyTransColor = Color.rgb24(0x000000);
   late Color bullyTransColor = Color.rgb24(0x000000);
@@ -39,9 +37,11 @@ class NoCpuDemoBase extends MusicDemoBase {
       .transform((_, _, p) => p > 0 && p < 58 || p >= 97 ? 1 : 0, depth: 1)
       .crop(h: 180);
 
-  NoCpuDemoBase() : super.withProtrackerFile("$assetsPath/nocpu1.15.mod") {
-    startFrame = music.getTimestamp(startPattern, 0);
-  }
+  NoCpuDemoBase()
+    : super.withProtrackerFile(
+        "$assetsPath/nocpu1.15.mod",
+        startFrame: NoCpuDemo.startPattern * 64 * 6,
+      );
 
   void transition(
     Transition trans,
@@ -71,8 +71,7 @@ class NoCpuDemoBase extends MusicDemoBase {
 
 class NoCpuDemo extends NoCpuDemoBase
     with Opening, Bully, Text, Rebels, Together, Check, Credits, Life {
-  @override
-  int get startPattern => 0;
+  static int startPattern = 0;
 
   NoCpuDemo() : super() {
     initialCopper << spriteScreen.blit(1);
