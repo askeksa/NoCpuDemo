@@ -1,6 +1,5 @@
 import 'dart:math';
 
-import 'package:collection/collection.dart';
 import 'package:no_cpu/no_cpu.dart';
 
 import '../base.dart';
@@ -33,13 +32,6 @@ mixin Text on NoCpuDemoBase {
     bool xc = (cx + size * 10) % (size * 2) < size;
     bool yc = (cy + size * 10) % (size * 2) < size;
     return (xc ^ yc) ? d : d + 40;
-  });
-
-  late Transition lifeTrans = Transition.generate(320, 180, (x, y) {
-    double dx = x - 160;
-    double dy = y - 100;
-    double v = atan2(dx, dy);
-    return sqrt(dx * dx + dy * dy) * (0.3 + 0.1 * cos(v * 5));
   });
 
   final _interferencePaletteRebels = Interference.shuffleColorList([
@@ -173,13 +165,13 @@ mixin Text on NoCpuDemoBase {
           .display;
     }
 
-    F(P, 8) << enableWord(words, 0);
-    F(P, 14) << enableWord(words, 1);
-    F(P, 16) << enableWord(words, 2);
-    F(P, 20) << enableWord(words, 3);
-    F(P, 22) << enableWord(words, 4);
-    F(P, 24) << enableWord(words, 5);
-    F(P, 28) << enableWord(words, 6);
+    F(P, 2) << enableWord(words, 0);
+    F(P, 6) << enableWord(words, 1);
+    F(P, 8) << enableWord(words, 2);
+    F(P, 12) << enableWord(words, 3);
+    F(P, 14) << enableWord(words, 4);
+    F(P, 16) << enableWord(words, 5);
+    F(P, 20) << enableWord(words, 6);
 
     F(P, 30, 0) << disableWord(words, 6);
     F(P, 30, 2) << disableWord(words, 5);
@@ -216,7 +208,7 @@ mixin Text on NoCpuDemoBase {
   }
 
   void checkerboardText(int P) {
-    var words = getWords("$assetsPath/NO CHALL CHECKERBOARDIFF2.iff", [
+    var words = getWords("$assetsPath/NO CHALL CHECKERBOARDIFF3.iff", [
       40,
       77,
       110,
@@ -340,6 +332,12 @@ mixin Text on NoCpuDemoBase {
                 ..priority = 4);
         };
 
-    transition(lifeTrans, (P, 32), end: 16 * 6 - 1, inverse: true);
+    transition(
+      lifeTrans,
+      (P, 32),
+      end: 16 * 6 - 1,
+      backward: true,
+      inverse: false,
+    );
   }
 }

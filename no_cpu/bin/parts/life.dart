@@ -5,7 +5,6 @@ import 'package:no_cpu/no_cpu.dart';
 import '../base.dart';
 import '../main.dart';
 import '../effects/game_of_life.dart';
-import '../effects/transition.dart';
 
 mixin Life on NoCpuDemoBase {
   GameOfLife gameOfLife = GameOfLife(320, 180, 2, 2);
@@ -23,13 +22,6 @@ mixin Life on NoCpuDemoBase {
     Bitmap bitmap = Bitmap.space(320, 180, 1);
     Palette palette = Palette.rgb12([0x025, 0x8af]);
 
-    var trans = Transition.generate(320, 180, (x, y) {
-      double dx = x - 160;
-      double dy = y - 100;
-      double v = atan2(dx, dy);
-      return sqrt(dx * dx + dy * dy) * (0.3 + 0.1 * cos(v * 5));
-    });
-
     IlbmImage qr = IlbmImage.fromFile("$assetsPath/QR CODE_IFF.iff");
     SpriteGroup qrSprite = SpriteGroup.fromBitmap(
       qr.bitmap.autocrop().$3,
@@ -42,7 +34,7 @@ mixin Life on NoCpuDemoBase {
     var qrPalette = qrSprite.palette(qr.palette.sub(1, 3), 240);
 
     Display transDisplay = Display()
-      ..setBitmap(trans.result)
+      ..setBitmap(lifeTrans.result)
       ..sprites = qrSprite.labels
       ..spriteColorOffset = 240
       ..priority = 0;
@@ -55,7 +47,7 @@ mixin Life on NoCpuDemoBase {
     F(P - 1, 48) << (palette | Palette.fromMap({1: lifeColor}) | qrPalette);
     F(P - 1, 48) - (P, 0, -2) >> transDisplay;
 
-    transition(trans, (P - 1, 48), end: 94);
+    transition(lifeTrans, (P - 1, 48), end: 94);
 
     var blits = gameOfLife.step(bitmap);
     var noise = Blit()

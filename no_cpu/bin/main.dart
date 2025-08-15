@@ -1,3 +1,5 @@
+import 'dart:math';
+
 import 'package:no_cpu/no_cpu.dart';
 
 import 'base.dart';
@@ -38,9 +40,17 @@ class NoCpuDemoBase extends MusicDemoBase {
       .transform((_, _, p) => p > 0 && p < 58 || p >= 97 ? 1 : 0, depth: 1)
       .crop(h: 180);
 
+  var lifeTrans = Transition.generate(320, 180, (x, y) {
+    double dx = x - 160;
+    double dy = y - 100;
+    double d = sqrt(dx * dx + dy * dy);
+    double v = atan2(dx, dy);
+    return d * (0.3 + 0.15 * cos(v * 5 + d * 0.1));
+  });
+
   NoCpuDemoBase()
     : super.withProtrackerFile(
-        "$assetsPath/nocpu1.17.mod",
+        "$assetsPath/nocpu1.19.mod",
         startFrame: NoCpuDemo.startPattern * 64 * 6,
       );
 
