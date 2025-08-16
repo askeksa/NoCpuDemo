@@ -238,14 +238,14 @@ mixin Text on NoCpuDemoBase {
     }
 
     F(P, 16) << enableWord(words, 0);
-    F(P, 19) << enableWord(words, 1);
+    F(P, 18) << enableWord(words, 1);
     F(P, 22) << enableWord(words, 2);
-    F(P, 24) << enableWord(words, 3);
+    F(P, 28) << enableWord(words, 3);
 
-    F(P, 40) << disableWord(words, 3);
-    F(P, 42) << disableWord(words, 2);
+    F(P, 44) << disableWord(words, 3);
+    F(P, 44) << disableWord(words, 2);
     F(P, 44) << disableWord(words, 1);
-    F(P, 46) << disableWord(words, 0);
+    F(P, 44) << disableWord(words, 0);
 
     F(P, 0) >> interferencePalette;
     F(P, 0) - (P, 48, -1) |

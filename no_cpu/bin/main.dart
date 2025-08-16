@@ -50,7 +50,7 @@ class NoCpuDemoBase extends MusicDemoBase {
 
   NoCpuDemoBase()
     : super.withProtrackerFile(
-        "$assetsPath/nocpu1.19.mod",
+        "$assetsPath/no cpu 1.5.mod",
         startFrame: NoCpuDemo.startPattern * 64 * 6,
       );
 
