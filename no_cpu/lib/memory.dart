@@ -184,23 +184,21 @@ class Memory {
           ..sort((b1, b2) => b2.address! - b1.address!);
     SplayTreeMap<int, List<Block>> allocated = SplayTreeMap.fromIterable(
       fixed,
-      key: (b) => -b.address!,
+      key: (b) => b.address!,
       value: (b) => [b],
     );
 
     // Allocate data blocks
     dataBlocks.sortBy((b) => -b.lastFrame!);
-    int nextAddress = 0;
     for (var block in dataBlocks) {
       if (!block.isAllocated) {
-        block._allocateAfter(nextAddress);
-        for (Block fixedBlock in fixed) {
-          if (_memoryOverlap(block, fixedBlock)) {
-            block._allocateAfter(fixedBlock.end);
+        block._allocateAfter(0);
+        for (Block allocatedBlock in allocated.values.flattened) {
+          if (_memoryOverlap(block, allocatedBlock)) {
+            block._allocateAfter(allocatedBlock.end);
           }
         }
-        nextAddress = block.end;
-        allocated.putIfAbsent(-block.address!, () => []).add(block);
+        allocated.putIfAbsent(block.address!, () => []).add(block);
       }
       if (block.end > size) {
         throw Exception("Block '$block' does not fit in memory");
@@ -213,13 +211,14 @@ class Memory {
       if (!block.isAllocated) {
         int nextAddress = size;
         block._allocateBefore(nextAddress);
-        for (Block allocatedBlock in allocated.values.flattened) {
+        for (Block allocatedBlock
+            in allocated.values.toList().reversed.flattened) {
           if (_memoryOverlap(block, allocatedBlock) &&
               _timeOverlap(block, allocatedBlock)) {
             block._allocateBefore(allocatedBlock.address!);
           }
         }
-        allocated.putIfAbsent(-block.address!, () => []).add(block);
+        allocated.putIfAbsent(block.address!, () => []).add(block);
       }
       if (block.address! < 0) {
         throw Exception("Block '$block' does not fit in memory");
