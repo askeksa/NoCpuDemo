@@ -36,11 +36,19 @@ mixin Check on NoCpuDemoBase {
           d = 127;
           color = Color.rgb12(0x000);
         }
+        Set<int> flashrows = {0, 6, 10, 12, 32, 38, 44, 46, 92, 94, 96};
+        int id = (t >> 4) - 2;
+        int flashrow = ((id ~/ 12) << 5) + ((id % 12) << 1);
+        if (flashrow >= 3 * 64) flashrow -= 4;
+        double flash =
+            flashrows.contains(flashrow - 2 * 64) && i >= flashrow * 6
+            ? exp((i - flashrow * 6) * -0.1)
+            : 0.0;
         layers.add((
           ((x - ix) / (d + 5)).toInt(),
           ((y - iy) / (d + 5)).toInt(),
           d,
-          color * ((128 - d) / 128),
+          color * ((128 - d) / 128 * (1 + flash * 2)),
         ));
       }
       f << checkerboard.frame(layers);
