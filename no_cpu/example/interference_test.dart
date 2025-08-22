@@ -60,6 +60,7 @@ class InterferenceTest extends DemoBase {
     );
   });
 
+  // ignore: unused_field
   late final _openingPalette = interference.generatePalette((i, max) {
     double f = i / (max + 1);
     double component(double f) => sin(f * 2 * pi) * 0.5 + 0.5;

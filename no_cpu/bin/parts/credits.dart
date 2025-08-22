@@ -10,7 +10,6 @@ import '../effects/transition.dart';
 mixin Credits on NoCpuDemoBase {
   static final Color flashColor = Color.rgb12(0xCCA);
   static final int flashDuration = 4;
-  static final int kaleidoscopeFrameskip = 1;
 
   late final Kaleidoscope kaleidoscope = Kaleidoscope();
 

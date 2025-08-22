@@ -608,15 +608,6 @@ final class Data extends Block with DataContainer {
     )..addLongwords(longwords);
   }
 
-  Data.mutable({super.alignment, super.singlePage, super.origin})
-    : mutability = Mutability.mutable;
-
-  Data.local({super.alignment, super.singlePage, super.origin})
-    : mutability = Mutability.local;
-
-  Data.unique({super.alignment, super.singlePage, super.origin})
-    : mutability = Mutability.unique;
-
   @override
   Iterable<Block> get dependencies =>
       references.map((r) => r.target.block).followedBy(extraDependencies);

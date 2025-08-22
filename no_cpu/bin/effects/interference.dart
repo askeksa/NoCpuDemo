@@ -168,7 +168,7 @@ class Interference {
     double oddY,
     bool flip,
   ) {
-    return InterferenceFrame(this, evenX, evenY, oddX, oddY, flip, _variant);
+    return InterferenceFrame(this, evenX, evenY, oddX, oddY, flip);
   }
 
   Interference(this._variant);
@@ -181,7 +181,6 @@ class InterferenceFrame implements CopperComponent {
   final double _oddXf;
   final double _oddYf;
   final bool _flip;
-  final int _variant;
 
   late final display = _scrollDisplay()
     ..setBitmaps(interference.effectBitmap1, interference.effectBitmap2);
@@ -218,7 +217,6 @@ class InterferenceFrame implements CopperComponent {
     this._oddXf,
     this._oddYf,
     this._flip,
-    this._variant,
   );
 
   @override

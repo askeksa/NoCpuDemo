@@ -9,15 +9,16 @@ main() {
 
 class KaleidoscopeTest extends DemoBase {
   static final cycleLength = 128;
+  // ignore: unused_field
   late final Kaleidoscope _kaleidoscope1 = Kaleidoscope()
     ..pattern1 = 1
     ..pattern2 = 0;
-
+  // ignore: unused_field
   late final Kaleidoscope _kaleidoscope2 = Kaleidoscope()
     ..pattern1 = 2
     ..reversePattern1 = true
     ..pattern2 = 1;
-
+  // ignore: unused_field
   late final Kaleidoscope _kaleidoscope3 = Kaleidoscope()
     ..pattern1 = 0
     ..pattern2 = 2;

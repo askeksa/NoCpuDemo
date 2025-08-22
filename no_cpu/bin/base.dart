@@ -276,13 +276,6 @@ class FrameScheduler {
     return this;
   }
 
-  FrameScheduler operator >>>(List<CopperComponent> components) {
-    for (final (i, f) in frames.indexed) {
-      f >> components[i % components.length];
-    }
-    return this;
-  }
-
   FrameScheduler operator |(void Function(int, Copper) callback) {
     for (final (i, f) in frames.indexed) {
       f | (c) => callback(i, c);
