@@ -338,17 +338,8 @@ final class FreeLabel extends Label {
 
   Label? _target;
 
-  /// A label that requires its target to be mutable if the label itself is
-  /// required to be mutable.
+  /// A late-bound label.
   FreeLabel([this.name = "unnamed"]);
-
-  /// A label that requires its target to be mutable, even if the label itself
-  /// is not required to be mutable.
-  FreeLabel.mutable([this.name = "unnamed"]) : requireMutable = true;
-
-  /// A label that does not require its target to be mutable, even if the label
-  /// itself is required to be mutable.
-  FreeLabel.immutable([this.name = "unnamed"]) : requireMutable = false;
 
   Label get target => _target ?? (throw Exception("Label '$name' not bound"));
 
@@ -408,7 +399,34 @@ enum Mutability {
   local,
 
   /// Immutable, but inhibits de-duplication.
-  unique,
+  unique;
+
+  /// Whether the block can be targeted by a blit.
+  bool get isMutable => this == Mutability.mutable || this == Mutability.local;
+
+  /// Whether the block can be de-duplicated with identical blocks.
+  bool get canBeDeduplicated =>
+      this == Mutability.immutable || this == Mutability.local;
+
+  factory Mutability.fromProperties({
+    required bool isMutable,
+    required bool canBeDeduplicated,
+  }) {
+    if (isMutable) {
+      return canBeDeduplicated ? Mutability.local : Mutability.mutable;
+    } else {
+      return canBeDeduplicated ? Mutability.immutable : Mutability.unique;
+    }
+  }
+
+  Mutability combineWith(Mutability other) {
+    return Mutability.fromProperties(
+      isMutable: isMutable || other.isMutable,
+      canBeDeduplicated: canBeDeduplicated && other.canBeDeduplicated,
+    );
+  }
+
+  Mutability operator |(Mutability other) => combineWith(other);
 }
 
 /// Base class for memory blocks.
@@ -613,11 +631,9 @@ final class Data extends Block with DataContainer {
       references.map((r) => r.target.block).followedBy(extraDependencies);
 
   @override
-  bool get isMutable =>
-      mutability == Mutability.mutable || mutability == Mutability.local;
+  bool get isMutable => mutability.isMutable;
 
-  bool get canBeDeduplicated =>
-      mutability == Mutability.immutable || mutability == Mutability.local;
+  bool get canBeDeduplicated => mutability.canBeDeduplicated;
 
   /// Add a label at the end of the block.
   Label addLabel() => setLabel(size);

@@ -310,7 +310,8 @@ class DynamicPalette implements CopperComponent {
 
   @override
   void addToCopper(Copper copper) {
-    var palette = FreeLabel.immutable("palette");
+    copper.mutability |= Mutability.local;
+    var palette = FreeLabel("palette");
 
     Label from = source;
     Label to = palette;

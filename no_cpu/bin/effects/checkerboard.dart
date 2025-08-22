@@ -28,7 +28,7 @@ class Checkerboard {
   late Copper subCopper = _makeCopper();
 
   Copper _makeCopper() {
-    var polarities = FreeLabel.immutable("polarities");
+    var polarities = FreeLabel("polarities");
 
     var effectCopper = Copper(mutability: Mutability.local);
     List<Label> blitLabels = [];
@@ -36,8 +36,8 @@ class Checkerboard {
     var rowShift = FreeLabel("rowShift");
     var columnPtr = FreeLabel("columnPtr");
     var columnShift = FreeLabel("columnShift");
-    var colorUpper = FreeLabel.immutable("colorUpper");
-    var colorLower = FreeLabel.immutable("colorLower");
+    var colorUpper = FreeLabel("colorUpper");
+    var colorLower = FreeLabel("colorLower");
     for (int l = 0; l < layerCount; l++) {
       var rowBlit = Blit()
         ..aPtr = rows

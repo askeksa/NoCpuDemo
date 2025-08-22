@@ -30,9 +30,7 @@ class Copper {
   }) : data = Data(
          alignment: alignment,
          singlePage: isPrimary,
-         mutability:
-             mutability ??
-             (isPrimary ? Mutability.unique : Mutability.immutable),
+         mutability: mutability ?? Mutability.immutable,
        ) {
     data.origin = this;
     data.finalizer = (_) {
