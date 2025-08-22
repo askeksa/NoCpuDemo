@@ -19,7 +19,10 @@ mixin Opening on NoCpuDemoBase {
 
   final _blackPalette = Palette.generateRange(0, 128, (i) => Color.black);
 
-  final _paletteIndices = List<int>.generate(128, (i) => i).shuffled();
+  final _paletteIndices = List<int>.generate(
+    128,
+    (i) => i,
+  ).shuffled(Random(1337));
 
   Palette _randomPartialFade(
     int frame,
