@@ -10,45 +10,66 @@ import 'copper.dart';
 import 'custom.dart';
 import 'memory.dart';
 
+/// Set display of playfields and sprites.
+///
+/// NOTE: The AHRM counts bitplanes from 1, but this abstraction deviates from
+/// that convention and counts bitplanes from 0, like sprites, colors and audio
+/// channels. This means that all mentions off "odd" and "even" as they pertain
+/// to bitplanes or playfields are reversed relative to the AHRM.
 class Display implements CopperComponent {
-  // Bitplane pointers.
+  /// Bitplane pointers.
+  ///
+  /// The length of the list determines the depth of the display.
   List<Label> bitplanes = [];
 
-  // Sprite pointers.
+  /// Sprite pointers.
+  ///
+  /// Indices that are `null`, or beyond the end of the list, are set to an
+  /// empty sprite.
+  ///
+  /// If the field is `null`, no sprite pointers are set.
   List<Label?>? sprites = [];
 
-  // Distance in bytes from the beginning of one row to the next.
-  int? oddStride, evenStride;
+  /// Distance in bytes from the beginning of one row to the next.
+  ///
+  /// Default to the natural width of the display (i.e. 40 bytes for lores).
+  int? evenStride, oddStride;
 
-  // Playfield priorities relative to sprites.
-  int oddPriority = 0, evenPriority = 0;
+  /// Playfield priorities relative to sprites.
+  int evenPriority = 0, oddPriority = 0;
 
-  // Sprite color offsets.
-  int oddSpriteColorOffset = 0, evenSpriteColorOffset = 0;
+  /// Sprite color offsets.
+  int evenSpriteColorOffset = 0, oddSpriteColorOffset = 0;
 
-  // Bitplane horizontal scroll in SHIRES pixels.
-  int oddHorizontalScroll = 0, evenHorizontalScroll = 0;
+  /// Bitplane horizontal scroll in SHIRES pixels.
+  ///
+  /// The values are positive to the left (opposite of the scroll register
+  /// direction), and the values can be arbitrarily big. Bitplane pointers and
+  /// data fetch are adjusted accordingly.
+  int evenHorizontalScroll = 0, oddHorizontalScroll = 0;
 
-  // Bitplane vertical scroll in rows.
-  int oddVerticalScroll = 0, evenVerticalScroll = 0;
+  /// Bitplane vertical scroll in rows.
+  ///
+  /// The values are positive up. Bitplane pointers are adjusted accordingly.
+  int evenVerticalScroll = 0, oddVerticalScroll = 0;
 
-  // Whether the playfield is flipped vertically (negative modulo).
-  bool oddFlip = false, evenFlip = false;
+  /// Whether the playfield is flipped vertically (negative modulo).
+  bool evenFlip = false, oddFlip = false;
 
-  // Bitplane alignment, corresponding to the fetch mode.
+  /// Bitplane alignment, corresponding to the fetch mode.
   int alignment = 3;
 
   int? _evenHeight, _oddHeight;
 
-  set stride(int value) => oddStride = evenStride = value;
-  set priority(int value) => oddPriority = evenPriority = value;
+  set stride(int value) => evenStride = oddStride = value;
+  set priority(int value) => evenPriority = oddPriority = value;
   set horizontalScroll(int value) =>
-      oddHorizontalScroll = evenHorizontalScroll = value;
+      evenHorizontalScroll = oddHorizontalScroll = value;
   set verticalScroll(int value) =>
-      oddVerticalScroll = evenVerticalScroll = value;
+      evenVerticalScroll = oddVerticalScroll = value;
   set spriteColorOffset(int value) =>
-      oddSpriteColorOffset = evenSpriteColorOffset = value;
-  set flip(bool value) => oddFlip = evenFlip = value;
+      evenSpriteColorOffset = oddSpriteColorOffset = value;
+  set flip(bool value) => evenFlip = oddFlip = value;
 
   int get byteAlignment => 1 << alignment;
   int get depth => bitplanes.length;
@@ -108,8 +129,8 @@ class Display implements CopperComponent {
   @override
   void addToCopper(Copper copper) {
     int bytesPerRow = 40;
-    int oddStride = this.oddStride ?? bytesPerRow;
     int evenStride = this.evenStride ?? bytesPerRow;
+    int oddStride = this.oddStride ?? bytesPerRow;
 
     var bitplanes = List.generate(this.bitplanes.length, (i) {
       bool even = i & 1 == 0;
@@ -137,12 +158,12 @@ class Display implements CopperComponent {
     assert(depth <= 8);
     assert(sprites == null || sprites!.length <= maxSprites);
     assert(alignment >= 1 && alignment <= 3);
-    assert(oddStride.isAlignedTo(alignment));
     assert(evenStride.isAlignedTo(alignment));
-    assert(oddPriority >= 0 && oddPriority <= 4);
+    assert(oddStride.isAlignedTo(alignment));
     assert(evenPriority >= 0 && evenPriority <= 4);
-    assert(oddSpriteColorOffset & ~0xF0 == 0);
+    assert(oddPriority >= 0 && oddPriority <= 4);
     assert(evenSpriteColorOffset & ~0xF0 == 0);
+    assert(oddSpriteColorOffset & ~0xF0 == 0);
 
     copper.move(
       BPLCON1,
@@ -164,7 +185,7 @@ class Display implements CopperComponent {
                   BPLCON0,
                   0x0201 | (depth & 0x7) << 12 | (depth & 0x8) << 1,
                 );
-                copper.move(BPLCON2, 0x0200 | evenPriority << 3 | oddPriority);
+                copper.move(BPLCON2, 0x0200 | oddPriority << 3 | evenPriority);
                 // BPLCON3 is written in palette.
                 copper.move(
                   BPLCON4,
