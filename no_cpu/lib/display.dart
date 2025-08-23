@@ -53,13 +53,8 @@ class Display implements CopperComponent {
   /// The values are positive up. Bitplane pointers are adjusted accordingly.
   int evenVerticalScroll = 0, oddVerticalScroll = 0;
 
-  /// Whether the playfield is flipped vertically (negative modulo).
-  bool evenFlip = false, oddFlip = false;
-
   /// Bitplane alignment, corresponding to the fetch mode.
   int alignment = 3;
-
-  int? _evenHeight, _oddHeight;
 
   set stride(int value) => evenStride = oddStride = value;
   set priority(int value) => evenPriority = oddPriority = value;
@@ -69,7 +64,6 @@ class Display implements CopperComponent {
       evenVerticalScroll = oddVerticalScroll = value;
   set spriteColorOffset(int value) =>
       evenSpriteColorOffset = oddSpriteColorOffset = value;
-  set flip(bool value) => evenFlip = oddFlip = value;
 
   int get byteAlignment => 1 << alignment;
   int get depth => bitplanes.length;
@@ -79,37 +73,50 @@ class Display implements CopperComponent {
       (evenHorizontalScroll & _pixelScrollMask != 0) ||
       (oddHorizontalScroll & _pixelScrollMask != 0);
 
-  void setBitmap(Bitmap bitmap) {
+  /// Set bitplane pointers and strides from a bitmap.
+  ///
+  /// If [flip] is true, the bitmap is flipped vertically.
+  void setBitmap(Bitmap bitmap, {bool flip = false}) {
     assert(bitmap.alignment >= alignment);
     assert(evenHorizontalScroll == oddHorizontalScroll);
     assert(evenVerticalScroll == oddVerticalScroll);
     bitplanes = List.generate(
       bitmap.depth,
-      (i) => bitmap.bitplanes + i * bitmap.planeStride,
+      (i) =>
+          bitmap.bitplanes +
+          i * bitmap.planeStride +
+          (flip ? (bitmap.height - 1) * bitmap.rowStride : 0),
     );
 
     assert(evenStride == null && oddStride == null);
-    stride = bitmap.rowStride;
-
-    _evenHeight = _oddHeight = bitmap.height;
+    stride = flip ? -bitmap.rowStride : bitmap.rowStride;
   }
 
-  void setBitmaps(Bitmap evenBitmap, Bitmap oddBitmap) {
-    assert(
-      evenBitmap.alignment >= alignment && oddBitmap.alignment >= alignment,
-    );
+  /// Set bitplane pointers and strides from two independent bitmaps, one for
+  /// each playfield.
+  ///
+  /// If [evenFlip] is true, the even bitmap is flipped vertically.
+  /// If [oddFlip] is true, the odd bitmap is flipped vertically.
+  void setBitmaps(
+    Bitmap evenBitmap,
+    Bitmap oddBitmap, {
+    bool evenFlip = false,
+    bool oddFlip = false,
+  }) {
+    assert(evenBitmap.alignment >= alignment);
+    assert(oddBitmap.alignment >= alignment);
     bitplanes = List.generate(evenBitmap.depth + oddBitmap.depth, (i) {
       int plane = i >> 1;
       Bitmap bitmap = i & 1 == 0 ? evenBitmap : oddBitmap;
-      return bitmap.bitplanes + plane * bitmap.planeStride;
+      bool flip = i & 1 == 0 ? evenFlip : oddFlip;
+      return bitmap.bitplanes +
+          plane * bitmap.planeStride +
+          (flip ? (bitmap.height - 1) * bitmap.rowStride : 0);
     });
 
     assert(evenStride == null && oddStride == null);
-    evenStride = evenBitmap.rowStride;
-    oddStride = oddBitmap.rowStride;
-
-    _evenHeight = evenBitmap.height;
-    _oddHeight = oddBitmap.height;
+    evenStride = evenFlip ? -evenBitmap.rowStride : evenBitmap.rowStride;
+    oddStride = oddFlip ? -oddBitmap.rowStride : oddBitmap.rowStride;
   }
 
   int _horizontalBitmapOffset(int horizontalScroll) {
@@ -136,13 +143,8 @@ class Display implements CopperComponent {
       bool even = i & 1 == 0;
       var bitplane = this.bitplanes[i];
 
-      assert(!evenFlip || _evenHeight != null);
-      assert(!oddFlip || _oddHeight != null);
-
       int horizontalScroll = even ? evenHorizontalScroll : oddHorizontalScroll;
-      int verticalScroll = even
-          ? (evenFlip ? _evenHeight! - evenVerticalScroll : evenVerticalScroll)
-          : (oddFlip ? _oddHeight! - oddVerticalScroll : oddVerticalScroll);
+      int verticalScroll = even ? evenVerticalScroll : oddVerticalScroll;
       int stride = even ? evenStride : oddStride;
       return bitplane +
           verticalScroll * stride +
@@ -191,20 +193,8 @@ class Display implements CopperComponent {
                   BPLCON4,
                   evenSpriteColorOffset | oddSpriteColorOffset >> 4,
                 );
-                copper.move(
-                  BPL1MOD,
-                  evenStride -
-                      bytesPerRow -
-                      moduloAdjust -
-                      (evenFlip ? evenStride * 2 : 0),
-                );
-                copper.move(
-                  BPL2MOD,
-                  oddStride -
-                      bytesPerRow -
-                      moduloAdjust -
-                      (oddFlip ? oddStride * 2 : 0),
-                );
+                copper.move(BPL1MOD, evenStride - bytesPerRow - moduloAdjust);
+                copper.move(BPL2MOD, oddStride - bytesPerRow - moduloAdjust);
                 copper.move(FMODE, 0x000C | 0x3 >> (3 - alignment));
 
                 if (sprites != null) {

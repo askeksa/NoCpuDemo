@@ -183,7 +183,12 @@ class InterferenceFrame implements CopperComponent {
   final bool _flip;
 
   late final display = _scrollDisplay()
-    ..setBitmaps(interference.effectBitmap1, interference.effectBitmap2);
+    ..setBitmaps(
+      interference.effectBitmap1,
+      interference.effectBitmap2,
+      evenFlip: _flip,
+      oddFlip: _flip,
+    );
 
   Display _scrollDisplay() {
     var xRange = (Interference.bitmap1.width - 320) ~/ 2;
@@ -202,10 +207,8 @@ class InterferenceFrame implements CopperComponent {
       ..alignment = 1
       ..oddHorizontalScroll = oddX
       ..oddVerticalScroll = oddY
-      ..oddFlip = _flip
       ..evenHorizontalScroll = evenX
-      ..evenVerticalScroll = evenY
-      ..evenFlip = _flip;
+      ..evenVerticalScroll = evenY;
 
     return display;
   }
