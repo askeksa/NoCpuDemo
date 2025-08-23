@@ -133,6 +133,7 @@ class Memory {
 
     // Cluster by shape.
     clusters = clusterBy((d1, d2) {
+      if (d1._dataHash != d2._dataHash) return false;
       if (!ListEquality().equals(d1.bytes, d2.bytes)) return false;
       if (d1.references.length != d2.references.length) return false;
       for (int i = 0; i < d1.references.length; i++) {
@@ -602,6 +603,8 @@ final class Data extends Block with DataContainer {
 
   /// Callback to run when the block is finalized.
   void Function(Data)? finalizer;
+
+  late int _dataHash = ListEquality().hash(bytes);
 
   Data({
     super.alignment,
