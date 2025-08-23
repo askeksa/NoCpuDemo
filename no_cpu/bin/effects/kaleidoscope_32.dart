@@ -117,10 +117,7 @@ class PartialLineBlitComponent implements CopperComponent {
 }
 
 class KaleidoscopeSpriteSet {
-  late final Sprite column1 = Sprite.space(
-    6 * Kaleidoscope._squareSize,
-    alignment: 4,
-  );
+  late final Sprite column1 = Sprite.space(6 * Kaleidoscope._squareSize);
   late final Sprite column2 = Sprite.space(1);
   late final Sprite column3 = Sprite.space(1);
   late final Sprite column4 = Sprite.space(1);
