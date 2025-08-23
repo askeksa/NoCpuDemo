@@ -23,7 +23,13 @@ const int ANBC = 0x20;
 const int ABNC = 0x40;
 const int ABC = 0x80;
 
-class Blit implements CopperComponent {
+abstract class BaseBlit implements CopperComponent {
+  @override
+  void addToCopper(Copper copper);
+}
+
+/// A rectangular blit.
+class Blit extends BaseBlit {
   /// Channel DMA pointers to the beginning of the first row.
   Label? aPtr, bPtr, cPtr, dPtr;
 
@@ -76,15 +82,6 @@ class Blit implements CopperComponent {
   ///
   /// Defaults to `true` if the height of the blit is greater than 1.
   bool? emitModulos;
-
-  /// Line start coordinate.
-  (int, int)? lineStart;
-
-  /// Line end coordinate.
-  (int, int)? lineEnd;
-
-  /// Line texture.
-  int lineTexture = 0xFFFF;
 
   // Shorthands for setting multiple pointers.
   set abPtr(Label value) => aPtr = bPtr = value;
@@ -140,84 +137,7 @@ class Blit implements CopperComponent {
     int defaultLogic = (aInput ? A : 0) ^ (bInput ? B : 0) ^ (cInput ? C : 0);
     int minterms = (this.minterms ?? defaultLogic) & 0xFF;
     bool dependsOnA = (minterms >> 4) != (minterms & 0x0F);
-    bool drawLine = lineStart != null || lineEnd != null;
 
-    if (drawLine) {
-      assert(
-        lineStart != null && lineEnd != null,
-        "Both lineStart and lineEnd must be specified",
-      );
-
-      var (startX, startY) = lineStart!;
-      var (endX, endY) = lineEnd!;
-
-      if (startY == endY) {
-        return;
-      } else if (startY > endY) {
-        (startY, endY) = (endY, startY);
-        (startX, endX) = (endX, startX);
-      }
-
-      var startWord = (startY * dStride! + startX ~/ 8) & ~1;
-
-      var dy = endY - startY;
-      var dx = endX - startX;
-
-      var octant = 0;
-
-      if (dx < 0) {
-        dx = -dx;
-        octant = 2;
-      }
-
-      if (dx >= 2 * dy) {
-        dy -= 1;
-      }
-
-      if (dy - dx <= 0) {
-        (dx, dy) = (dy, dx);
-        octant += 1;
-      }
-      octant <<= 1;
-
-      var twoDxMinusDy = 2 * dx - dy;
-      if (twoDxMinusDy < 0) {
-        octant += 1;
-      }
-
-      var octants = [0x03, 0x43, 0x13, 0x53, 0x0B, 0x4B, 0x17, 0x57];
-      var bltcon0 = ((startX & 0xF) << 12) | 0x0A4A;
-      var bltcon1 = octants[octant & 0xF];
-
-      var bltaptl = twoDxMinusDy;
-      var bltamod = 2 * (twoDxMinusDy - dy);
-      var bltbmod = 4 * dx;
-      var bltsizv = dy;
-
-      copper.waitBlit();
-      copper.move(BLTCMOD, dStride!);
-      copper.move(BLTDMOD, dStride!);
-      copper.move(BLTADAT, 0x8000);
-      copper.move(BLTBDAT, lineTexture);
-      copper.move(BLTAFWM, aFWM);
-      copper.move(BLTALWM, aLWM);
-      copper.move(BLTAPTL, bltaptl);
-      copper.move(BLTCON0, bltcon0);
-      copper.move(BLTCON1, bltcon1);
-      copper.ptr(BLTCPT, dPtr! + startWord);
-      copper.ptr(BLTDPT, dPtr! + startWord);
-      copper.move(BLTBMOD, bltbmod);
-      copper.move(BLTAMOD, bltamod);
-
-      if (bltsizv < 1024) {
-        copper.move(BLTSIZE, (bltsizv << 6) | 2);
-      } else {
-        copper.move(BLTSIZV, bltsizv);
-        copper.move(BLTSIZH, 2);
-      }
-
-      return;
-    }
     bool useDescending = exclusiveFill | inclusiveFill | descending;
     int width = this.width ?? 1;
     int height = this.height ?? 1;
@@ -275,6 +195,102 @@ class Blit implements CopperComponent {
   }
 }
 
+/// A line blit.
+class LineBlit extends BaseBlit {
+  /// Line start coordinate.
+  (int, int)? lineStart;
+
+  /// Line end coordinate.
+  (int, int)? lineEnd;
+
+  /// Line texture.
+  int lineTexture = 0xFFFF;
+
+  /// Destination pointer.
+  Label? dPtr;
+
+  /// Destination stride in bytes.
+  int? dStride;
+
+  @override
+  void addToCopper(Copper copper) {
+    assert(
+      lineStart != null && lineEnd != null,
+      "Both lineStart and lineEnd must be specified",
+    );
+    assert(dPtr != null, "Destination pointer must be specified");
+    assert(dStride != null, "Destination stride must be specified");
+
+    var (startX, startY) = lineStart!;
+    var (endX, endY) = lineEnd!;
+
+    if (startY == endY) {
+      return;
+    } else if (startY > endY) {
+      (startY, endY) = (endY, startY);
+      (startX, endX) = (endX, startX);
+    }
+
+    var startWord = (startY * dStride! + startX ~/ 8) & ~1;
+
+    var dy = endY - startY;
+    var dx = endX - startX;
+
+    var octant = 0;
+
+    if (dx < 0) {
+      dx = -dx;
+      octant = 2;
+    }
+
+    if (dx >= 2 * dy) {
+      dy -= 1;
+    }
+
+    if (dy - dx <= 0) {
+      (dx, dy) = (dy, dx);
+      octant += 1;
+    }
+    octant <<= 1;
+
+    var twoDxMinusDy = 2 * dx - dy;
+    if (twoDxMinusDy < 0) {
+      octant += 1;
+    }
+
+    var octants = [0x03, 0x43, 0x13, 0x53, 0x0B, 0x4B, 0x17, 0x57];
+    var bltcon0 = ((startX & 0xF) << 12) | 0x0A4A;
+    var bltcon1 = octants[octant & 0xF];
+
+    var bltaptl = twoDxMinusDy;
+    var bltamod = 2 * (twoDxMinusDy - dy);
+    var bltbmod = 4 * dx;
+    var bltsizv = dy;
+
+    copper.waitBlit();
+    copper.move(BLTCMOD, dStride!);
+    copper.move(BLTDMOD, dStride!);
+    copper.move(BLTADAT, 0x8000);
+    copper.move(BLTBDAT, lineTexture);
+    copper.move(BLTAFWM, 0xFFFF);
+    copper.move(BLTALWM, 0xFFFF);
+    copper.move(BLTAPTL, bltaptl);
+    copper.move(BLTCON0, bltcon0);
+    copper.move(BLTCON1, bltcon1);
+    copper.ptr(BLTCPT, dPtr! + startWord);
+    copper.ptr(BLTDPT, dPtr! + startWord);
+    copper.move(BLTBMOD, bltbmod);
+    copper.move(BLTAMOD, bltamod);
+
+    if (bltsizv < 1024) {
+      copper.move(BLTSIZE, (bltsizv << 6) | 2);
+    } else {
+      copper.move(BLTSIZV, bltsizv);
+      copper.move(BLTSIZH, 2);
+    }
+  }
+}
+
 /// A copper component that simply waits for the blitter to finish.
 class WaitBlit implements CopperComponent {
   @override
@@ -283,17 +299,18 @@ class WaitBlit implements CopperComponent {
   }
 }
 
-/// A list of [Blit]s that is itself a [CopperComponent].
-class BlitList extends DelegatingList<Blit> implements CopperComponent {
+/// A list of [Blit]s or [LineBlit]s that is itself a [CopperComponent].
+class BlitList<B extends BaseBlit> extends DelegatingList<B>
+    implements CopperComponent {
   BlitList(super.base);
 
   @override
-  BlitList sublist(int start, [int? end]) {
+  BlitList<B> sublist(int start, [int? end]) {
     return BlitList(super.sublist(start, end));
   }
 
   @override
-  BlitList operator +(List<Blit> other) {
+  BlitList<B> operator +(List<B> other) {
     return BlitList(super + other);
   }
 

@@ -168,13 +168,13 @@ class KaleidoscopeFrame implements CopperComponent {
           ..height = Kaleidoscope.squareSize * 2);
   }
 
-  BlitList _drawLine(
+  BlitList<LineBlit> _drawLine(
     Label bitplane,
     int rowStride,
     (double, double) start,
     (double, double) end,
   ) {
-    var blits = BlitList([]);
+    var blits = BlitList<LineBlit>([]);
 
     // If outside right hand side, make it a vertical line
     if (start.$1 >= Kaleidoscope.squareSize &&
@@ -233,7 +233,7 @@ class KaleidoscopeFrame implements CopperComponent {
 
     return blits +
         [
-          Blit()
+          LineBlit()
             ..dPtr = bitplane
             ..dStride = rowStride
             ..lineStart = (
