@@ -179,49 +179,85 @@ class Memory {
   }
 
   void _assignAddresses() {
-    final List<Block> fixed =
-        [...dataBlocks, ...spaceBlocks].where((b) => b.isAllocated).toList()
-          ..sort((b1, b2) => b2.address! - b1.address!);
-    SplayTreeMap<int, List<Block>> allocated = SplayTreeMap.fromIterable(
-      fixed,
-      key: (b) => b.address!,
-      value: (b) => [b],
-    );
+    _Free? freeList = _Free(0, size, null);
+    void allocate(Block block, {bool absolute = false}) {
+      // Find a free block that fits the requested size.
+      for (
+        _Free? prev, curr = freeList;
+        curr != null;
+        prev = curr, curr = curr.next
+      ) {
+        if (curr.end - curr.start < block.size) continue;
+        if (!absolute) {
+          block._allocateAfter(curr.start);
+        }
+        if (block.address! >= curr.start && block.end <= curr.end) {
+          // Success
+          if (block.address == curr.start) {
+            if (block.end == curr.end) {
+              // Exact fit, remove the free block.
+              if (prev != null) {
+                prev.next = curr.next;
+              } else {
+                freeList = curr.next;
+              }
+            } else {
+              // Trim the free block at the start.
+              curr.start = block.end;
+            }
+          } else {
+            if (block.end == curr.end) {
+              // Trim the free block at the end.
+              curr.end = block.address!;
+            } else {
+              // Split the free block in two.
+              curr.next = _Free(block.end, curr.end, curr.next);
+              curr.end = block.address!;
+            }
+          }
+          return;
+        }
+      }
+      throw Exception(
+        "Data block '$block'${absolute ? " (absolute)" : ""} does not fit in memory",
+      );
+    }
+
+    // Allocate fixed blocks
+    for (Block fixed in dataBlocks.where((b) => b.isAllocated)) {
+      allocate(fixed, absolute: true);
+    }
 
     // Allocate data blocks
     dataBlocks.sortBy((b) => -b.lastFrame!);
     for (var block in dataBlocks) {
       if (!block.isAllocated) {
-        block._allocateAfter(0);
-        for (Block allocatedBlock in allocated.values.flattened) {
-          if (_memoryOverlap(block, allocatedBlock)) {
-            block._allocateAfter(allocatedBlock.end);
-          }
-        }
-        allocated.putIfAbsent(block.address!, () => []).add(block);
-      }
-      if (block.end > size) {
-        throw Exception("Block '$block' does not fit in memory");
+        allocate(block);
       }
     }
+
+    SplayTreeMap<int, List<Block>> allocated = SplayTreeMap.fromIterable(
+      dataBlocks,
+      key: (b) => -b.end,
+      value: (b) => [b],
+    );
 
     // Allocate space blocks
     spaceBlocks.sortBy((b) => b.firstFrame! - b.lastFrame!);
     for (var block in spaceBlocks) {
       if (!block.isAllocated) {
-        int nextAddress = size;
-        block._allocateBefore(nextAddress);
-        for (Block allocatedBlock
-            in allocated.values.toList().reversed.flattened) {
+        block._allocateBefore(size);
+        for (Block allocatedBlock in allocated.values.flattened) {
+          if (allocatedBlock.end <= block.address!) break;
           if (_memoryOverlap(block, allocatedBlock) &&
               _timeOverlap(block, allocatedBlock)) {
             block._allocateBefore(allocatedBlock.address!);
           }
         }
-        allocated.putIfAbsent(block.address!, () => []).add(block);
+        allocated.putIfAbsent(-block.end, () => []).add(block);
       }
       if (block.address! < 0) {
-        throw Exception("Block '$block' does not fit in memory");
+        throw Exception("Space block '$block' does not fit in memory");
       }
     }
 
@@ -259,6 +295,14 @@ class Memory {
     }
     return contents;
   }
+}
+
+class _Free {
+  int start;
+  int end;
+  _Free? next;
+
+  _Free(this.start, this.end, this.next);
 }
 
 abstract base class Label {
