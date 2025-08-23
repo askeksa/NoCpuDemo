@@ -3,6 +3,7 @@ import 'dart:math';
 import 'dart:typed_data';
 
 import 'package:collection/collection.dart';
+import 'package:sorted/sorted.dart';
 
 extension IsAlignedTo on int {
   bool isAlignedTo(int alignment) => this & ((1 << alignment) - 1) == 0;
@@ -230,7 +231,10 @@ class Memory {
     }
 
     // Allocate data blocks
-    dataBlocks.sortBy((b) => -b.lastFrame!);
+    MergeSortingStrategy<Data>().sort(
+      dataBlocks,
+      (b1, b2) => b2.lastFrame! - b1.lastFrame!,
+    );
     for (var block in dataBlocks) {
       if (!block.isAllocated) {
         allocate(block);
@@ -244,7 +248,11 @@ class Memory {
     );
 
     // Allocate space blocks
-    spaceBlocks.sortBy((b) => b.firstFrame! - b.lastFrame!);
+    MergeSortingStrategy<Space>().sort(
+      spaceBlocks,
+      (b1, b2) =>
+          (b2.lastFrame! - b2.firstFrame!) - (b1.lastFrame! - b1.firstFrame!),
+    );
     for (var block in spaceBlocks) {
       if (!block.isAllocated) {
         block._allocateBefore(size);
@@ -604,7 +612,7 @@ final class Data extends Block with DataContainer {
   /// Callback to run when the block is finalized.
   void Function(Data)? finalizer;
 
-  late int _dataHash = ListEquality().hash(bytes);
+  late final int _dataHash = ListEquality().hash(bytes);
 
   Data({
     super.alignment,
