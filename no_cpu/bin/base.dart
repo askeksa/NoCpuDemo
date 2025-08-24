@@ -204,6 +204,9 @@ class DemoBase {
         );
       }
     }
+
+    print("");
+    print("Final file size: ${chipData.length}");
   }
 }
 
