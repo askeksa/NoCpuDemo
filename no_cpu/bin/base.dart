@@ -153,7 +153,7 @@ class DemoBase {
     //endCopper.move(COLOR00, 0x000);
   }
 
-  void build() {
+  void build({List<(String, String)>? categories}) {
     Memory m = Memory.fromRoots(
       0x20_0000,
       roots,
@@ -180,6 +180,30 @@ class DemoBase {
     var chipData = m.build();
     p("After dedup");
     File(outputFile).writeAsBytesSync(chipData);
+
+    if (categories != null) {
+      List<RegExp> patterns = categories.map((c) => RegExp(c.$2)).toList();
+      List<int> sizes = List.filled(categories.length, 0);
+      for (Data b in m.dataBlocks) {
+        for (int i = 0; i < patterns.length; i++) {
+          if (patterns[i].hasMatch(b.origin.toString())) {
+            sizes[i] += b.size;
+            break;
+          }
+        }
+      }
+      print("");
+      int maxLength = categories.map((c) => c.$1.length).max;
+      for (var (i, (name, _)) in categories.indexed) {
+        print(
+          sprintf("%-${maxLength}s %9d %7.1fk", [
+            name,
+            sizes[i],
+            sizes[i] / 1024,
+          ]),
+        );
+      }
+    }
   }
 }
 

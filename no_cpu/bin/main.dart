@@ -104,5 +104,18 @@ class NoCpuDemo extends NoCpuDemoBase
 }
 
 main() {
-  NoCpuDemo().build();
+  NoCpuDemo().build(
+    categories: [
+      ("Music copperlists", r"^Copper: MusicFrame"),
+      ("Effect copperlists", r"^Copper: "),
+      ("Instruments", r"^Instrument"),
+      ("Transition patterns", r"^Bitmap .* x 7 data$"),
+      ("Checkerboard row/column maps", r"^Bitmap .*(1024|437) "),
+      ("Interference textures", r"^Bitmap 592 x 328"),
+      ("Bitmap graphics", r"^Bitmap"),
+      ("Sprite graphics", r"^Sprite [0-9]+( attached)?$"),
+      ("Dispatch data", r"^Frame dispatch"),
+      ("Other data", r""),
+    ],
+  );
 }
