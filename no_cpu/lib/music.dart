@@ -160,6 +160,9 @@ class MusicFrame implements CopperComponent {
       }
     }
   }
+
+  @override
+  String toString() => "MusicFrame";
 }
 
 class MusicFrameChannel {

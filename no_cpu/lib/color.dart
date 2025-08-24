@@ -296,6 +296,9 @@ class Palette implements CopperComponent {
       }
     }
   }
+
+  @override
+  String toString() => "Palette ${colors.length}";
 }
 
 // Set colors from a palette source in memory, with each color represented as
@@ -339,4 +342,7 @@ class DynamicPalette implements CopperComponent {
     copper.data.bind(palette);
     copper << Palette.generateRange(start, count, (c) => Color.rgb24(0x010101));
   }
+
+  @override
+  String toString() => "DynamicPalette $start..${start + count - 1}";
 }

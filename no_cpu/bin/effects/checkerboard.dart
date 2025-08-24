@@ -30,7 +30,10 @@ class Checkerboard {
   Copper _makeCopper() {
     var polarities = FreeLabel("polarities");
 
-    var effectCopper = Copper(mutability: Mutability.local);
+    var effectCopper = Copper(
+      mutability: Mutability.local,
+      origin: "Checkerboard effect",
+    );
     List<Label> blitLabels = [];
     var rowPtr = FreeLabel("rowPtr");
     var rowShift = FreeLabel("rowShift");
@@ -182,7 +185,10 @@ class Checkerboard {
     var rowPtrData = FreeLabel("rowPtrData");
     var columnPtrData = FreeLabel("columnPtrData");
 
-    var blitCopper = Copper(mutability: Mutability.local);
+    var blitCopper = Copper(
+      mutability: Mutability.local,
+      origin: "Checkerboard blits",
+    );
     blitCopper << copyToTemp;
     blitCopper << blitRowShift;
     blitCopper << blitColumnPtr / {BLTCDAT: columnPtrData};
@@ -230,4 +236,7 @@ class CheckerboardFrame implements CopperComponent {
     copper.ptr(BLTAPT, layerData.label);
     copper.call(subCopper);
   }
+
+  @override
+  String toString() => "CheckerboardFrame";
 }

@@ -193,6 +193,17 @@ class Blit extends BaseBlit {
     // Require target to be mutable.
     dPtr?.assertMutable();
   }
+
+  @override
+  String toString() {
+    var channels = <String>[
+      if (aPtr != null) "A",
+      if (bPtr != null) "B",
+      if (cPtr != null) "C",
+      if (dPtr != null) "D",
+    ];
+    return "Blit ${channels.join()} ${width ?? 1} x ${height ?? 1}";
+  }
 }
 
 /// A line blit.
@@ -289,6 +300,13 @@ class LineBlit extends BaseBlit {
       copper.move(BLTSIZH, 2);
     }
   }
+
+  @override
+  String toString() {
+    var start = lineStart != null ? "(${lineStart!.$1},${lineStart!.$2})" : "";
+    var end = lineEnd != null ? "(${lineEnd!.$1},${lineEnd!.$2})" : "";
+    return "LineBlit $start -> $end";
+  }
 }
 
 /// A copper component that simply waits for the blitter to finish.
@@ -297,6 +315,9 @@ class WaitBlit implements CopperComponent {
   void addToCopper(Copper copper) {
     copper.waitBlit();
   }
+
+  @override
+  String toString() => "WaitBlit";
 }
 
 /// A list of [Blit]s or [LineBlit]s that is itself a [CopperComponent].
@@ -321,4 +342,7 @@ class BlitList<B extends BaseBlit> extends DelegatingList<B>
       blit.addToCopper(copper);
     }
   }
+
+  @override
+  String toString() => "BlitList $length";
 }

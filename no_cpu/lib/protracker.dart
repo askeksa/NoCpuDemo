@@ -100,6 +100,7 @@ class ProtrackerPattern {
 class ProtrackerInstrument extends Instrument {
   static const _nameLength = 22;
 
+  final int index;
   final int finetune;
   final int volume;
   final int lengthInFile;
@@ -108,6 +109,7 @@ class ProtrackerInstrument extends Instrument {
     super.data,
     super.repeat,
     super.replen,
+    this.index,
     this.finetune,
     this.volume,
     this.lengthInFile,
@@ -136,6 +138,7 @@ class ProtrackerInstrument extends Instrument {
       data,
       repeat,
       replen,
+      instrumentIndex,
       finetune,
       volume,
       lengthInFile,
@@ -154,12 +157,15 @@ class ProtrackerInstrument extends Instrument {
     int length,
   ) {
     if (length == 0) {
-      return Data.fromBytes([0, 0], origin: "Empty sample");
+      return Data.fromBytes([0, 0]);
     } else {
       file.setPositionSync(samplePosition);
-      return Data.fromBytes(file.readSync(length), origin: "Sample data");
+      return Data.fromBytes(file.readSync(length));
     }
   }
+
+  @override
+  String toString() => "Instrument ${index + 1}";
 }
 
 /// Represents a complete Protracker module.

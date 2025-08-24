@@ -166,7 +166,10 @@ mixin Rebels on NoCpuDemoBase {
       // Color cycling
       var range = image.colorRanges.single;
       int rangeSize = range.high - range.low + 1;
-      var rangeData = Data(mutability: Mutability.mutable);
+      var rangeData = Data(
+        mutability: Mutability.mutable,
+        origin: "Color cycle",
+      );
       for (int i = range.low; i <= range.high; i++) {
         rangeData.addWord(image.palette[i].upper);
         rangeData.addWord(image.palette[i].lower);

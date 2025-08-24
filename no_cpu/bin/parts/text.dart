@@ -136,7 +136,7 @@ mixin Text on NoCpuDemoBase {
         copper.wait(v: 82 + y - 1);
         copper << pal;
       }
-    });
+    }, () => "setWordColors");
   }
 
   void rebelsText(int P) {

@@ -196,13 +196,25 @@ abstract interface class CopperComponent {
   void addToCopper(Copper copper);
 }
 
+class EmptyCopperComponent implements CopperComponent {
+  @override
+  void addToCopper(Copper copper) {}
+
+  @override
+  String toString() => "Empty";
+}
+
 class AdHocCopperComponent implements CopperComponent {
   final void Function(Copper) callback;
+  final String Function()? description;
 
-  AdHocCopperComponent(this.callback);
+  AdHocCopperComponent(this.callback, [this.description]);
 
   @override
   void addToCopper(Copper copper) => callback(copper);
+
+  @override
+  String toString() => description?.call() ?? "AdHoc";
 }
 
 extension ComponentsInCopper on Copper {
@@ -221,10 +233,10 @@ extension ComponentsInCopper on Copper {
   }
 
   Copper added(void Function(Copper) callback) =>
-      addComponent(AdHocCopperComponent(callback));
+      addComponent(AdHocCopperComponent(callback, () => "$origin |"));
 
   Copper called(void Function(Copper) callback) =>
-      callComponent(AdHocCopperComponent(callback));
+      callComponent(AdHocCopperComponent(callback, () => "$origin ^"));
 
   Copper operator <<(CopperComponent component) => addComponent(component);
 
@@ -240,38 +252,38 @@ extension CopperComponentOperators on CopperComponent {
       AdHocCopperComponent((copper) {
         addToCopper(copper);
         other.addToCopper(copper);
-      });
+      }, () => "$this + $other");
 
   CopperComponent operator <<(CopperComponent other) =>
       AdHocCopperComponent((copper) {
         addToCopper(copper);
         copper << other;
-      });
+      }, () => "$this << $other");
 
   CopperComponent operator >>(CopperComponent other) =>
       AdHocCopperComponent((copper) {
         addToCopper(copper);
         copper >> other;
-      });
+      }, () => "$this >> $other");
 
   CopperComponent operator |(void Function(Copper) callback) =>
       AdHocCopperComponent((copper) {
         addToCopper(copper);
         copper | callback;
-      });
+      }, () => "$this |");
 
   CopperComponent operator ^(void Function(Copper) callback) =>
       AdHocCopperComponent((copper) {
         addToCopper(copper);
         copper ^ callback;
-      });
+      }, () => "$this ^");
 
   CopperComponent watch(Iterable<int> registers, RegisterCallback callback) =>
       AdHocCopperComponent((copper) {
         copper._pushWatch(registers, callback);
         addToCopper(copper);
         copper._popWatch();
-      });
+      }, () => "$this");
 
   CopperComponent bind(Map<int, FreeLabel> labels) =>
       watch(labels.keys, (register, label) => labels[register]?.bind(label)) |
@@ -296,6 +308,6 @@ extension JoinCopperComponents on Iterable<CopperComponent> {
       for (var component in this) {
         component.addToCopper(copper);
       }
-    });
+    }, () => join(" + "));
   }
 }

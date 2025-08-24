@@ -212,6 +212,9 @@ class Display implements CopperComponent {
         ((scroll & 0x3C) >> 2) |
         ((scroll & 0x03) << 8);
   }
+
+  @override
+  String toString() => "Display ${bitplanes.length} ${sprites?.length ?? "-"}";
 }
 
 class SpritePointers implements CopperComponent {
@@ -234,4 +237,7 @@ class SpritePointers implements CopperComponent {
       );
     }
   }
+
+  @override
+  String toString() => "SpritePointers ${sprites.length}";
 }

@@ -104,4 +104,7 @@ class TransitionRun implements CopperComponent {
     copper.ptr(BLTCPT, data.label);
     copper.call(transition.subCopper);
   }
+
+  @override
+  String toString() => "$transition $threshold${inverse ? " inverse" : ""}";
 }

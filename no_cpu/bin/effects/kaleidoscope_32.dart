@@ -375,7 +375,10 @@ class Kaleidoscope {
     var plane0 = CopperEffectBitplaneVariables();
     var plane1 = CopperEffectBitplaneVariables();
 
-    var effectCopper = Copper(mutability: Mutability.local);
+    var effectCopper = Copper(
+      mutability: Mutability.local,
+      origin: "Kaleidoscope effect",
+    );
 
     // Clear the first two squares
     effectCopper <<
@@ -622,7 +625,10 @@ class Kaleidoscope {
 
     // The first copper, which sets up the blits for the second effect copper
 
-    var blitCopper = Copper(mutability: Mutability.local);
+    var blitCopper = Copper(
+      mutability: Mutability.local,
+      origin: "Kaleidoscope blits",
+    );
 
     // Copy line data to temp
     blitCopper <<
@@ -781,4 +787,7 @@ class KaleidoscopeFrameFooter implements CopperComponent {
     copper.ptr(SPR3PT, bitmap.bitplanes);
     copper.ptr(SPR4PT, bitmap.bitplanes);
   }
+
+  @override
+  String toString() => "KaleidoscopeFrameFooter";
 }

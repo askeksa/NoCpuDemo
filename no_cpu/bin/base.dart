@@ -27,7 +27,7 @@ class DemoBase {
 
   CopperComponent getMusicFrame(int f) {
     // Dummy music frame for demos without music.
-    return AdHocCopperComponent((_) {});
+    return EmptyCopperComponent();
   }
 
   FrameScheduler F(int position, int row, [int offset = 0]) {
@@ -62,7 +62,7 @@ class DemoBase {
     });
     roots.addAll(musicFrames.map((f) => f.data));
 
-    var frameData = Data(singlePage: true);
+    var frameData = Data(singlePage: true, origin: "Frame dispatch");
     for (int f = 0; f < frameCount - 1; f++) {
       frameData.addReference(musicFrames[f + 1].label, 5);
       frameData.addReference(frames[f].label, 5);
@@ -73,7 +73,7 @@ class DemoBase {
     frameData.addReference(frames[frameCount - 1].label, 5);
     frameData.addLow(frameData.label + loopFrame! * 6);
 
-    var ptrMask = Data.fromWords([0x001F, 0xFFE0]);
+    var ptrMask = Data.fromWords([0x001F, 0xFFE0], origin: "Pointer mask");
 
     var dispatchCopper =
         Copper(
