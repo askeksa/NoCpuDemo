@@ -14,10 +14,10 @@ import 'parts/credits.dart';
 import 'parts/life.dart';
 
 class NoCpuDemoBase extends MusicDemoBase {
-  late Color afterCardColor = Color.rgb24(0x000000);
-  late Color oneBullyTransColor = Color.rgb24(0x000000);
-  late Color bullyTransColor = Color.rgb24(0x000000);
-  late Color togetherColor = Color.rgb24(0x444444);
+  late Color afterCardColor = Color.rgb12(0x000);
+  late Color oneBullyTransColor = Color.rgb12(0x000);
+  late Color bullyTransColor = Color.rgb12(0x000);
+  late Color togetherColor = Color.rgb12(0x444);
   late Color lifeColor = Color.rgb12(0xEC8);
 
   SpriteGroup spriteScreen = SpriteGroup.space(320, 180);
@@ -36,7 +36,14 @@ class NoCpuDemoBase extends MusicDemoBase {
       .transform((_, _, p) => p > 0 && p < 58 || p >= 97 ? 1 : 0, depth: 1)
       .crop(h: 180);
 
-  var lifeTrans = Transition.generate(320, 180, (x, y) {
+  late Transition waveTrans = Transition.generate(320, 180, (x, y) {
+    return 20 +
+        x * (0.2 + y * 0.001) -
+        y * 0.1 +
+        (sin(y * 0.11 + x * 0.013) + sin(y * 0.13 - x * 0.015)) * 5;
+  });
+
+  late Transition lifeTrans = Transition.generate(320, 180, (x, y) {
     double dx = x - 160;
     double dy = y - 100;
     double d = sqrt(dx * dx + dy * dy);
@@ -68,7 +75,7 @@ class NoCpuDemoBase extends MusicDemoBase {
   }
 
   CopperComponent blankDisplay([Color? color]) {
-    color ??= Color.rgb24(0x000000);
+    color ??= Color.rgb12(0x000);
     return Palette.fromMap({0: color}) >>
         (Display()
           ..setBitmap(Bitmap.blank(320, 1, 1))

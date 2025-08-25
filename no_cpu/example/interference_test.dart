@@ -80,7 +80,11 @@ class InterferenceTest extends DemoBase {
     ),
   );
 
-  final _blackPalette = Palette.generateRange(0, 256, (i) => Color.rgb24(0));
+  final _blackPalette = Palette.generateRange(
+    0,
+    256,
+    (i) => Color.rgb12(0x000),
+  );
 
   static final _fireColorList = Interference.shuffleColorList([
     Color.rgb8(101, 0, 0),

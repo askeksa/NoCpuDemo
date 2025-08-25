@@ -6,7 +6,7 @@ import '../effects/blitter_tornado.dart';
 import '../effects/transition.dart';
 
 mixin Together on NoCpuDemoBase {
-  static final Color sillhouetteColor = Color.rgb24(0x000000);
+  static final Color sillhouetteColor = Color.rgb12(0x000);
   static final Color flashColor = Color.rgb12(0xCCA);
   static final int flashDuration = 4;
 

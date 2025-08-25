@@ -5,7 +5,6 @@ import 'package:no_cpu/no_cpu.dart';
 
 import '../base.dart';
 import '../main.dart';
-import '../effects/transition.dart';
 
 mixin Rebels on NoCpuDemoBase {
   late IlbmImage aliceWordImage = IlbmImage.fromFile(
@@ -113,13 +112,6 @@ mixin Rebels on NoCpuDemoBase {
   }
 
   void rebels(int P) {
-    Transition trans = Transition.generate(320, 180, (x, y) {
-      return 20 +
-          x * (0.2 + y * 0.001) -
-          y * 0.1 +
-          (sin(y * 0.11 + x * 0.013) + sin(y * 0.13 - x * 0.015)) * 5;
-    });
-
     void girl(
       int p,
       IlbmImage image,
@@ -218,7 +210,7 @@ mixin Rebels on NoCpuDemoBase {
             ..spriteColorOffset = 240
             ..priority = 4);
 
-      transition(trans, (p + 1, 32), backward: !reverse, inverse: reverse);
+      transition(waveTrans, (p + 1, 32), backward: !reverse, inverse: reverse);
     }
 
     List<(int?, int)> aliceOffsets = List.filled(5, (null, 0));

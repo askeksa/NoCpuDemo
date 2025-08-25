@@ -16,13 +16,6 @@ mixin Text on NoCpuDemoBase {
     128,
   );
 
-  Transition waveTrans = Transition.generate(320, 180, (x, y) {
-    return 20 +
-        x * (0.2 + y * 0.001) -
-        y * 0.1 +
-        (sin(y * 0.11 + x * 0.013) + sin(y * 0.13 - x * 0.015)) * 5;
-  });
-
   late Transition checkerTrans = Transition.generate(320, 180, (x, y) {
     const size = 20;
     int cx = x - 160 - (x - 160 + size * 10) % size + size ~/ 2;
