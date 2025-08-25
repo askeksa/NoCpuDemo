@@ -1,7 +1,7 @@
 import 'package:no_cpu/no_cpu.dart';
 
 import '../bin/base.dart';
-import '../bin/effects/kaleidoscope_32.dart';
+import '../bin/effects/kaleidoscope.dart';
 
 main() {
   KaleidoscopeTest().build();

@@ -4,7 +4,7 @@ import 'package:no_cpu/no_cpu.dart';
 
 import '../base.dart';
 import '../main.dart';
-import '../effects/kaleidoscope_32.dart';
+import '../effects/kaleidoscope.dart';
 import '../effects/transition.dart';
 
 mixin Credits on NoCpuDemoBase {
