@@ -64,9 +64,15 @@ extension type Color(int rgb) {
     g += m;
     b += m;
 
-    int toInt(double f) => (f * 256).toInt().clamp(0, 255);
+    return Color.float(r, g, b);
+  }
 
-    return Color.rgb8(toInt(r), toInt(g), toInt(b));
+  factory Color.float(double r, double g, double b) {
+    return Color.clamped(
+      (r * 256).toInt(),
+      (g * 256).toInt(),
+      (b * 256).toInt(),
+    );
   }
 
   factory Color.clamped(int r, int g, int b) {
