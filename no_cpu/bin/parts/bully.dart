@@ -20,7 +20,7 @@ mixin Bully on NoCpuDemoBase {
       return sqrt(dx * dx + dy * dy) * (0.3 + 0.1 * cos(v * 5));
     });
 
-    var image = IlbmImage.fromFile("$assetsPath/EVIL CPU 5.iff");
+    var image = IlbmImage.fromFile("$assetsPath/EVIL CPU.iff");
     var imagePalette = image.palette.sub(0, 63);
     var bitmap = image.bitmap.crop(
       w: 320 + _horizontalPadding,

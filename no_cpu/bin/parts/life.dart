@@ -23,7 +23,7 @@ mixin Life on NoCpuDemoBase {
     Bitmap bitmap = Bitmap.space(320, 180, 1);
     Palette palette = Palette.rgb12([0x025, 0x8af]);
 
-    IlbmImage qr = IlbmImage.fromFile("$assetsPath/QR CODE_IFF2.iff");
+    IlbmImage qr = IlbmImage.fromFile("$assetsPath/QR CODE.iff");
     SpriteGroup qrSprite = SpriteGroup.fromBitmap(
       qr.bitmap.crop(x: 62, y: 73, w: 58, h: 68),
       baseIndex: 6,

@@ -22,13 +22,9 @@ class NoCpuDemoBase extends MusicDemoBase {
 
   SpriteGroup spriteScreen = SpriteGroup.space(320, 180);
 
-  late IlbmImage alice = IlbmImage.fromFile(
-    "$assetsPath/!ALICE CYCLE Done4.iff",
-  );
-  late IlbmImage lisa = IlbmImage.fromFile("$assetsPath/!LISA CYCLE done3.iff");
-  late IlbmImage paula = IlbmImage.fromFile(
-    "$assetsPath/!PAULA CYCLE DONE2.iff",
-  );
+  late IlbmImage alice = IlbmImage.fromFile("$assetsPath/Cycle Alice.iff");
+  late IlbmImage lisa = IlbmImage.fromFile("$assetsPath/Cycle Lisa.iff");
+  late IlbmImage paula = IlbmImage.fromFile("$assetsPath/Cycle Paula.iff");
 
   late Bitmap aliceMask = alice.bitmap
       .transform((_, _, p) => p > 0 && p < 88 ? 1 : 0, depth: 1)
@@ -50,7 +46,7 @@ class NoCpuDemoBase extends MusicDemoBase {
 
   NoCpuDemoBase()
     : super.withProtrackerFile(
-        "$assetsPath/no cpu 1.5.mod",
+        "$assetsPath/no cpu today.mod",
         startFrame: NoCpuDemo.startPattern * 64 * 6,
       );
 

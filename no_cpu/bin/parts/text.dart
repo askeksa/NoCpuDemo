@@ -140,7 +140,7 @@ mixin Text on NoCpuDemoBase {
   }
 
   void rebelsText(int P) {
-    var words = getWords("$assetsPath/A GROUP OF REBELS TEXTIFF5.iff", [
+    var words = getWords("$assetsPath/Text A Group Of Rebels.iff", [
       (40, 260),
       (70, 235),
       105,
@@ -208,7 +208,7 @@ mixin Text on NoCpuDemoBase {
   }
 
   void checkerboardText(int P) {
-    var words = getWords("$assetsPath/NO CHALL CHECKERBOARDIFF3.iff", [
+    var words = getWords("$assetsPath/Text No Challenge Without.iff", [
       40,
       77,
       110,
@@ -274,7 +274,7 @@ mixin Text on NoCpuDemoBase {
   }
 
   void joinText(int P) {
-    var words = getWords("$assetsPath/JOIN THE REBELLIONIFF4.iff", [
+    var words = getWords("$assetsPath/Text Join The Rebellion.iff", [
       55,
       100,
       150,

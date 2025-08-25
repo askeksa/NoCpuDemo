@@ -9,13 +9,13 @@ import '../effects/transition.dart';
 
 mixin Rebels on NoCpuDemoBase {
   late IlbmImage aliceWordImage = IlbmImage.fromFile(
-    "$assetsPath/!ALICE WORDCLOUD_Done.iff",
+    "$assetsPath/Wordcloud Alice.iff",
   );
   late IlbmImage lisaWordImage = IlbmImage.fromFile(
-    "$assetsPath/!LISA WORDCLOUDS Done3.iff",
+    "$assetsPath/Wordcloud Lisa.iff",
   );
   late IlbmImage paulaWordImage = IlbmImage.fromFile(
-    "$assetsPath/!PAULA WORDCLOUD DONE2.iff",
+    "$assetsPath/Wordcloud Paula.iff",
   );
 
   late List<(int, int, SpriteGroup, Palette)> aliceWords = getWords(

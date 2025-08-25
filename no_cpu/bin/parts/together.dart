@@ -13,7 +13,7 @@ mixin Together on NoCpuDemoBase {
   static const titlePaletteOffset = 140;
 
   late final IlbmImage title = IlbmImage.fromFile(
-    "$assetsPath/NO CPU CHALLENGE text6.iff",
+    "$assetsPath/Logo NOCPU Challenge.iff",
   );
 
   final ChunkyPixels noise = ChunkyPixels.fromFile(
