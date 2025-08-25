@@ -48,7 +48,6 @@ class DemoBase {
         origin: i,
       )..useInFrame(i);
     });
-    roots.addAll(frames.map((f) => f.data));
 
     List<Copper> musicFrames = List.generate(frameCount, (i) {
       var musicFrame = getMusicFrame(i);
@@ -60,7 +59,6 @@ class DemoBase {
       musicFrame.addToCopper(copper);
       return copper;
     });
-    roots.addAll(musicFrames.map((f) => f.data));
 
     var frameData = Data(singlePage: true, origin: "Frame dispatch");
     for (int f = 0; f < frameCount - 1; f++) {
@@ -68,10 +66,24 @@ class DemoBase {
       frameData.addReference(frames[f].label, 5);
       frameData.addLow(frameData.label + (f + 1) * 6);
     }
-    // TODO: Support non-looping
-    frameData.addReference(musicFrames[loopFrame!].label, 5);
-    frameData.addReference(frames[frameCount - 1].label, 5);
-    frameData.addLow(frameData.label + loopFrame! * 6);
+    if (loopFrame != null) {
+      // Loop back to loopFrame.
+      frameData.addReference(musicFrames[loopFrame!].label, 5);
+      frameData.addReference(frames[frameCount - 1].label, 5);
+      frameData.addLow(frameData.label + loopFrame! * 6);
+    } else {
+      // Request demo exit by clearing Blitter Nasty.
+      // Also clear bitplane and sprite DMA to blank the screen.
+      endCopper = Copper(origin: "End");
+      endCopper.move(DMACON, 0x052F);
+      endCopper.move(BPLCON3, 0x0020);
+      endCopper.move(COLOR00, 0x000);
+      endCopper.end();
+
+      frameData.addReference(endCopper.label, 5);
+      frameData.addReference(frames[frameCount - 1].label, 5);
+      frameData.addLow(frameData.label + (frameCount - 1) * 6);
+    }
 
     var ptrMask = Data.fromWords([0x001F, 0xFFE0], origin: "Pointer mask");
 
@@ -145,12 +157,6 @@ class DemoBase {
     initialCopper.move(DIWSTOP, 0x06C1);
     initialCopper.move(BPLCON3, 0x0020);
     initialCopper >> Display();
-
-    //// Request demo exit by clearing Blitter Nasty.
-    //// Also clear bitplane and sprite DMA to blank the screen.
-    //endCopper.move(DMACON, 0x052F);
-    //endCopper.move(BPLCON3, 0x0020);
-    //endCopper.move(COLOR00, 0x000);
   }
 
   void build({List<(String, String)>? categories}) {
@@ -239,7 +245,6 @@ class MusicDemoBase extends DemoBase {
 
   @override
   CopperComponent getMusicFrame(int f) {
-    // Dummy music frame for demos without music.
     return music.frames[f];
   }
 }
