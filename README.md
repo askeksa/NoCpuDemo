@@ -2,11 +2,13 @@
 
 This is the source for the [No-CPU Challenge](https://no-cpu.dev) [invitation demo](https://www.pouet.net/prod.php?which=104753), including framework, Protracker music converter and all graphics and music assets.
 
-Build the demo by running
-```
-dart run --enable-asserts no_cpu/bin/main.dart
-```
-The demo build code assumes this repository is checked out alongside the [NoCpuChallenge](https://github.com/askeksa/NoCpuChallenge) repository and will place its output `chip.dat` file into the `runner` directory of that checkout.
+To build the demo:
+1. Check out this repository alongside the [NoCpuChallenge](https://github.com/askeksa/NoCpuChallenge) repository.
+2. Install [Dart](https://dart.dev/get-dart).
+3. Get packages (in your IDE, or run `dart pub get` in the `no_cpu` directory).
+4. Run `dart run --enable-asserts no_cpu/bin/main.dart`.
+
+The demo build code and will place its output `chip.dat` file into the `runner` directory of the [NoCpuChallenge](https://github.com/askeksa/NoCpuChallenge) checkout.
 
 The structure of the code is as follows:
 - `no_cpu/lib`: A general-purpose Dart package for no-CPU demo development. Mainly geared towards AGA, though it should be easy to adapt to OCS.
