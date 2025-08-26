@@ -2,8 +2,14 @@ import 'bitmap.dart';
 import 'blitter.dart';
 import 'memory.dart';
 
-/// Helpers for setting pointers, strides, size and (optionally) masks
-/// from a bitmap.
+/// Helpers for setting pointers, strides, size (optional, defaults to `true`)
+/// and masks (optional, defaults to `true` if the A channel is involved) from
+/// a bitmap.
+///
+/// If the width or height is already set, these methods will assert that the
+/// new values match the existing ones.
+///
+/// Note that these do NOT set shifts.
 extension SetBitmaps on Blit {
   Label _setBitplane(
     Bitmap bitmap,

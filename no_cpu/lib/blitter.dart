@@ -55,12 +55,14 @@ class Blit extends BaseBlit {
   int? minterms;
 
   /// Descending mode. Pointers and modulos are automatically adjusted.
-  bool descending = false;
+  ///
+  /// Defaults to `true` if fill is enabled, `false` otherwise.
+  bool? descending;
 
-  /// Exclusive fill. Descending mode is automatically enabled.
+  /// Exclusive fill.
   bool exclusiveFill = false;
 
-  /// Inclusive fill. Descending mode is automatically enabled.
+  /// Inclusive fill.
   bool inclusiveFill = false;
 
   /// Width (in words) and height (in rows) of the blit operation.
@@ -138,14 +140,14 @@ class Blit extends BaseBlit {
     int minterms = (this.minterms ?? defaultLogic) & 0xFF;
     bool dependsOnA = (minterms >> 4) != (minterms & 0x0F);
 
-    bool useDescending = exclusiveFill | inclusiveFill | descending;
+    bool descending = this.descending ?? exclusiveFill | inclusiveFill;
     int width = this.width ?? 1;
     int height = this.height ?? 1;
 
-    int ptrOffset = useDescending ? width * 2 - 2 : 0;
+    int ptrOffset = descending ? width * 2 - 2 : 0;
     int stride2modulo(int? stride) {
       stride ??= width * 2;
-      return (useDescending ? -stride : stride) - width * 2;
+      return (descending ? -stride : stride) - width * 2;
     }
 
     bool emitMasks =
@@ -159,14 +161,14 @@ class Blit extends BaseBlit {
         (bShift << 12) |
         (exclusiveFill ? 0x0010 : 0) |
         (inclusiveFill ? 0x0008 : 0) |
-        ((inclusiveFill | inclusiveFill | useDescending) ? 0x0002 : 0);
+        (descending ? 0x0002 : 0);
 
     copper.waitBlit();
     copper.move(BLTCON0, bltcon0);
     copper.move(BLTCON1, bltcon1);
     if (emitMasks) {
-      copper.move(BLTAFWM, useDescending ? aLWM : aFWM);
-      copper.move(BLTALWM, useDescending ? aFWM : aLWM);
+      copper.move(BLTAFWM, descending ? aLWM : aFWM);
+      copper.move(BLTALWM, descending ? aFWM : aLWM);
     }
     if (cPtr != null) copper.ptr(BLTCPT, cPtr! + ptrOffset);
     if (bPtr != null) copper.ptr(BLTBPT, bPtr! + ptrOffset);

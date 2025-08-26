@@ -26,6 +26,14 @@ class Memory {
 
   Memory(this.size, {this.frameCount, this.loopFrame});
 
+  /// Create a new memory instance from a set of root blocks.
+  ///
+  /// All blocks transitively referenced from the root blocks will form part
+  /// of the new memory image.
+  ///
+  /// If [frameCount] and [loopFrame] are specified, they will be used in block
+  /// liveness analysis, such that all blocks that are live across the
+  /// [loopFrame] will be considered live until [frameCount].
   factory Memory.fromRoots(
     int size,
     Iterable<Block> roots, {
@@ -279,8 +287,8 @@ class Memory {
     }
   }
 
+  /// Run the finalizers for all data blocks.
   void finalize() {
-    // Run finalizers.
     assert(!isFinalized);
     for (Data data in dataBlocks) {
       data.finalizer?.call(data);
@@ -288,12 +296,12 @@ class Memory {
     isFinalized = true;
   }
 
+  /// Build the final memory image.
   Uint8List build() {
     if (!isFinalized) {
       finalize();
     }
 
-    // Assemble the blocks into a memory image.
     _inferLiveness();
     _deduplicate();
     _assignAddresses();
@@ -314,6 +322,7 @@ class _Free {
   _Free(this.start, this.end, this.next);
 }
 
+/// A label pointing to a location inside a block.
 abstract base class Label {
   int get address;
   Block get block;
@@ -343,6 +352,7 @@ abstract base class Label {
   String toString() => "$block + $offsetInBlock";
 }
 
+/// The label at the start of a block.
 final class BlockLabel extends Label {
   @override
   Block block;
@@ -364,6 +374,7 @@ final class BlockLabel extends Label {
   }
 }
 
+/// A label pointing to an offset from another label.
 final class OffsetLabel extends Label {
   final Label target;
   final int offset;
@@ -385,13 +396,13 @@ final class OffsetLabel extends Label {
   void assertMutable() => target.assertMutable();
 }
 
+/// A late-bound label.
 final class FreeLabel extends Label {
   String name;
   bool? requireMutable;
 
   Label? _target;
 
-  /// A late-bound label.
   FreeLabel([this.name = "unnamed"]);
 
   Label get target => _target ?? (throw Exception("Label '$name' not bound"));
@@ -484,13 +495,14 @@ enum Mutability {
 
 /// Base class for memory blocks.
 abstract base class Block {
-  /// Alignment of the block.
+  /// Alignment of the block, specifying the power of two that its address must
+  /// be aligned to.
   int alignment;
 
   /// Whether the block should be allocated within a single 64k page.
   bool singlePage;
 
-  /// Object from which this block was created.
+  /// Object from which this block was created, for debugging purposes.
   Object? origin;
 
   /// Explicit dependencies on top of those implied by the references.
@@ -542,6 +554,7 @@ abstract base class Block {
   /// Whether the block has been allocated to a specific address.
   bool get isAllocated => address != null;
 
+  /// Whether the block can be targeted by a blit.
   bool get isMutable;
 
   /// Add a block as an explicit dependency.
@@ -607,6 +620,8 @@ abstract base class Block {
 final class Data extends Block with DataContainer {
   final List<Reference> references = [];
 
+  /// Mutability of the block, controlling whether the block can be targeted by
+  /// blits and whether it can be deduplicated with other identical blocks.
   Mutability mutability;
 
   /// Callback to run when the block is finalized.
@@ -614,6 +629,7 @@ final class Data extends Block with DataContainer {
 
   late final int _dataHash = ListEquality().hash(bytes);
 
+  // Create a new, initially empty data block.
   Data({
     super.alignment,
     super.singlePage,
@@ -621,11 +637,12 @@ final class Data extends Block with DataContainer {
     super.origin,
   });
 
+  /// Create a block of a given size, initially filled with zeros.
   factory Data.blank(
     int size, {
     int alignment = 1,
     bool singlePage = false,
-    Mutability mutability = Mutability.mutable,
+    Mutability mutability = Mutability.immutable,
     Object? origin,
   }) {
     return Data(
@@ -636,6 +653,7 @@ final class Data extends Block with DataContainer {
     )..addSpace(size);
   }
 
+  /// Create a block initialized from a list of bytes.
   factory Data.fromBytes(
     List<int> bytes, {
     int alignment = 1,
@@ -651,6 +669,7 @@ final class Data extends Block with DataContainer {
     )..addBytes(bytes);
   }
 
+  /// Create a block initialized from a list of words.
   factory Data.fromWords(
     List<int> words, {
     int alignment = 1,
@@ -666,6 +685,7 @@ final class Data extends Block with DataContainer {
     )..addWords(words);
   }
 
+  /// Create a block initialized from a list of longwords.
   factory Data.fromLongwords(
     List<int> longwords, {
     int alignment = 2,

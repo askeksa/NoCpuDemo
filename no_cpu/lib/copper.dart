@@ -11,7 +11,7 @@ class Copper {
   /// Is this a copperlist pointed to by COP1LC?
   final bool isPrimary;
 
-  /// Object from which this copperlist was created.
+  /// Object from which this copperlist was created, for debugging purposes.
   Object? origin;
 
   /// Callback to run when the copper is finalized.
@@ -22,6 +22,7 @@ class Copper {
 
   final List<(Set<int>, RegisterCallback)> _watchStack = [];
 
+  /// Create a new copperlist.
   Copper({
     int alignment = 2,
     this.isPrimary = false,
@@ -45,6 +46,7 @@ class Copper {
     };
   }
 
+  /// Create a new copperlist from a [CopperComponent].
   factory Copper.from(
     CopperComponent component, {
     int alignment = 2,
@@ -234,11 +236,13 @@ class AdHocCopperComponent implements CopperComponent {
 }
 
 extension ComponentsInCopper on Copper {
+  /// Add a component to this copperlist.
   Copper addComponent(CopperComponent component) {
     component.addToCopper(this);
     return this;
   }
 
+  /// Create a new copperlist from a component and call it from this copperlist.
   Copper callComponent(CopperComponent component) {
     var copper = Copper.from(component);
     if (!copper.isEmpty) {
@@ -247,52 +251,71 @@ extension ComponentsInCopper on Copper {
     return this;
   }
 
+  /// Call [callback] with this copperlist.
   Copper added(void Function(Copper) callback) =>
       addComponent(AdHocCopperComponent(callback, () => "$origin |"));
 
+  /// Create a new copperlist, call [callback] with it, and call it from this
+  /// copperlist.
   Copper called(void Function(Copper) callback) =>
       callComponent(AdHocCopperComponent(callback, () => "$origin ^"));
 
+  /// Add a component to this copperlist.
   Copper operator <<(CopperComponent component) => addComponent(component);
 
+  /// Create a new copperlist from a component and call it from this copperlist.
   Copper operator >>(CopperComponent component) => callComponent(component);
 
+  /// Call [callback] with this copperlist.
   Copper operator |(void Function(Copper) callback) => added(callback);
 
+  /// Create a new copperlist, call [callback] with it, and call it from this
+  /// copperlist.
   Copper operator ^(void Function(Copper) callback) => called(callback);
 }
 
 extension CopperComponentOperators on CopperComponent {
+  /// Concatenate copper components.
   CopperComponent operator +(CopperComponent other) =>
       AdHocCopperComponent((copper) {
         addToCopper(copper);
         other.addToCopper(copper);
       }, () => "$this + $other");
 
+  /// Add a component to the end of this component.
+  ///
+  /// Same as [+], except for operator precedence.
   CopperComponent operator <<(CopperComponent other) =>
       AdHocCopperComponent((copper) {
         addToCopper(copper);
         copper << other;
       }, () => "$this << $other");
 
+  /// Add a call to a component to the end of this component.
   CopperComponent operator >>(CopperComponent other) =>
       AdHocCopperComponent((copper) {
         addToCopper(copper);
         copper >> other;
       }, () => "$this >> $other");
 
+  /// Add the instructions produced by [callback] to the end of this component.
   CopperComponent operator |(void Function(Copper) callback) =>
       AdHocCopperComponent((copper) {
         addToCopper(copper);
         copper | callback;
       }, () => "$this |");
 
+  /// Add a call to a copperlist containing the instructions produced by
+  /// [callback] to the end of this component.
   CopperComponent operator ^(void Function(Copper) callback) =>
       AdHocCopperComponent((copper) {
         addToCopper(copper);
         copper ^ callback;
       }, () => "$this ^");
 
+  /// Register a [callback] to be called with a label pointing to the second
+  /// word of the MOVE instruction when any of the specified registers are
+  /// written to.
   CopperComponent watch(Iterable<int> registers, RegisterCallback callback) =>
       AdHocCopperComponent((copper) {
         copper._pushWatch(registers, callback);
@@ -300,6 +323,8 @@ extension CopperComponentOperators on CopperComponent {
         copper._popWatch();
       }, () => "$this");
 
+  /// Bind labels to the second word of the MOVE instruction when the
+  /// corresponding register is written to.
   CopperComponent bind(Map<int, FreeLabel> labels) =>
       watch(labels.keys, (register, label) => labels[register]?.bind(label)) |
       (_) {
@@ -314,6 +339,8 @@ extension CopperComponentOperators on CopperComponent {
         }
       };
 
+  /// Bind labels to the second word of the MOVE instruction when the
+  /// corresponding register is written to.
   CopperComponent operator /(Map<int, FreeLabel> labels) => bind(labels);
 }
 

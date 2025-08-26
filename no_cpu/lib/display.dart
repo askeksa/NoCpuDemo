@@ -226,8 +226,7 @@ class SpritePointers implements CopperComponent {
   void addToCopper(Copper copper) {
     late Label emptySprite = Data.blank(
       16,
-      alignment: 3,
-      mutability: Mutability.immutable,
+      alignment: 4,
       origin: "Empty sprite",
     ).label;
     for (int i = 0; i < 8; i++) {
