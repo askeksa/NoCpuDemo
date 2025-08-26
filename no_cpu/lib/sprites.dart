@@ -163,9 +163,9 @@ class Sprite {
       ..height = 2;
   }
 
-  Blit updateTerminator() {
+  Blit updateTerminator({int? height}) {
     return Blit()
-      ..dPtr = label + (height + 1) * 16
+      ..dPtr = label + ((height ?? this.height) + 1) * 16
       ..dStride = 8
       ..height = 2;
   }
@@ -430,15 +430,17 @@ class SpriteGroup {
     }
   }
 
-  BlitList<Blit> updatePosition({required int v, int h = 0x200}) {
+  BlitList<Blit> updatePosition({required int v, int h = 0x200, int? height}) {
     return BlitList<Blit>([
       for (var s in sprites)
-        s.sprite.updatePosition(v: v, h: h + s.xOffset * 4),
+        s.sprite.updatePosition(v: v, h: h + s.xOffset * 4, height: height),
     ]);
   }
 
-  BlitList<Blit> updateTerminator() {
-    return BlitList<Blit>([for (var s in sprites) s.sprite.updateTerminator()]);
+  BlitList<Blit> updateTerminator({int? height}) {
+    return BlitList<Blit>([
+      for (var s in sprites) s.sprite.updateTerminator(height: height),
+    ]);
   }
 
   BlitList<Blit> blit(
