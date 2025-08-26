@@ -64,7 +64,7 @@ mixin Rebels on NoCpuDemoBase {
 
     wordBitmaps.sortBy((w) => w.$2);
 
-    List<SpriteGroup?> parents = [null, null];
+    SpriteGroup? parent;
     List<(int, int, SpriteGroup, Palette)> words = [];
     for (int i = 0; i < count; i++) {
       var (x, y, bitmap, pal) = wordBitmaps[i];
@@ -73,23 +73,13 @@ mixin Rebels on NoCpuDemoBase {
         bitmap,
         baseIndex: parity,
         sameParity: true,
-        parent: parents[parity],
+        parent: parent,
       );
-      parents[parity] = sprite;
+      parent = sprite;
       words.add((x, y, sprite, sprite.palette(pal, 224, 240)));
     }
 
     return words;
-  }
-
-  List<Label?> wordsLabels(List<(int, int, SpriteGroup, Palette)> words) {
-    List<Label?> labels = List.filled(8, null);
-    for (int w = 0; w < 2; w++) {
-      for (var (i, label) in words[w].$3.labels.indexed) {
-        if (label != null) labels[i] = label;
-      }
-    }
-    return labels;
   }
 
   void displayWords(
@@ -194,7 +184,7 @@ mixin Rebels on NoCpuDemoBase {
       F(p, 0) - (p + 1, 32, -2) >>
               (Display()
                 ..setBitmap(imageBitmap)
-                ..sprites = wordsLabels(words)
+                ..sprites = words.first.$3.labels
                 ..evenSpriteColorOffset = 224
                 ..oddSpriteColorOffset = 240
                 ..priority = 4) ^
