@@ -41,23 +41,11 @@ class DemoBase {
     roots.add(initialCopper.data);
 
     frames = List.generate(frameCount, (i) {
-      return Copper(
-        isPrimary: true,
-        mutability: Mutability.immutable,
-        alignment: 5,
-        origin: i,
-      )..useInFrame(i);
+      return Copper(isPrimary: true, alignment: 5, origin: i)..useInFrame(i);
     });
 
     List<Copper> musicFrames = List.generate(frameCount, (i) {
-      var musicFrame = getMusicFrame(i);
-      var copper = Copper(
-        mutability: Mutability.immutable,
-        alignment: 5,
-        origin: musicFrame,
-      )..useInFrame(i);
-      musicFrame.addToCopper(copper);
-      return copper;
+      return Copper.from(getMusicFrame(i), alignment: 5)..useInFrame(i);
     });
 
     var frameData = Data(singlePage: true, origin: "Frame dispatch");
@@ -90,8 +78,8 @@ class DemoBase {
     var dispatchCopper =
         Copper(
             isPrimary: true,
-            origin: "Dispatch",
             mutability: Mutability.mutable,
+            origin: "Dispatch",
           )
           ..useInFrame(-1)
           ..useInFrame(frameCount);

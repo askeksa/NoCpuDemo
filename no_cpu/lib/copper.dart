@@ -25,12 +25,12 @@ class Copper {
   Copper({
     int alignment = 2,
     this.isPrimary = false,
-    Mutability? mutability,
+    Mutability mutability = Mutability.immutable,
     this.origin,
   }) : data = Data(
          alignment: alignment,
          singlePage: isPrimary,
-         mutability: mutability ?? Mutability.immutable,
+         mutability: mutability,
        ) {
     data.origin = this;
     data.finalizer = (_) {
@@ -43,6 +43,22 @@ class Copper {
         }
       }
     };
+  }
+
+  factory Copper.from(
+    CopperComponent component, {
+    int alignment = 2,
+    bool isPrimary = false,
+    Mutability mutability = Mutability.immutable,
+  }) {
+    var copper = Copper(
+      alignment: alignment,
+      isPrimary: isPrimary,
+      mutability: mutability,
+      origin: component,
+    );
+    component.addToCopper(copper);
+    return copper;
   }
 
   /// Label at the start of the copperlist.
@@ -224,8 +240,7 @@ extension ComponentsInCopper on Copper {
   }
 
   Copper callComponent(CopperComponent component) {
-    var copper = Copper(origin: component);
-    component.addToCopper(copper);
+    var copper = Copper.from(component);
     if (!copper.isEmpty) {
       call(copper);
     }
