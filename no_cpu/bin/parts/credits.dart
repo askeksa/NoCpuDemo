@@ -14,7 +14,7 @@ mixin Credits on NoCpuDemoBase {
   late final Kaleidoscope kaleidoscope = Kaleidoscope();
 
   static final IlbmImage codeImage = IlbmImage.fromFile(
-    "$assetsPath/Credits Code by.iff",
+    "$assetsPath/Credits code by.iff",
   );
   static final IlbmImage graphicsImage = IlbmImage.fromFile(
     "$assetsPath/Credits graphics by.iff",
