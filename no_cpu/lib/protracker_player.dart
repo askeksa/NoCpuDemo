@@ -37,9 +37,9 @@ class ProtrackerPlayer {
         (_) => ProtrackerPlayerChannelState(),
       );
 
-  Music toMusic() {
+  Music toMusic({int hardwareBpm = 125}) {
     var unrolled = ProtrackerUnroller.unroll(_module);
-    var frames = _bpmFrames(unrolled).toList();
+    var frames = _bpmFrames(unrolled, hardwareBpm).toList();
 
     var music = Music()
       ..frames = frames
@@ -399,8 +399,8 @@ class ProtrackerPlayer {
     }
   }
 
-  Iterable<MusicFrame> _bpmFrames(ProtrackerUnroller unrolled) sync* {
-    var bpmCount = 125;
+  Iterable<MusicFrame> _bpmFrames(ProtrackerUnroller unrolled, int hardwareBpm) sync* {
+    var bpmCount = hardwareBpm;
     var it = _songFrames(unrolled).iterator;
 
     _frameCount = 0;
@@ -412,16 +412,16 @@ class ProtrackerPlayer {
           (_) => MusicFrameChannel(),
         );
 
-      if (bpmCount < 125) {
+      if (bpmCount < hardwareBpm) {
         bpmCount += _bpm;
         yield frame;
       } else {
-        while (bpmCount >= 125) {
+        while (bpmCount >= hardwareBpm) {
           if (!it.moveNext()) {
             return;
           }
 
-          bpmCount -= 125;
+          bpmCount -= hardwareBpm;
 
           var newFrame = it.current;
           for (var (i, newChannel) in newFrame.channels.indexed) {
