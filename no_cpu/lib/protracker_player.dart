@@ -2,6 +2,9 @@ import 'dart:math';
 import 'package:no_cpu/music.dart';
 import 'package:no_cpu/protracker.dart';
 
+const _minimumPeriod = 113;
+const _maximumPeriod = 856;
+
 // The current playback state for one channel
 class ProtrackerPlayerChannelState {
   ProtrackerInstrument? instrument;
@@ -160,7 +163,7 @@ class ProtrackerPlayer {
   }
 
   MusicFrame _handleEffects(
-    Iterable<ProtrackerEvent> events,
+    List<ProtrackerEvent> events,
     MusicFrameChannel Function(ProtrackerPlayerChannelState, ProtrackerEvent)
     fn,
   ) {
@@ -170,13 +173,15 @@ class ProtrackerPlayer {
       var channel = _channelState[i];
       var frameChannel = fn(channel, event);
 
+      assert(frameChannel.period == null || (frameChannel.period! >= _minimumPeriod && frameChannel.period! <= _maximumPeriod));
+
       frame.channels.add(frameChannel);
     }
 
     return frame;
   }
 
-  MusicFrame _playSubstep0(Iterable<ProtrackerEvent> events) {
+  MusicFrame _playSubstep0(List<ProtrackerEvent> events) {
     return _handleEffects(events, (channel, event) {
       var frameChannel = _performInstrumentTrigger(channel, event);
 
@@ -194,6 +199,9 @@ class ProtrackerPlayer {
           }
           if (event.effectParameter != 0) {
             channel.portamentoSpeed = event.effectParameter;
+          }
+          if (event.instrument != 0 && _module.instruments[event.instrument - 1] == channel.instrument && !channel.useOffset) {
+            frameChannel.trigger = null;
           }
         case 0x4:
           if (event.effectParameter & 0xF0 != 0) {
@@ -276,22 +284,14 @@ class ProtrackerPlayer {
       }
 
       if (channel.useOffset && frameChannel.trigger != null) {
-        var instrument = frameChannel.trigger!.instrument;
-        if (channel.offset >= instrument.length) {
-          // The offset is out of range. In this case the trigger should start
-          // playing the loop.
-          frameChannel.trigger?.offset = instrument.repeat;
-          frameChannel.trigger?.length = instrument.replen;
-        } else {
-          frameChannel.trigger?.offset = channel.offset;
-        }
+        frameChannel.trigger?.offset = channel.offset;
       }
 
       return frameChannel;
     });
   }
 
-  MusicFrame _playSubstep(Iterable<ProtrackerEvent> events, int subStep) {
+  MusicFrame _playSubstep(List<ProtrackerEvent> events, int subStep) {
     return _handleEffects(events, (channel, event) {
       var frameChannel = MusicFrameChannel();
 
@@ -300,7 +300,7 @@ class ProtrackerPlayer {
           if (event.effectParameter != 0) {
             int arpStep = subStep % 3;
             if (arpStep == 0) {
-              frameChannel.period = channel.period;
+              frameChannel.period = channel.period.clampSlidePeriod();
             } else {
               var addNote = 0;
               switch (arpStep) {
@@ -316,7 +316,7 @@ class ProtrackerPlayer {
               frameChannel.period = _noteToPeriod(
                 baseNote + addNote,
                 channel.instrument?.finetune ?? 0,
-              );
+              ).clampSlidePeriod();
             }
           }
         case 0x1:
@@ -374,32 +374,40 @@ class ProtrackerPlayer {
     });
   }
 
-  Iterable<MusicFrame> _rowFrames(Iterable<ProtrackerEvent> events) sync* {
-    yield _playSubstep0(events);
+  List<MusicFrame> _rowFrames(List<ProtrackerEvent> events) {
+    var frames = <MusicFrame>[];
+    
+    frames.add(_playSubstep0(events));
     for (var subStep = 1; subStep < _speed; subStep++) {
-      yield _playSubstep(events, subStep);
+      frames.add(_playSubstep(events, subStep));
     }
 
     while (_patternDelay > 0) {
       _patternDelay--;
       for (var subStep = 0; subStep < _speed; subStep++) {
-        yield _playSubstep(events, subStep);
+        frames.add(_playSubstep(events, subStep));
       }
     }
+
+    return frames;
   }
 
-  Iterable<MusicFrame> _songFrames(ProtrackerUnroller unrolled) sync* {
+  List<MusicFrame> _songFrames(ProtrackerUnroller unrolled) {
+    var frames = <MusicFrame>[];
     var totalRows = unrolled.channelEvents[0].length;
     for (var row = 0; row < totalRows; row++) {
       _timestamps[unrolled.unrolledPositions[row]] = _frameCount;
 
-      var events = unrolled.channelEvents.map((channel) => channel.events[row]);
+      var events = unrolled.channelEvents.map((channel) => channel.events[row]).toList();
 
-      yield* _rowFrames(events);
+      frames.addAll(_rowFrames(events));
     }
+
+    return frames;
   }
 
-  Iterable<MusicFrame> _bpmFrames(ProtrackerUnroller unrolled, int hardwareBpm) sync* {
+  List<MusicFrame> _bpmFrames(ProtrackerUnroller unrolled, int hardwareBpm) {
+    var frames = <MusicFrame>[];
     var bpmCount = hardwareBpm;
     var it = _songFrames(unrolled).iterator;
 
@@ -414,11 +422,11 @@ class ProtrackerPlayer {
 
       if (bpmCount < hardwareBpm) {
         bpmCount += _bpm;
-        yield frame;
+        frames.add(frame);
       } else {
         while (bpmCount >= hardwareBpm) {
           if (!it.moveNext()) {
-            return;
+            return frames;
           }
 
           bpmCount -= hardwareBpm;
@@ -439,7 +447,7 @@ class ProtrackerPlayer {
         }
         bpmCount += _bpm;
 
-        yield frame;
+        frames.add(frame);
       }
       _frameCount++;
     }
@@ -569,7 +577,7 @@ extension AmigaClamp on int {
   }
 
   int clampSlidePeriod() {
-    return clamp(113, 856).toInt();
+    return clamp(_minimumPeriod, _maximumPeriod).toInt();
   }
 }
 
