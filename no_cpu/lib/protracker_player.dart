@@ -33,6 +33,8 @@ class ProtrackerPlayer {
   int _patternDelay = 0;
   int _frameCount = 0;
   final Map<(int, int), int> _timestamps = {};
+  final Map<int, (int, int)> _reverseTimestamps = {};
+  final Set<int> _fakeCiaUsed = {};
 
   ProtrackerPlayer(this._module)
     : _channelState = List.generate(
@@ -47,6 +49,7 @@ class ProtrackerPlayer {
     var music = Music()
       ..frames = frames
       ..timestamps = _timestamps
+      ..reverseTimestamps = _reverseTimestamps
       ..instruments = _module.instruments
       ..restart = unrolled.restart != null
           ? _timestamps[unrolled.restart!]
@@ -267,7 +270,10 @@ class ProtrackerPlayer {
         case 0xF:
           if (event.effectParameter >= 0x20) {
             _bpm = event.effectParameter;
-            print("Warning: Fake CIA timing ${event.effectParameter} active");
+            if (!_fakeCiaUsed.contains(_bpm)) {
+              print("Warning: Fake CIA timing ${event.effectParameter} active");
+              _fakeCiaUsed.add(_bpm);
+            }
           } else {
             _speed = event.effectParameter;
           }
@@ -392,22 +398,19 @@ class ProtrackerPlayer {
     return frames;
   }
 
-  List<MusicFrame> _songFrames(ProtrackerUnroller unrolled) {
-    var frames = <MusicFrame>[];
+  Iterable<MusicFrame> _songFrames(ProtrackerUnroller unrolled) sync* {
     var totalRows = unrolled.channelEvents[0].length;
     for (var row = 0; row < totalRows; row++) {
       _timestamps[unrolled.unrolledPositions[row]] = _frameCount;
+      _reverseTimestamps[_frameCount] = unrolled.unrolledPositions[row];
 
       var events = unrolled.channelEvents.map((channel) => channel.events[row]).toList();
 
-      frames.addAll(_rowFrames(events));
+      yield* _rowFrames(events);
     }
-
-    return frames;
   }
 
-  List<MusicFrame> _bpmFrames(ProtrackerUnroller unrolled, int hardwareBpm) {
-    var frames = <MusicFrame>[];
+  Iterable<MusicFrame> _bpmFrames(ProtrackerUnroller unrolled, int hardwareBpm) sync* {
     var bpmCount = hardwareBpm;
     var it = _songFrames(unrolled).iterator;
 
@@ -422,11 +425,11 @@ class ProtrackerPlayer {
 
       if (bpmCount < hardwareBpm) {
         bpmCount += _bpm;
-        frames.add(frame);
+        yield frame;
       } else {
         while (bpmCount >= hardwareBpm) {
           if (!it.moveNext()) {
-            return frames;
+            return;
           }
 
           bpmCount -= hardwareBpm;
@@ -447,7 +450,7 @@ class ProtrackerPlayer {
         }
         bpmCount += _bpm;
 
-        frames.add(frame);
+        yield frame;
       }
       _frameCount++;
     }

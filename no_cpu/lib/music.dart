@@ -1,8 +1,12 @@
+import 'dart:collection';
+
 import 'copper.dart';
 import 'custom.dart';
 import 'memory.dart';
 
 class Music {
+  static final _maxSubstep = 32;
+
   List<Instrument> instruments = [];
 
   /// Events happening at each frame throughout the music.
@@ -13,6 +17,7 @@ class Music {
   int? restart;
 
   Map<(int, int), int> timestamps = {};
+  Map<int, (int, int)> reverseTimestamps = {};
 
   /// Returns the frame at which the given [position] and [row] starts playing.
   int getTimestamp(int position, int row) {
@@ -21,6 +26,14 @@ class Music {
       throw Exception("No timestamp for position $position, row $row");
     }
     return time;
+  }
+
+  /// Returns the frame at which the given [position] and [row] starts playing.
+  (int, int) getRowAndPosition(int frame) {
+    for (int i = 0; i < _maxSubstep; ++i) {
+      if (reverseTimestamps[frame + i] case (int, int) pos) return pos;
+    }
+    throw ArgumentError("Frame $frame does not appear to have an associated position");
   }
 
   void optimize() {
