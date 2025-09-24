@@ -220,6 +220,9 @@ class ProtrackerPlayer {
               channel.instrument?.finetune ?? 0,
             );
           }
+          if (event.instrument != 0 && _module.instruments[event.instrument - 1] == channel.instrument && !channel.useOffset) {
+            frameChannel.trigger = null;
+          }
         case 0x7:
           if (event.effectParameter & 0xF0 != 0) {
             channel.tremoloSpeed = event.effectParameter >> 4;
