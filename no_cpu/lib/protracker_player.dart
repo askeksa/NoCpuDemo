@@ -430,6 +430,7 @@ class ProtrackerPlayer {
       if (bpmCount < hardwareBpm) {
         bpmCount += _bpm;
         yield frame;
+        _frameCount++;
       } else {
         while (bpmCount >= hardwareBpm) {
           if (!it.moveNext()) {
@@ -455,8 +456,8 @@ class ProtrackerPlayer {
         bpmCount += _bpm;
 
         yield frame;
+        _frameCount++;
       }
-      _frameCount++;
     }
   }
 }
@@ -465,7 +466,7 @@ class ProtrackerUnroller {
   final ProtrackerModule module;
   final List<ProtrackerPatternEvents> channelEvents;
   final List<(int, int)> unrolledPositions = [];
-  (int, int)? restart = (0, 0);
+  (int, int)? restart;
 
   ProtrackerUnroller.unroll(this.module)
     : channelEvents = List.generate(
