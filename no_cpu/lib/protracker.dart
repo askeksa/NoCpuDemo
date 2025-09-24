@@ -131,7 +131,7 @@ class ProtrackerInstrument extends Instrument {
     Data data = _readSampleData(
       file,
       samplePosition,
-      repeat != 0 ? repeat + replen : lengthInFile,
+      repeat > 0 || replen > 2 ? repeat + replen : lengthInFile,
     );
 
     var instrument = ProtrackerInstrument(

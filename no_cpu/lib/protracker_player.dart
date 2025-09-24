@@ -141,13 +141,16 @@ class ProtrackerPlayer {
     }
 
     if (event.instrument != 0) {
-      channel.instrument = _module.instruments[event.instrument - 1];
+      var newInstrument = _module.instruments[event.instrument - 1];
+      if (channel.instrument != newInstrument) {
+        channel.instrument = newInstrument;
+        frameChannel.trigger = frameChannel.trigger = InstrumentTrigger(
+          channel.instrument!,
+          null,
+        );
+      }
       channel.volume = frameChannel.volume = channel.instrument!.volume;
       channel.useOffset = false;
-      frameChannel.trigger = frameChannel.trigger = InstrumentTrigger(
-        channel.instrument!,
-        null,
-      );
     }
 
     if (event.note != null && channel.instrument != null && !isPortamento) {
@@ -175,8 +178,6 @@ class ProtrackerPlayer {
     for (var (i, event) in events.indexed) {
       var channel = _channelState[i];
       var frameChannel = fn(channel, event);
-
-      assert(frameChannel.period == null || (frameChannel.period! >= _minimumPeriod && frameChannel.period! <= _maximumPeriod));
 
       frame.channels.add(frameChannel);
     }
@@ -309,7 +310,7 @@ class ProtrackerPlayer {
           if (event.effectParameter != 0) {
             int arpStep = subStep % 3;
             if (arpStep == 0) {
-              frameChannel.period = channel.period.clampSlidePeriod();
+              frameChannel.period = channel.period;
             } else {
               var addNote = 0;
               switch (arpStep) {
@@ -325,7 +326,7 @@ class ProtrackerPlayer {
               frameChannel.period = _noteToPeriod(
                 baseNote + addNote,
                 channel.instrument?.finetune ?? 0,
-              ).clampSlidePeriod();
+              );
             }
           }
         case 0x1:
@@ -583,7 +584,8 @@ extension AmigaClamp on int {
   }
 
   int clampSlidePeriod() {
-    return clamp(_minimumPeriod, _maximumPeriod).toInt();
+    int p = this & 0xFFF;
+    return p.clamp(_minimumPeriod, _maximumPeriod).toInt();
   }
 }
 
