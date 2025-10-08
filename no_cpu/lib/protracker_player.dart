@@ -28,6 +28,7 @@ class ProtrackerPlayer {
   final ProtrackerModule _module;
   final List<ProtrackerPlayerChannelState> _channelState;
 
+  bool _printWarnings = true;
   int _speed = 6;
   int _bpm = 125;
   int _patternDelay = 0;
@@ -37,12 +38,11 @@ class ProtrackerPlayer {
   final Set<int> _fakeCiaUsed = {};
 
   ProtrackerPlayer(this._module)
-    : _channelState = List.generate(
-        _module.totalChannels,
-        (_) => ProtrackerPlayerChannelState(),
-      );
+    : _channelState = List.generate(_module.totalChannels, (_) => ProtrackerPlayerChannelState());
 
-  Music toMusic({int hardwareBpm = 125}) {
+  Music toMusic({int hardwareBpm = 125, bool printWarnings = true}) {
+    _printWarnings = printWarnings;
+
     var unrolled = ProtrackerUnroller.unroll(_module);
     var frames = _bpmFrames(unrolled, hardwareBpm).toList();
 
@@ -51,17 +51,12 @@ class ProtrackerPlayer {
       ..timestamps = _timestamps
       ..reverseTimestamps = _reverseTimestamps
       ..instruments = _module.instruments
-      ..restart = unrolled.restart != null
-          ? _timestamps[unrolled.restart!]
-          : null;
+      ..restart = unrolled.restart != null ? _timestamps[unrolled.restart!] : null;
 
     return music;
   }
 
-  void _performVibrato(
-    ProtrackerPlayerChannelState channel,
-    MusicFrameChannel frameChannel,
-  ) {
+  void _performVibrato(ProtrackerPlayerChannelState channel, MusicFrameChannel frameChannel) {
     // TODO: Add vibrato waveforms
 
     var index = channel.vibratoPosition & 0x1F;
@@ -71,14 +66,10 @@ class ProtrackerPlayer {
     }
 
     frameChannel.period = channel.period + amount;
-    channel.vibratoPosition =
-        (channel.vibratoPosition + channel.vibratoSpeed) & 0x3F;
+    channel.vibratoPosition = (channel.vibratoPosition + channel.vibratoSpeed) & 0x3F;
   }
 
-  void _performTremolo(
-    ProtrackerPlayerChannelState channel,
-    MusicFrameChannel frameChannel,
-  ) {
+  void _performTremolo(ProtrackerPlayerChannelState channel, MusicFrameChannel frameChannel) {
     // TODO: Add tremolo waveforms
 
     var index = channel.tremoloPosition & 0x1F;
@@ -88,8 +79,7 @@ class ProtrackerPlayer {
     }
 
     frameChannel.volume = (channel.volume + amount).clampVolume();
-    channel.tremoloPosition =
-        (channel.tremoloPosition + channel.tremoloSpeed) & 0x3F;
+    channel.tremoloPosition = (channel.tremoloPosition + channel.tremoloSpeed) & 0x3F;
   }
 
   void _performVolumeSlide(
@@ -98,29 +88,18 @@ class ProtrackerPlayer {
     ProtrackerEvent event,
   ) {
     if (event.effectParameter & 0xF0 != 0) {
-      channel.volume = frameChannel.volume =
-          (channel.volume + (event.effectParameter >> 4)).clampVolume();
+      channel.volume = frameChannel.volume = (channel.volume + (event.effectParameter >> 4)).clampVolume();
     } else if (event.effectParameter & 0x0F != 0) {
-      channel.volume = frameChannel.volume =
-          (channel.volume - (event.effectParameter & 0x0F)).clampVolume();
+      channel.volume = frameChannel.volume = (channel.volume - (event.effectParameter & 0x0F)).clampVolume();
     }
   }
 
-  void _performPortamento(
-    ProtrackerPlayerChannelState channel,
-    MusicFrameChannel frameChannel,
-  ) {
+  void _performPortamento(ProtrackerPlayerChannelState channel, MusicFrameChannel frameChannel) {
     if (channel.portamentoTarget != 0) {
       if (channel.portamentoTarget > channel.period) {
-        channel.period = frameChannel.period = min(
-          channel.period + channel.portamentoSpeed,
-          channel.portamentoTarget,
-        );
+        channel.period = frameChannel.period = min(channel.period + channel.portamentoSpeed, channel.portamentoTarget);
       } else if (channel.portamentoTarget < channel.period) {
-        channel.period = frameChannel.period = max(
-          channel.period - channel.portamentoSpeed,
-          channel.portamentoTarget,
-        );
+        channel.period = frameChannel.period = max(channel.period - channel.portamentoSpeed, channel.portamentoTarget);
       }
       if (channel.period == channel.portamentoTarget) {
         channel.portamentoTarget = 0;
@@ -128,10 +107,7 @@ class ProtrackerPlayer {
     }
   }
 
-  MusicFrameChannel _performInstrumentTrigger(
-    ProtrackerPlayerChannelState channel,
-    ProtrackerEvent event,
-  ) {
+  MusicFrameChannel _performInstrumentTrigger(ProtrackerPlayerChannelState channel, ProtrackerEvent event) {
     var frameChannel = MusicFrameChannel();
     var isPortamento = event.effect == 3 || event.effect == 5;
 
@@ -144,10 +120,7 @@ class ProtrackerPlayer {
       var newInstrument = _module.instruments[event.instrument - 1];
       if (channel.instrument != newInstrument) {
         channel.instrument = newInstrument;
-        frameChannel.trigger = frameChannel.trigger = InstrumentTrigger(
-          channel.instrument!,
-          null,
-        );
+        frameChannel.trigger = frameChannel.trigger = InstrumentTrigger(channel.instrument!, null);
       }
       channel.volume = frameChannel.volume = channel.instrument!.volume;
       channel.useOffset = false;
@@ -155,10 +128,7 @@ class ProtrackerPlayer {
 
     if (event.note != null && channel.instrument != null && !isPortamento) {
       frameChannel.trigger = InstrumentTrigger(channel.instrument!);
-      channel.period = frameChannel.period = _noteToPeriod(
-        event.note!,
-        channel.instrument!.finetune,
-      );
+      channel.period = frameChannel.period = _noteToPeriod(event.note!, channel.instrument!.finetune);
 
       // TODO: Add waveform retrigger control
       channel.vibratoPosition = 0;
@@ -170,8 +140,7 @@ class ProtrackerPlayer {
 
   MusicFrame _handleEffects(
     List<ProtrackerEvent> events,
-    MusicFrameChannel Function(ProtrackerPlayerChannelState, ProtrackerEvent)
-    fn,
+    MusicFrameChannel Function(ProtrackerPlayerChannelState, ProtrackerEvent) fn,
   ) {
     var frame = MusicFrame();
 
@@ -196,15 +165,14 @@ class ProtrackerPlayer {
           }
         case 0x3:
           if (event.note != null) {
-            channel.portamentoTarget = _noteToPeriod(
-              event.note!,
-              channel.instrument?.finetune ?? 0,
-            );
+            channel.portamentoTarget = _noteToPeriod(event.note!, channel.instrument?.finetune ?? 0);
           }
           if (event.effectParameter != 0) {
             channel.portamentoSpeed = event.effectParameter;
           }
-          if (event.instrument != 0 && _module.instruments[event.instrument - 1] == channel.instrument && !channel.useOffset) {
+          if (event.instrument != 0 &&
+              _module.instruments[event.instrument - 1] == channel.instrument &&
+              !channel.useOffset) {
             frameChannel.trigger = null;
           }
         case 0x4:
@@ -216,12 +184,11 @@ class ProtrackerPlayer {
           }
         case 0x5:
           if (event.note != null) {
-            channel.portamentoTarget = _noteToPeriod(
-              event.note!,
-              channel.instrument?.finetune ?? 0,
-            );
+            channel.portamentoTarget = _noteToPeriod(event.note!, channel.instrument?.finetune ?? 0);
           }
-          if (event.instrument != 0 && _module.instruments[event.instrument - 1] == channel.instrument && !channel.useOffset) {
+          if (event.instrument != 0 &&
+              _module.instruments[event.instrument - 1] == channel.instrument &&
+              !channel.useOffset) {
             frameChannel.trigger = null;
           }
         case 0x7:
@@ -232,30 +199,28 @@ class ProtrackerPlayer {
             channel.tremoloDepth = event.effectParameter & 0x0F;
           }
         case 0x8:
-          print("Warning: 8xx used, this is unsupported");
+          if (_printWarnings) {
+            print("Warning: 8xx used, this is unsupported");
+          }
         case 0x9:
           if (event.effectParameter != 0) {
             channel.offset = event.effectParameter * 256;
           }
           channel.useOffset = true;
         case 0xC:
-          channel.volume = frameChannel.volume = event.effectParameter
-              .clampVolume();
+          channel.volume = frameChannel.volume = event.effectParameter.clampVolume();
         case 0xE0:
-          print("Warning: E0x (filter control) used, this is unsupported");
-          break;
+          if (_printWarnings) {
+            print("Warning: E0x (filter control) used, this is unsupported");
+          }
         case 0xE1:
-          channel.period = frameChannel.period =
-              (channel.period - event.effectParameter).clampSlidePeriod();
+          channel.period = frameChannel.period = (channel.period - event.effectParameter).clampSlidePeriod();
         case 0xE2:
-          channel.period = frameChannel.period =
-              (channel.period + event.effectParameter).clampSlidePeriod();
+          channel.period = frameChannel.period = (channel.period + event.effectParameter).clampSlidePeriod();
         case 0xEA:
-          channel.volume = frameChannel.volume =
-              (channel.volume + event.effectParameter).clampVolume();
+          channel.volume = frameChannel.volume = (channel.volume + event.effectParameter).clampVolume();
         case 0xEB:
-          channel.volume = frameChannel.volume =
-              (channel.volume - event.effectParameter).clampVolume();
+          channel.volume = frameChannel.volume = (channel.volume - event.effectParameter).clampVolume();
         case 0xED:
           if (event.effectParameter >= _speed) {
             channel.restoreBasePeriod = channel.period;
@@ -270,11 +235,13 @@ class ProtrackerPlayer {
             _patternDelay = event.effectParameter;
           }
         case 0xEF:
-          print("Warning: EFx (funk repeat) used, this is unsupported");
+          if (_printWarnings) {
+            print("Warning: EFx (funk repeat) used, this is unsupported");
+          }
         case 0xF:
           if (event.effectParameter >= 0x20) {
             _bpm = event.effectParameter;
-            if (!_fakeCiaUsed.contains(_bpm)) {
+            if (_printWarnings && !_fakeCiaUsed.contains(_bpm)) {
               print("Warning: Fake CIA timing ${event.effectParameter} active");
               _fakeCiaUsed.add(_bpm);
             }
@@ -319,22 +286,14 @@ class ProtrackerPlayer {
                 case 2:
                   addNote = event.effectParameter & 0x0F;
               }
-              var baseNote = _periodToNote(
-                channel.period,
-                channel.instrument?.finetune ?? 0,
-              );
-              frameChannel.period = _noteToPeriod(
-                baseNote + addNote,
-                channel.instrument?.finetune ?? 0,
-              );
+              var baseNote = _periodToNote(channel.period, channel.instrument?.finetune ?? 0);
+              frameChannel.period = _noteToPeriod(baseNote + addNote, channel.instrument?.finetune ?? 0);
             }
           }
         case 0x1:
-          channel.period = frameChannel.period =
-              (channel.period - event.effectParameter).clampSlidePeriod();
+          channel.period = frameChannel.period = (channel.period - event.effectParameter).clampSlidePeriod();
         case 0x2:
-          channel.period = frameChannel.period =
-              (channel.period + event.effectParameter).clampSlidePeriod();
+          channel.period = frameChannel.period = (channel.period + event.effectParameter).clampSlidePeriod();
         case 0x3:
           _performPortamento(channel, frameChannel);
         case 0x4:
@@ -349,10 +308,8 @@ class ProtrackerPlayer {
           _performTremolo(channel, frameChannel);
         case 0xA:
           _performVolumeSlide(channel, frameChannel, event);
-          break;
         case 0xE9:
-          if ((event.effectParameter < 2) ||
-              (subStep % event.effectParameter == 0)) {
+          if ((event.effectParameter < 2) || (subStep % event.effectParameter == 0)) {
             frameChannel = _performInstrumentTrigger(channel, event);
           }
         case 0xEC:
@@ -386,7 +343,7 @@ class ProtrackerPlayer {
 
   List<MusicFrame> _rowFrames(List<ProtrackerEvent> events) {
     var frames = <MusicFrame>[];
-    
+
     frames.add(_playSubstep0(events));
     for (var subStep = 1; subStep < _speed; subStep++) {
       frames.add(_playSubstep(events, subStep));
@@ -421,11 +378,7 @@ class ProtrackerPlayer {
     _frameCount = 0;
 
     while (true) {
-      var frame = MusicFrame()
-        ..channels = List.generate(
-          _module.totalChannels,
-          (_) => MusicFrameChannel(),
-        );
+      var frame = MusicFrame()..channels = List.generate(_module.totalChannels, (_) => MusicFrameChannel());
 
       if (bpmCount < hardwareBpm) {
         bpmCount += _bpm;
@@ -469,10 +422,7 @@ class ProtrackerUnroller {
   (int, int)? restart;
 
   ProtrackerUnroller.unroll(this.module)
-    : channelEvents = List.generate(
-        module.totalChannels,
-        (_) => ProtrackerPatternEvents(),
-      ) {
+    : channelEvents = List.generate(module.totalChannels, (_) => ProtrackerPatternEvents()) {
     _unroll();
   }
 
@@ -487,8 +437,7 @@ class ProtrackerUnroller {
     while (sequencePosition < module.patternSequence.length && !songEnded) {
       while (row < _rowsPerPattern && !songEnded) {
         // If we have seen this row before and we're not in a loop, end the song
-        if (seenPositions.contains((sequencePosition, row)) &&
-            loopCounters.every((n) => n == 0)) {
+        if (seenPositions.contains((sequencePosition, row)) && loopCounters.every((n) => n == 0)) {
           restart = (sequencePosition, row);
           songEnded = true;
           break;
@@ -514,9 +463,7 @@ class ProtrackerUnroller {
               event = ProtrackerEvent.noEffect(event);
             case 0xD:
               // Pattern break
-              breakRow =
-                  (event.effectParameter >> 4 & 0x0F) * 10 +
-                  (event.effectParameter & 0x0F);
+              breakRow = (event.effectParameter >> 4 & 0x0F) * 10 + (event.effectParameter & 0x0F);
               doBreak = true;
               event = ProtrackerEvent.noEffect(event);
             case 0xE:
@@ -545,19 +492,13 @@ class ProtrackerUnroller {
                 }
                 event = ProtrackerEvent.noEffect(event);
               } else {
-                event = ProtrackerEvent(
-                  event.note,
-                  event.instrument,
-                  subEffect,
-                  subParameter,
-                );
+                event = ProtrackerEvent(event.note, event.instrument, subEffect, subParameter);
               }
             case 0xF:
               if (event.effectParameter == 0) {
                 restart = null;
                 songEnded = true;
               }
-              break;
           }
           channelEvents[i].addEvent(event);
         }
@@ -600,8 +541,7 @@ int _noteToPeriod(int note, int finetune) {
 
 int _periodToNote(int period, int finetune) {
   var index = finetune * _notesPerFinetuneSetting;
-  for (var (i, p)
-      in _finetune.sublist(index, index + _notesPerFinetuneSetting).indexed) {
+  for (var (i, p) in _finetune.sublist(index, index + _notesPerFinetuneSetting).indexed) {
     if (period >= p) {
       return i;
     }
